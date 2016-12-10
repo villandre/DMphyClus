@@ -93,7 +93,7 @@ data("withinClusTransProbs", package = "DMphyClus")
 We now specify all the other arguments required by `DMphyClusChain`.
 ```{r}
 alphaVal <- 100 
-numIters <- 200
+numIters <- 100
 numLikThreads <- 2
 numMovesNNIbetween <- 1
 numMovesNNIwithin <- 1
@@ -124,4 +124,4 @@ DMphyClusOut <- DMphyClusChain(numIters = numIters, numLikThreads = numLikThread
 ```{r}
 DMphyClusOut$MAPestimate
 ```
-A tracking bar tells the user in real time what proportion of MCMC iterations have been performed. Although we ran a very short chain (200 iterations), unsurprisingly, the algorithm already managed to identify the correct cluster configuration.
+A tracking bar tells the user in real time what proportion of MCMC iterations have been performed. Although we ran a very short chain (100 iterations), unsurprisingly, the algorithm already managed to identify the correct cluster configuration.
