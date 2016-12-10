@@ -1,0 +1,127 @@
+---
+title: "Running a simple clustering task with DMphyClus"
+author: "Luc Villandre"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+The present vignette aims to provide a summary walkthrough of `DMphyClusChain`, the R function implementing the DMphyClus algorithm. We aim to cluster an alignment made up of six long HIV-1 sequences, three of subtype B, and three belonging to CRF-AE. This is a very easy clustering task with obvious clusters: we should get two clusters, splitting sequences by subtype.
+
+## Data
+
+First we attach the `DMphyClus` library and inspect the data, in DNAbin format, which we then convert into a character matrix.
+```{r}
+library(DMphyClus)
+
+data("seqsToCluster", package = "DMphyClus")
+seqsToClusterChar <- as.character(ape::as.matrix.DNAbin(seqsToCluster))
+seqsToCluster
+```
+All sequences are of the same length, a prerequisite for `DMphyClusChain`. DMphyClus can handle missing data in nucleotide alignments, as long as they are denoted by "-", following the IUPAC standard.
+
+## Starting values
+
+We now obtain a starting state for the phylogeny.
+```{r}
+## Let's propose a random phylogeny as a starting state.
+set.seed(10)
+numSeqs <- nrow(seqsToClusterChar)
+startingPhylo <- ape::rtree(numSeqs)
+startingPhylo$tip.label <- rownames(seqsToClusterChar)[sample(1:numSeqs, size = numSeqs)]
+startingPhylo
+```
+Note that this is meant as an illustration only. Using a sensible starting value greatly reduces time to convergence. In Villandre et al. 2017, we used RAxML to obtain starting values for the phylogenies. RAxML can produce sensible maximum likelihood phylogenetic estimates for large alignments in a matter of minutes. The current version of DMphyClus uses nearest-neighbour interchange to explore the phylogenetic space, a simple but inefficient transition kernel. 
+
+To obtain starting values for the cluster membership indices, we simply select the tips corresponding to the two clades supported by the root node.
+```{r, fig.width= 7, fig.height=7}
+rootChildren <- phangorn::Children(x = startingPhylo, node = ape::Ntip(startingPhylo)+1)
+descendantsClades <- phangorn::Descendants(x = startingPhylo, node = rootChildren)
+
+# Creating the clusInd vector
+
+clusIndList <- mapply(seq_along(descendantsClades), descendantsClades, FUN = function(x,y) {
+  clusVec <- rep(x, length(y))
+  names(clusVec) <- startingPhylo$tip.label[y]
+  clusVec
+}, SIMPLIFY = FALSE)
+
+clusIndStart <- do.call("c", clusIndList)
+ape::plot.phylo(startingPhylo, tip.color = c("red", "blue")[clusIndStart])
+```
+Our starting state includes the right number of clusters, but sequences are still not split by subtype, as shown in the plotted phylogeny, whose tip colours represent cluster membership.
+
+## Obtaining transition probability matrix estimates
+
+One of the least intuitive aspects of `DMphyClusChain` is specification of the transition probability matrices. The core concept in DMphyClus is that clusters are reflected in the phylogeny by a change in mean branch lengths. Once a cluster is spawned, transmissions occur more frequently, resulting in an increase in the phylogenetic branching rate. Users must therefore provide two sets of transition probability matrices: one for the cluster-specific phylogenies, and the other one for the between-cluster (supporting) phylogeny. Users may specify a number of alternative transition probability matrices, which will serve as a domain for the corresponding transition kernel.
+
+If multiple runs of `DMphyClusChain` are required, it is preferrable to derive those matrices, save them and feed them directly to `DMphyClusChain`. `DMphyClusChain` can also derive them, but it may take from several seconds to several hours, depending on the size of the domain, and the number of replicates for the Monte Carlo estimation procedure  Transition probability matrix estimates are obtained numerically with the help of the `outputTransMatList` function.
+```{r}
+numCats <- 3 ## No. of rate variation categories (usually between 3 and 5)
+gammaShapePosada2001 <- 0.7589 ## Based on Posada et al. 2001: the shape parameter of the discrete gamma distribution.
+data("QmatrixPosada2001", package = "DMphyClus") ## The nucleotide substitution rate matrix
+limProbsPosada2001 <- c(a = 0.39, t = 0.22, c = 0.17, g = 0.22) ## Based on Posada et al. 2001: the chain's limiting probabilities.
+
+meanBetweenLength <- 0.03
+meanBetweenVec <- seq(from = meanBetweenLength*0.5, to = meanBetweenLength*1.5, length.out = 10) ## A range of possible mean branch lengths in the supporting phylogeny.
+
+## Getting transition matrices between clusters (1000 is not enough replicates, I would recommend 1e5)
+numReplicates <- 1000
+set.seed(20)
+betweenClusTransProbs <- lapply(meanBetweenVec, FUN = function(x) {
+ lNormMu <- log(x) - 0.3
+ lNormSigma <- sqrt((log(x)-lNormMu)*2)
+ outputTransMatList(QmatScaled = QmatrixPosada2001, numGammaCat = numCats,
+                   gammaShape = gammaShapePosada2001, numReplicates = numReplicates,
+                     distRanFun = rlnorm, meanlog = lNormMu, sdlog = lNormSigma)
+}) ## Depending on the value of numReplicates, this can take several minutes...
+betweenClusTransProbs[[1]]
+```
+In the previous block of code, we derived the domain (10 points) of the transition probability matrices for branches in the supporting phylogeny. Each point in the domain corresponds to a different mean branch length assumption. Each element in betweenClusTransProbs is a list with 3 elements, with each element giving transition probabilities in a different rate variation category. Ideally, we may want to include more points in the domain and increase the number of Monte Carlo replicates to 100,000.
+
+We obtain within-cluster transition probability estimates using a similar strategy. We computed more precise estimates, which we now add to the workspace. 
+```{r}
+data("betweenClusTransProbs", package = "DMphyClus")
+data("withinClusTransProbs", package = "DMphyClus")
+```
+
+## Other arguments
+
+We now specify all the other arguments required by `DMphyClusChain`.
+```{r}
+alphaVal <- 100 
+numIters <- 200
+numLikThreads <- 2
+numMovesNNIbetween <- 1
+numMovesNNIwithin <- 1
+limProbs <- limProbsPosada2001
+clusPhyloUpdateProp <- 1
+shapeForAlpha <- 1000
+scaleForAlpha <- 0.1
+shiftForAlpha <- 10
+poisRateNumClus <- 2
+numSplitMergeMoves <- 3
+startingValues <- list(phylogeny = startingPhylo, clusInd = clusIndStart, alpha = alphaVal)
+```
+Likelihood computations are parallelized with OpenMP. The number of threads to use is specified by numLikThreads. Properly tuning this parameter can yield vast improvements in computational speed. 
+
+Reducing the value of clusPhyloUpdateProp can also reduce the time required for each iteration. This parameter determines the proportion of within-cluster phylogenies (with 3 tips or more) that should be updated in every MCMC iteration. If this parameter is set to any value below 1, the algorithm will randomly select a subset of within-cluster phylogenies to update, whose size is equal to `ceiling(clusPhyloUpdateProp*(number of clusters of size 3 or more)`.
+
+Both clusPhyloUpdateProp and numSplitMergeMoves, that determines the number of cluster split or merge updates that should be attempted in each iteration, are meant to let users control how the function spends its time. The challenge is selecting a setting that reduces autocorrelation in the cluster membership indices, but that does not radically increase the computational load.
+
+Selecting values for the hyperparameters of the gamma-distributed concentration parameter \alpha prior, i.e. shapeForAlpha, scaleForAlpha, and shiftForAlpha, can be difficult. For the selected dataset, picking a high mean was sensible, since our initial guess involved two clusters of the same size. In a less artificial context, shapeForAlpha, scaleForAlpha, and shiftForAlpha should be selected as to allow for a reasonably large range of potential cluster size distributions. Simulations have shown that very small values of alpha tend to result in needless cluster mergers and so, we do not recommend leaving shiftForAlpha at 0.
+
+## Running DMphyClus
+
+Now that all argument values are specified, we run `DMphyClusChain`.
+```{r, message=FALSE, results = "hide"}
+set.seed(10)
+DMphyClusOut <- DMphyClusChain(numIters = numIters, numLikThreads = numLikThreads, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin,        alignment = seqsToClusterChar, startingValues = startingValues, limProbs = limProbsPosada2001, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, shiftForAlpha = shiftForAlpha, poisRateNumClus = poisRateNumClus, betweenClusTransMatList = betweenClusTransProbs, withinClusTransMatList = withinClusTransProbs)
+```
+```{r}
+DMphyClusOut$MAPestimate
+```
+A tracking bar tells the user in real time what proportion of MCMC iterations have been performed. Although we ran a very short chain (200 iterations), unsurprisingly, the algorithm already managed to identify the correct cluster configuration.

@@ -1,0 +1,20 @@
+Package: DMphyClus
+Type: Package
+Title: DMphyClus: A phylogenetic clustering algorithm
+Version: 1.0
+Date: 2016-11-25
+Author: Luc Villandre
+Maintainer: Luc Villandre <yourfault@somewhere.net>
+Description: An implementation of DMphyClus, a Bayesian algorithm for clustering
+    DNA or amino acid alignments.
+License: GPL-3
+Imports:
+    Rcpp (>= 0.12.5), phangorn (>= 2.0.4), ape (>= 3.5), expm (>= 0.999-0)
+Depends: R (>= 2.10)
+ByteCompile: yes
+LinkingTo: Rcpp, RcppArmadillo
+LazyData: true
+RoxygenNote: 5.0.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr

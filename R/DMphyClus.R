@@ -1,0 +1,34 @@
+#' R implementation of DMphyClus
+#'
+#' This package contains a number of functions used for clustering alignments with
+#'  DMphyClus, an algorithm described in Villandre et al. 2017. 
+#'
+#' Note that openMP libraries should be available for the package to work properly.
+#'
+#' The only functions you're likely to need from \pkg{DMphyClus} are
+#' \code{\link{DMphyClusChain}} and \code{\link{outputTransMatList}}.
+#' \code{\link{DMphyClusChain}} runs the MCMC sampler used in DMphyClus.
+#' \code{\link{outputTransMatList}} estimates the transition probability matrices 
+#' for branches in the phylogeny. If you don't produce those estimates manually
+#' and provide them to \code{\link{DMphyClusChain}} through the *ClusTransMatList
+#' arguments, they will be computed by default, but this may take a long time. We 
+#' therefore suggest using \code{\link{outputTransMatList}} before starting your
+#' analyses, saving the result and using it in any subsequent call to 
+#' \code{\link{DMphyClusChain}}.
+#'
+#' \code{\link{logLikFromSplitPhylo}} and \code{\link{logLikFromClusInd}} are used to
+#' obtain the log-likelihood of a sample conditional on an arbitrary phylogeny, 
+#' coded in different formats. In \code{\link{logLikFromSplitPhylo}}, the phylogeny
+#' must be split into between- and within-cluster components, like in the 
+#' \code{\link{DMphyClusChain}} output. In \code{\link{logLikFromClusInd}}, the 
+#' phylogeny is not split, but a compatible vector of cluster assignment indices 
+#' must be provided. Both functions rely on compiled C++ code and may cause 
+#' segmentation faults if not used properly and so, their use is not recommended.  
+#' They can however be useful to compare different partitions.
+#'
+#' The package also includes the function \code{\link{clusIndLogPrior}}, which
+#' produces the log-prior for any cluster assignment index vector. Simulations have
+#' shown this prior to be informative, and so great care should be taken in selecting
+#' its parameter.
+"_PACKAGE"
+#> [1] "_PACKAGE"
