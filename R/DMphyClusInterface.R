@@ -116,8 +116,20 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         x
     })
     seqNames <- rownames(alignment)
+    
+    logAllExtMatList <- lapply(allExtMatList, FUN = function(x) {
+      lapply(x, FUN = function(y) {
+        log(y)
+      })
+    })
+    
+    logAllIntMatList <- lapply(allIntMatList, FUN = function(x) {
+      lapply(x, FUN = function(y) {
+        log(y)
+      })
+    })
 
-    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIint = numMovesNNIbetween, numMovesNNIext = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, extTransMatAll = allExtMatList, intTransMatAll = allIntMatList, DNAdataBin = convertedData, DNAdata = alignment)
+    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, logLimProbs = log(limProbs), numMovesNNIint = numMovesNNIbetween, numMovesNNIext = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, logExtTransMatAll = logAllExtMatList, logIntTransMatAll = logAllIntMatList, DNAdataBin = convertedData, DNAdata = alignment)
 
     chainResult <- do.call(".DMphyClusCore", args = argsForDMcore)
 
@@ -184,13 +196,25 @@ logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatLis
         environment(.checkArgumentsLogLikFromSplitPhylo) <- environment()
         .checkArgumentsLogLikFromSplitPhylo()
     } else{}
+    logBetweenTransMatList <- lapply(betweenTransMatList, FUN = function(x) {
+      lapply(x, FUN = function(y) {
+        log(y)
+      })
+    })
+  
+    logWithinTransMatList <- lapply(withinTransMatList, FUN = function(x) {
+      lapply(x, FUN = function(y) {
+        log(y)
+      })
+    })
+  
     dataBin <- .getConvertedAlignment(alignmentMat = as.character(alignment), numStatesCons = length(limProbs), equivVector = names(limProbs), numOpenMP = numLikThreads)
     alignmentBin <- lapply(dataBin, FUN = function(x) {
         colnames(x) <- rownames(alignment)
         x
     })
     alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], limProbs = limProbs, clusName = x, numLikThreads = numLikThreads, extMatList = withinTransMatList, DNAdataBin = alignmentBin, clusInd = clusInd)
+        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], logLimProbs = log(limProbs), clusName = x, numLikThreads = numLikThreads, logExtMatList = logWithinTransMatList, DNAdataBin = alignmentBin, clusInd = clusInd)
     })
     names(alignmentMultiBinByClus) <- names(clusterPhylos)
 
@@ -199,8 +223,8 @@ logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatLis
     if (!identical(colnames(alignmentMultiBin[[1]][[1]]), betweenPhylo$tip.label)) {
         stop("The ordering of the columns in alignmentMultiBin should match that of the tip labels in betweenPhylo! Line 499.\n")
     } else{}
-
-   .logLikCpp(edgeMat = betweenPhylo$edge, limProbsVec = limProbs, transMatList = betweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE)
+    
+   .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE)
 }
 
 ## The next function outputs a list of transition rate matrices
@@ -260,6 +284,17 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
         environment(.checkArgumentsLogLikFromClusInd) <- environment()
         .checkArgumentsLogLikFromClusInd()
     } else{}
+    logBetweenTransMatList <- lapply(betweenTransMatList, FUN = function(x) {
+      lapply(x, FUN = function(y) {
+        log(y)
+      })
+    })
+  
+    logWithinTransMatList <- lapply(withinTransMatList, FUN = function(x) {
+      lapply(x, FUN = function(y) {
+        log(y)
+      })
+    })
     dataBin <- .getConvertedAlignment(alignmentMat = as.character(alignment), numStatesCons = length(limProbs), equivVector = names(limProbs), numOpenMP = numLikThreads)
     alignmentBin <- lapply(dataBin, FUN = function(x) {
         colnames(x) <- rownames(alignment)
@@ -294,7 +329,7 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     names(clusInd)[!grepl(names(clusInd), pattern = "C")] <- substr(oriNames, start = 1, stop = nchar(oriNames) - 6) ## This restores the original names for clusInd. We changed them because they were responsible for confusing the function that creates betweenPhylo.
 
     alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, extMatList = withinTransMatList, numLikThreads = numLikThreads, limProbs = limProbs)
+        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, logExtMatList = logWithinTransMatList, numLikThreads = numLikThreads, logLimProbs = log(limProbs))
     })
     names(alignmentMultiBinByClus) <- names(clusterPhylos)
 
@@ -304,7 +339,7 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
         stop("The ordering of the columns in alignmentMultiBin should match that of the tip labels in betweenPhylo! Line 499.\n")
     } else{}
 
-   .logLikCpp(edgeMat = betweenPhylo$edge, limProbsVec = limProbs, transMatList = betweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
+   .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
 }
 #' @useDynLib DMphyClus
 #' @importFrom Rcpp sourceCpp
