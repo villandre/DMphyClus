@@ -314,7 +314,7 @@ void phylogenyAlpha::convertNucleoToNum(uint locusIndex)  {
     alignmentBinList[locusIndex] = containerMat ;
 }
 
-
+// Functions to modify! 
 vec phylo::getLikVec(const uint childNodeIndex, mat & nodeTipMat, const int rateIndex) {
 
     vec likVec((nodeTipMat).n_rows) ;
@@ -369,7 +369,7 @@ double phylo::likOneLocusOneRate(const uint locusNum, const int rateIndex, const
 
     return likForOneLocusOneRate ;
 }
-
+// End: Functions to modify
 std::vector<mat> phylo::getAlignmentBin(const uint pos) {
 
     return (alignmentBinList) ;
