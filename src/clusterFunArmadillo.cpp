@@ -10,6 +10,11 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 //#include <boost/algorithm/string.hpp>
 // [[Rcpp::plugins(openmp)]]
@@ -316,14 +321,24 @@ void phylogenyAlpha::convertNucleoToNum(uint locusIndex)  {
 
 // Functions to modify! 
 vec phylo::getLogLikVec(const uint childNodeIndex, mat & nodeTipMat, const int rateIndex) {
-
+    double finiteMinLogLikAtTip ;
     vec logLikVec((nodeTipMat).n_rows) ;
-    double minLogLikAtTip = min((nodeTipMat).col(childNodeIndex - 1)) ;
-    vec relocNodeTipVec = (nodeTipMat).col(childNodeIndex - 1) - minLogLikAtTip ; // Indices start at 0, not at 1.
+    
+    vec relocNodeTipVec(nodeTipMat.col(childNodeIndex - 1)); // Indices start at 0, not at 1.
+    // We remove elements that are -Inf. They will equate 0 later on and so, are of no use.
+    bool checkFinite = is_finite(relocNodeTipVec) ;
+    if (!checkFinite) {
+    
+        vec finiteRelocNodeTipVec(relocNodeTipVec.elem(find_finite(relocNodeTipVec))) ;        
+    } else {
+        
+        vec finiteRelocNodeTipVec(relocNodeTipVec) ;    
+    }
+    finiteMinLogLikAtTip = min(finiteRelocNodeTipVec) ;
     mat repRelocVecMat(relocNodeTipVec.size(), relocNodeTipVec.size()) ;
-    repRelocVecMat.each_row() = relocNodeTipVec ;  
-    logLikVec = minLogLikAtTip + log(sum(exp(logTransMatVec[rateIndex] + repRelocVecMat), 1)) ; 
-    return logLikVec ;
+    repRelocVecMat.each_col() = relocNodeTipVec ;  
+    logLikVec = finiteMinLogLikAtTip + log(sum(exp(arma::trans(logTransMatVec)[rateIndex] + repRelocVecMat), 1) - finiteMinLogLikAtTip) ; // If logTransMatVec is always used in its transposed form, better do the transposition only once, in the R function.
+    return logLikVec ; // A column vector...
 }
 
 void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIndex) {
@@ -344,7 +359,7 @@ void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIn
 }
 
 double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, const bool returnMatIndic) {
-
+    cout << "Entered logLikOneLocusOneRate! \n" ;
     mat nodeTipMat = zeros<mat>(numStates, edge.max()) ; // This is a matrix that stores likelihood vectors. Each vector has as many elements as potential states.
 
     if (!internalPhyloFlag) {
@@ -354,7 +369,7 @@ double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, co
 
         nodeTipMat.cols(0, numTips-1) = log(multiAlignmentBinList[rateIndex][locusNum]) ; // The alignment now depends on the rate category.
     }
-
+    cout << "Initialized nodeTipMat! \n" ;
     for (uint i = 0; (i < updateOrder.n_rows) ; i++) {
 
         internalFun(updateOrder(i), nodeTipMat, rateIndex) ;
@@ -434,7 +449,7 @@ void phylo::logLikPhylo(const bool returnMatIndic) {
     mat logLikMat(numLoci, numRateCats, fill::ones);
 //    #pragma omp parallel for
     for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
-
+        cout << "Entering loop to compute log-lik! \n" ;
          #pragma omp parallel for
         for(uint locusNum = 0; locusNum < numLoci; locusNum++) {
 
@@ -449,14 +464,14 @@ void phylo::logLikPhylo(const bool returnMatIndic) {
 template<class Mat>
 void print_matrix(Mat matrix) {
 
-    //matrix.print(std::cout);
+    matrix.print(std::cout);
 }
 
 
 template<class Col>
 void print_vector(Col colvec) {
 
-    //colvec.print(std::cout);
+    colvec.print(std::cout);
 }
 
 //provide explicit instantiations of the template function for
@@ -466,10 +481,24 @@ template void print_matrix<arma::cx_mat>(arma::cx_mat matrix);
 template void print_vector<arma::uvec>(arma::uvec colvec);
 template void print_vector<arma::vec>(arma::vec colvec);
 
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+  
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+  
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
+
 // [[Rcpp::export]]
 
 SEXP logLikCppToWrap(Rcpp::NumericMatrix & edgeMat, Rcpp::NumericMatrix & alignmentMat, Rcpp::NumericVector & logLimProbsVec, Rcpp::List & logTransMatList, int numOpenMP, SEXP & equivVector, Rcpp::CharacterMatrix & alignmentAlphaMat, Rcpp::List alignmentBin, Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag) {
-
+    
     //omp_set_dynamic(0) ; // Is it required? No... It seems to be a default setting.
     omp_set_num_threads(numOpenMP) ;
     bool testBool ;
@@ -527,12 +556,12 @@ SEXP logLikCppToWrap(Rcpp::NumericMatrix & edgeMat, Rcpp::NumericMatrix & alignm
     } else {
 //         ProfilerStart("/home/villandre/profileOut.out") ;
         NnodeCons = edgeMat.nrow() - firstMatrix.n_cols + 1; // Make sure this works.
-
+        cout << "Building phyloObject! \n" ;
         phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
         //#pragma omp parallel
-        {
+        cout << "Computing log-likelihood \n" ;
         phyloObject.logLikPhylo(returnMatIndic);
-        }
+        
 //             ProfilerStop();
         if (returnMatIndic) {
 
@@ -884,3 +913,5 @@ SEXP logLikCppToWrapV(Rcpp::List & edgeMatList, Rcpp::List & alignmentMatList, R
 //
 //     return(sum(logContributions)) ;
 // }
+
+
