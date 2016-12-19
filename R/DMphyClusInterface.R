@@ -260,7 +260,7 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
         environment(.checkArgumentsLogLikFromClusInd) <- environment()
         .checkArgumentsLogLikFromClusInd()
     } else{}
-    dataBin <- .getConvertedAlignment(alignmentMat = as.character(alignment), numStatesCons = length(limProbs), equivVector = names(limProbs), numOpenMP = numLikThreads)
+    dataBin <- .getConvertedAlignment(alignmentMat = alignment, numStatesCons = length(limProbs), equivVector = names(limProbs), numOpenMP = numLikThreads)
     alignmentBin <- lapply(dataBin, FUN = function(x) {
         colnames(x) <- rownames(alignment)
         x
@@ -294,7 +294,7 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     names(clusInd)[!grepl(names(clusInd), pattern = "C")] <- substr(oriNames, start = 1, stop = nchar(oriNames) - 6) ## This restores the original names for clusInd. We changed them because they were responsible for confusing the function that creates betweenPhylo.
 
     alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, extMatList = withinTransMatList, numLikThreads = numLikThreads, limProbs = limProbs)
+        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, extMatList = withinTransMatList, numLikThreads = numLikThreads, limProbs = limProbs, DNAdataBin = alignmentBin)
     })
     names(alignmentMultiBinByClus) <- names(clusterPhylos)
 
