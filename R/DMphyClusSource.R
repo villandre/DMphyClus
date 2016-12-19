@@ -1,19 +1,19 @@
-.performStepPhylo <- function(currentValue, logLimProbs, shapePriorAlpha, scalePriorAlpha, numGammaCat, intTransMatAll, logExtTransMatAll, enableJainNeal = FALSE, currentIter, DNAdata, numNeighbours, numMovesNNIint = 1, numMovesNNIext = 1, numLikThreads, DNAdataBin, singletonMatrices, poisRateNumClus, clusPhyloUpdateProp = 1, alphaMin, numSplitMergeMoves) {
+.performStepPhylo <- function(currentValue, logLimProbs, shapePriorAlpha, scalePriorAlpha, numGammaCat, logIntTransMatAll, logExtTransMatAll, enableJainNeal = FALSE, currentIter, DNAdata, numNeighbours, numMovesNNIint = 1, numMovesNNIext = 1, numLikThreads, DNAdataBin, singletonMatrices, poisRateNumClus, clusPhyloUpdateProp = 1, alphaMin, numSplitMergeMoves) {
     if (class(currentValue$paraValues$internalPhylo) == "phylo") {
-      currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = intTransMatAll, samplingRadius = 2, internalBool = TRUE, logLimProbs = logLimProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
+      currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logIntTransMatAll, samplingRadius = 2, internalBool = TRUE, logLimProbs = logLimProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
     }
-    currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logExtTransMatAll, currentIntTransMatList = intTransMatAll[[currentValue$paraValues$logIntMatListIndex]], samplingRadius = 2, internalBool = FALSE, logLimProbs = logLimProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
+    currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logExtTransMatAll, currentIntTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], samplingRadius = 2, internalBool = FALSE, logLimProbs = logLimProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
 
     if (length(currentValue$paraValues$clusterPhylos) > 2) {
-        internalPhyloList <- .updateSupportingPhylo(internalPhylo = currentValue$paraValues$internalPhylo, logLimProbs = logLimProbs, logTransMatList = intTransMatAll[[currentValue$paraValues$logIntMatListIndex]], numMovesNNI = numMovesNNIint, numLikThreads = numLikThreads, DNAdataMultiBinByClus = currentValue$DNAdataMultiBinByClus, currentLogLik = currentValue$logLik) ## This step updates the supporting phylogeny.
+        internalPhyloList <- .updateSupportingPhylo(internalPhylo = currentValue$paraValues$internalPhylo, logLimProbs = logLimProbs, logTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], numMovesNNI = numMovesNNIint, numLikThreads = numLikThreads, DNAdataMultiBinByClus = currentValue$DNAdataMultiBinByClus, currentLogLik = currentValue$logLik) ## This step updates the supporting phylogeny.
         currentValue$logPostProb <- currentValue$logPostProb - currentValue$logLik + internalPhyloList$logLik ## Updating the internal phylogeny doesn't change the prior value.
         currentValue$logLik <- internalPhyloList$logLik
         currentValue$paraValues$internalPhylo <- internalPhyloList$internalPhylo
     } else{}
 
-    currentValue <- .updateClusterPhylos(currentValue = currentValue, logLimProbs = logLimProbs, intTransMatList = intTransMatAll[[currentValue$paraValues$logIntMatListIndex]], clusTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], numMovesNNI = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, clusPhyloUpdateProp = clusPhyloUpdateProp) ## This step updates the cluster-specific phylogenies. It is the slowest step.
+    currentValue <- .updateClusterPhylos(currentValue = currentValue, logLimProbs = logLimProbs, intTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], clusTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], numMovesNNI = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, clusPhyloUpdateProp = clusPhyloUpdateProp) ## This step updates the cluster-specific phylogenies. It is the slowest step.
     lapply(1:numSplitMergeMoves, FUN = function(x) { ##
-        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, logLimProbs = logLimProbs, clusTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], intTransMatList = intTransMatAll[[currentValue$paraValues$logIntMatListIndex]], numLikThreads = numLikThreads, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin)
+        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, logLimProbs = logLimProbs, clusTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], intTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], numLikThreads = numLikThreads, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin)
     })
 
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
@@ -34,7 +34,7 @@
     currentValue
 }
 
-.initCurrentValue <- function(startingValues, DNAdataBin, intTransMatAll, logExtTransMatAll, logLimProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin) {
+.initCurrentValue <- function(startingValues, DNAdataBin, logIntTransMatAll, logExtTransMatAll, logLimProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin) {
     currentValue <- list()
     startingValues$phylogeny$node.label <- NULL
 
@@ -46,7 +46,7 @@
       startingValues$clusInd[numberPosClusInd] <- paste(startingValues$clusInd[numberPosClusInd], "unique", sep = "")
     } else{}
     currentValue$paraValues <- startingValues ## Initializing starting values. Note that the cluster indices are initialized in the wrapper function onePolyaIter.
-    currentValue$paraValues$logIntMatListIndex <- ceiling(length(intTransMatAll)/2)
+    currentValue$paraValues$logIntMatListIndex <- ceiling(length(logIntTransMatAll)/2)
     currentValue$paraValues$logExtMatListIndex <- ceiling(length(logExtTransMatAll)/2)
     currentValue$paraValues$clusInd <- startingValues$clusInd[startingValues$phylogeny$tip.label]
 
@@ -100,7 +100,7 @@
       if (!identical(colnames(DNAdataMultiBin[[1]][[1]]), currentValue$paraValues$internalPhylo$tip.label)) {
         stop("The ordering of the columns in DNAdataMultiBin should match that of the tip labels in internalPhylo! Line 499.\n")
       } else{}
-      currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatAll[[currentValue$paraValues$logIntMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
+      currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
     }
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
@@ -328,9 +328,9 @@
     .logLikCpp(edgeMat = clusterPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = logExtMatList, numOpenMP = numLikThreads, alignmentBin = subDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE) ## The cluster specific phylogenies all have the same branch length priors across all branches.
 }
 
-.DMphyClusCore <- function(nIter, startingValues, DNAdata, logLimProbs, shapeForAlpha, scaleForAlpha, numMovesNNIint, numMovesNNIext, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, logExtTransMatAll, intTransMatAll) {
+.DMphyClusCore <- function(nIter, startingValues, DNAdata, logLimProbs, shapeForAlpha, scaleForAlpha, numMovesNNIint, numMovesNNIext, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, logExtTransMatAll, logIntTransMatAll) {
 
-    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, logExtTransMatAll = logExtTransMatAll, intTransMatAll = intTransMatAll, logLimProbs = logLimProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, logLimProbs = logLimProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
     if (is.matrix(logExtTransMatAll[[1]])) {
         numGammaCat <- length(logExtTransMatAll) ## We only have one set of substitution rate matrices.
     } else{
@@ -353,7 +353,7 @@
             setTxtProgressBar(pb = progress, value = x/nIter)
         } else{}
 
-        currentValue <<- .performStepPhylo(currentValue = currentValue, logLimProbs = logLimProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, logExtTransMatAll = logExtTransMatAll, intTransMatAll = intTransMatAll, currentIter = x, numMovesNNIint = numMovesNNIint, numMovesNNIext = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
+        currentValue <<- .performStepPhylo(currentValue = currentValue, logLimProbs = logLimProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, currentIter = x, numMovesNNIint = numMovesNNIint, numMovesNNIext = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
 
         paraVec <- currentValue$paraValues
         names(paraVec) <- replace(names(paraVec), match(c("internalPhylo", "logExtMatListIndex","logIntMatListIndex"), names(paraVec)), c("supportPhylo", "withinTransMatListIndex", "betweenTransMatListIndex"))
@@ -398,7 +398,7 @@
             output <- logLikCppToWrap(edgeMat = edgeMat, alignmentMat = alignmentMat, logLimProbsVec = logLimProbsVec, logTransMatList = logTransMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentAlphaMat = placeholderAlignmentAlpha, alignmentBin = placeholderBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag) ## Both equivVector and alignmentAlphaMat are given arbitrary values serving as placeholders, since the underlying C++ function cannot handle missing arguments.
         }
     } else {
-        output <- logLikCppToWrap(edgeMat = edgeMat, alignmentMat = placeholderAlignmentNum, logLimProbsVec = limProbsVec, logTransMatList = logTransMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentAlphaMat = placeholderAlignmentAlpha, alignmentBin = alignmentBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag)
+        output <- logLikCppToWrap(edgeMat = edgeMat, alignmentMat = placeholderAlignmentNum, logLimProbsVec = logLimProbsVec, logTransMatList = logTransMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentAlphaMat = placeholderAlignmentAlpha, alignmentBin = alignmentBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag)
     }
     output
 }
