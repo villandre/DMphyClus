@@ -351,7 +351,7 @@ void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIn
         
         logLikVecByChild = logLikVecByChild + getLogLikVec(theChildren(i), nodeTipMat, rateIndex) ;
     }
-
+    
     nodeTipMat.col(parentNum - 1) = logLikVecByChild ;
 }
 
@@ -380,7 +380,7 @@ double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, co
             pruningMatVec[rateIndex](i, locusNum) = valueInMatrix ;
         }
     } else{}
-
+    
     return logLikForOneLocusOneRate ;
 }
 // End: Functions to modify
@@ -453,9 +453,11 @@ void phylo::logLikPhylo(const bool returnMatIndic) {
             logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ; 
         }
     }
-    vec logLikSumRate = sum(logLikMat, 1) ;
-    vec meanEffectVec = vec(numLoci).fill(log(numRateCats)) ;
-    logLik = sum(logLikSumRate - meanEffectVec)  ;
+    //vec logLikSumRate = sum(logLikMat, 1) ;
+    vec rowMin = min(logLikMat,1) ;
+    logLikMat.each_col() -= rowMin ;
+    logLik = sum(rowMin + log(sum(exp(logLikMat), 1)) - log(3)) ;
+    //logLik = minLogLikSumRate + sum(exp(logLikSumRate - minLogLikSumRate)) - log(numRateCats)  ;
 }
 
 template<class Mat>
