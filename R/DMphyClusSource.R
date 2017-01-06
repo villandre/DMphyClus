@@ -54,8 +54,9 @@
     if (max(currentValue$paraValues$clusInd) == 1) {
       internalPhylo <- NULL
       currentValue$paraValues$clusterPhylos[[1]] <- currentValue$paraValues$phylogeny
-      names(currentValue$paraValues$clusterPhylos) <- "1"
-      DNAdataMultiBinByClus <- list(.outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[1]], clusName = "1", clusInd = currentValue$paraValues$clusInd, DNAdataBin = lapply(DNAdataBin, FUN = function(x) x[,currentValue$paraValues$clusterPhylos[[1]]$tip.label]), extMatList = extTransMatAll[[currentValue$paraValues$extMatListIndex]], numLikThreads = numLikThreads, limProbs = limProbs))
+      currentValue$sitePatternsByClus[[1]] <- getSitePatterns(DNAdataBin)
+      names(currentValue$paraValues$clusterPhylos) <- names(currentValue$sitePatternsByClus[[1]]) <- "1"
+      DNAdataMultiBinByClus <- list(.outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[1]], clusName = "1", clusInd = currentValue$paraValues$clusInd, DNAdataBin = lapply(currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, FUN = function(x) x[,currentValue$paraValues$clusterPhylos[[1]]$tip.label]), extMatList = extTransMatAll[[currentValue$paraValues$extMatListIndex]], numLikThreads = numLikThreads, limProbs = limProbs, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns))
       names(DNAdataMultiBinByClus) <- names(currentValue$paraValues$clusterPhylos)
       currentValue$DNAdataMultiBinByClus <- DNAdataMultiBinByClus ## Will need to be adjusted with redimMultiBinByClus before being used in a call to logLikCpp
       currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$clusterPhylos[[1]]$edge, limProbsVec = limProbs, transMatList = extTransMatAll[[currentValue$paraValues$extMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = lapply(DNAdataBin, FUN = function(x) {x[,currentValue$paraValues$clusterPhylos[[1]]$tip.label]}), internalFlag = FALSE, returnRootMat = FALSE)
@@ -86,12 +87,19 @@
       currentValue$paraValues$clusterPhylos <- mapply(clusLabels, split(names(currentValue$paraValues$clusInd), f = currentValue$paraValues$clusInd), FUN = outputClusPhySetIntPhy, SIMPLIFY = FALSE, USE.NAMES = TRUE)
       currentValue$paraValues$clusterPhylos <- currentValue$paraValues$clusterPhylos[internalPhylo$tip.label] ## The order of the elements in clusterPhylos must match that of the tip labels in internalPhylo.
       currentValue$paraValues$internalPhylo <- internalPhylo
-
-      # oriNames <- names(currentValue$paraValues$clusInd)[!grepl(names(currentValue$paraValues$clusInd), pattern = "C")]
-      # names(currentValue$paraValues$clusInd)[!grepl(names(currentValue$paraValues$clusInd), pattern = "C")] <- substr(oriNames, start = 1, stop = nchar(oriNames) - 6) ## This restores the original names for clusInd. We changed them because they were responsible for confusing the function that creates internalPhylo.
-
+      
+      sitePatternsByClus <- lapply(currentValue$parValues$clusterPhylos, FUN = function(x) {
+        if (!is.null(x)) {
+          output <- getSitePatterns(DNAdata[x$tip.label])
+        } else {
+          output <- NULL
+        }
+        output
+      })
+      names(sitePatternsByClus) <- names(currentValue$paraValues$clusterPhylos)
+      currentValue$sitePattenrsByClus <- sitePatternsByClus
       DNAdataMultiBinByClus <- lapply(names(currentValue$paraValues$clusterPhylos), FUN = function(x) {
-        .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusName = x, clusInd = currentValue$paraValues$clusInd, DNAdataBin = DNAdataBin, extMatList = extTransMatAll[[currentValue$paraValues$extMatListIndex]], numLikThreads = numLikThreads, limProbs = limProbs)
+        .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusName = x, clusInd = currentValue$paraValues$clusInd, DNAdataBin = currentValue$paraValues$sitePatternsByClus[[x]]$uniqueDNAdataBin, extMatList = extTransMatAll[[currentValue$paraValues$extMatListIndex]], numLikThreads = numLikThreads, limProbs = limProbs, sitePatterns = currentValue$paraValues$sitePatternsByClus[[x]]$sitePatterns)
       })
       names(DNAdataMultiBinByClus) <- names(currentValue$paraValues$clusterPhylos)
 
@@ -312,20 +320,20 @@
     currentValue
 }
 
-.outputDNAdataMultiBin <- function(clusterPhylo, clusInd, clusName, DNAdataBin, extMatList, numLikThreads, limProbs) {
+.outputDNAdataMultiBin <- function(clusterPhylo, clusInd, clusName, DNAdataBin, extMatList, numLikThreads, limProbs, sitePatterns) {
     if (class(clusterPhylo) != "phylo") {
         tipInClus <- names(clusInd)[match(as.numeric(clusName), clusInd)]
         alignRedim <- sapply(1:length(DNAdataBin), FUN = function(locusIndex) {
-            DNAdataBin[[locusIndex]][,tipInClus]*1e300 ## The factor prevents computational zeros.
+            DNAdataBin[[locusIndex]][,tipInClus] 
         })
         return(replicate(n = length(extMatList), expr = identity(alignRedim), simplify = FALSE))
     } else{}
-    subDNAdataBin <- .dataBinSubset(DNAdataBin = DNAdataBin, keepSeqNamesOrNums = clusterPhylo$tip.label) ## Careful: the column order in the matrices of subDNAdataBin must match the ordering of the tip labels in clusterPhylos[[x]]: tested, they seem to match.
-    if (!identical(colnames(subDNAdataBin[[1]]), clusterPhylo$tip.label)) {
+  
+    if (!identical(colnames(DNAdataBin[[1]]), clusterPhylo$tip.label)) {
         stop("The ordering of the columns in DNAdataMultiBin should match that of the tip labels in internalPhylo! Line 486.\n")
     } else{}
 
-    .logLikCpp(edgeMat = clusterPhylo$edge, limProbsVec = limProbs, transMatList = extMatList, numOpenMP = numLikThreads, alignmentBin = subDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE) ## The cluster specific phylogenies all have the same branch length priors across all branches.
+    .logLikCpp(edgeMat = clusterPhylo$edge, limProbsVec = limProbs, transMatList = extMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = sitePatterns)
 }
 
 .DMphyClusCore <- function(nIter, startingValues, DNAdata, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIint, numMovesNNIext, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, extTransMatAll, intTransMatAll) {
@@ -338,7 +346,7 @@
     }
     singletonMatrices <- lapply(names(currentValue$paraValues$clusInd), FUN = function(obsName) {
         alignRedim <- sapply(seq_along(DNAdataBin), FUN = function(locusIndex) {
-            DNAdataBin[[locusIndex]][,obsName]*1e300 ## This is an offset to prevent computational zeros.
+            DNAdataBin[[locusIndex]][,obsName] ## This is an offset to prevent computational zeros.
         })
         rep(list(alignRedim), numGammaCat)
     })
@@ -384,38 +392,20 @@
 ## numStates is 4 for nucleotide alignments and 20 for AA alignments.
 ## childNodeInClusIndic is by default 1000, meaning that branches leading to tips, and only those branches, belong to clusters.
 ## NEXT UPDATE: The first argument should not be edgeMat: it's not straightforward. It should be the phylo object itself. It could be passed as a Rcpp::List to C++. We could then remove the NnodeCons argument. We could also add to the matrix an element named childNodeInClusIndic, which would remove the need for the user to specify it in a separate argument.
-.logLikCpp <- function(edgeMat, limProbsVec, alignmentMat, transMatList, numOpenMP, equivVector, alignmentBin, childNodeInClusIndic = 1000, returnRootMat = FALSE, internalFlag = FALSE) {
-    ## The placeholders exist because Rcpp will want these arguments to be defined.
+.logLikCpp <- function(edgeMat, limProbsVec, transMatList, numOpenMP, equivVector, alignmentBin, childNodeInClusIndic = 1000, returnRootMat = FALSE, internalFlag = FALSE, sitePatterns) {
+    if (missing(sitePatterns)) {
+      sitePatterns <- seq_along(alignmentBin)
+    } else{}
     numStatesCons <- length(limProbsVec)
-    placeholderAlignmentNum <- matrix(0,1,1)
-    placeholderAlignmentAlpha <- matrix("a",1,1)
-    placeholderBin <- list(matrix(1000,1,1))
     placeholderEquiv <- rep("a",numStatesCons)
-    if (missing(alignmentBin)) {
-        if (is.character(alignmentMat[1,1])) {## Alphanumeric alignment, the function will need to convert it. It is fed to alignmentAlphaMat in logLikCppToWrap.
-            output <- logLikCppToWrap(edgeMat = edgeMat, alignmentMat = placeholderAlignmentNum, limProbsVec = limProbsVec, transMatList = transMatList, numOpenMP = numOpenMP, equivVector = equivVector, alignmentAlphaMat = alignmentMat, alignmentBin = placeholderBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag)
-        } else {
-            output <- logLikCppToWrap(edgeMat = edgeMat, alignmentMat = alignmentMat, limProbsVec = limProbsVec, transMatList = transMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentAlphaMat = placeholderAlignmentAlpha, alignmentBin = placeholderBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag) ## Both equivVector and alignmentAlphaMat are given arbitrary values serving as placeholders, since the underlying C++ function cannot handle missing arguments.
-        }
-    } else {
-        output <- logLikCppToWrap(edgeMat = edgeMat, alignmentMat = placeholderAlignmentNum, limProbsVec = limProbsVec, transMatList = transMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentAlphaMat = placeholderAlignmentAlpha, alignmentBin = alignmentBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag)
-    }
+    output <- logLikCppToWrap(edgeMat = edgeMat, limProbsVec = limProbsVec, transMatList = transMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentBin = alignmentBin, childNodeInClusIndic = childNodeInClusIndic, returnMatIndic = returnRootMat, internalFlag = internalFlag, sitePatterns = sitePatterns)
+    
     output
 }
 
 .getConvertedAlignment <- function(alignmentMat, numStatesCons, equivVector, numOpenMP = 2) {
 
-    placeholderAllIntegers <- 2
-    placeholderAlignmentNum <- matrix(0,1,1)
-    placeholderAlignmentAlpha <- matrix("a",1,1)
-    placeholderEquiv <- 1:numStatesCons
-
-    if (is.character(alignmentMat[1,1])) {
-       output <- getConvertedAlignmentToWrap(alignmentMat = placeholderAlignmentNum, numStatesCons = numStatesCons, numOpenMP = numOpenMP, equivVector = equivVector, alignmentAlphaMat = alignmentMat)
-    } else {
-        output <- getConvertedAlignmentToWrap(alignmentMat = alignmentMat, numStatesCons = numStatesCons, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentAlphaMat = placeholderAlignmentAlpha)  ## Both equivVector and alignmentAlphaMat are given arbitrary values serving as placeholders, since the underlying C++ function cannot handle missing arguments.
-    }
-    output
+    getConvertedAlignmentToWrap(numStatesCons = numStatesCons, numOpenMP = numOpenMP, equivVector = equivVector, alignmentAlphaMat = alignmentMat)
 }
 
 .introduceMultiPhyloWithDist <-  function(phylogeny, clusInd) {
@@ -645,5 +635,13 @@
 
 .checkArgumentsLogLikFromClusInd <- function() {}
 
-
+getSitePatterns <- function(alignmentBin) {
+  
+  hashesVec <- lapply(alignmentBin, FUN = digest, algo = "xxhash64")
+  noDuplicates <- !duplicated(hashesVec)
+  uniqueHashes <- hashesVec[noDuplicates]
+  uniqueMatBin <- alignmentBin[,noDuplicates]
+  matchVector <- match(hashesVec, uniqueHashes)
+  list(uniqueDNAdataBin = uniqueMatBin, sitePatterns = matchVector)
+}
 
