@@ -1,3 +1,4 @@
 clusterFunArmadillo.o
 RcppExports.o
 DMphyClus.so
+RcppExports.cpp
