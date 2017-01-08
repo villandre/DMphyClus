@@ -6,39 +6,17 @@
 
 using namespace Rcpp;
 
-// logLikCppToWrap
-SEXP logLikCppToWrap(Rcpp::NumericMatrix& edgeMat, Rcpp::NumericMatrix& alignmentMat, Rcpp::NumericVector& logLimProbsVec, Rcpp::List& logTransMatList, int numOpenMP, SEXP& equivVector, Rcpp::CharacterMatrix& alignmentAlphaMat, Rcpp::List alignmentBin, Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag);
-RcppExport SEXP DMphyClus_logLikCppToWrap(SEXP edgeMatSEXP, SEXP alignmentMatSEXP, SEXP logLimProbsVecSEXP, SEXP logTransMatListSEXP, SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentAlphaMatSEXP, SEXP alignmentBinSEXP, SEXP childNodeInClusIndicSEXP, SEXP returnMatIndicSEXP, SEXP internalFlagSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix& >::type edgeMat(edgeMatSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix& >::type alignmentMat(alignmentMatSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector& >::type logLimProbsVec(logLimProbsVecSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List& >::type logTransMatList(logTransMatListSEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    Rcpp::traits::input_parameter< SEXP& >::type equivVector(equivVectorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type alignmentAlphaMat(alignmentAlphaMatSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type alignmentBin(alignmentBinSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type childNodeInClusIndic(childNodeInClusIndicSEXP);
-    Rcpp::traits::input_parameter< const bool >::type returnMatIndic(returnMatIndicSEXP);
-    Rcpp::traits::input_parameter< const bool >::type internalFlag(internalFlagSEXP);
-    rcpp_result_gen = Rcpp::wrap(logLikCppToWrap(edgeMat, alignmentMat, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentAlphaMat, alignmentBin, childNodeInClusIndic, returnMatIndic, internalFlag));
-    return rcpp_result_gen;
-END_RCPP
-}
 // getConvertedAlignmentToWrap
-SEXP getConvertedAlignmentToWrap(Rcpp::NumericMatrix& alignmentMat, uint numStatesCons, int numOpenMP, SEXP& equivVector, Rcpp::CharacterMatrix& alignmentAlphaMat);
-RcppExport SEXP DMphyClus_getConvertedAlignmentToWrap(SEXP alignmentMatSEXP, SEXP numStatesConsSEXP, SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentAlphaMatSEXP) {
+SEXP getConvertedAlignmentToWrap(uint numStatesCons, int numOpenMP, SEXP& equivVector, Rcpp::CharacterMatrix& alignmentAlphaMat);
+RcppExport SEXP DMphyClus_getConvertedAlignmentToWrap(SEXP numStatesConsSEXP, SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentAlphaMatSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix& >::type alignmentMat(alignmentMatSEXP);
     Rcpp::traits::input_parameter< uint >::type numStatesCons(numStatesConsSEXP);
     Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
     Rcpp::traits::input_parameter< SEXP& >::type equivVector(equivVectorSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type alignmentAlphaMat(alignmentAlphaMatSEXP);
-    rcpp_result_gen = Rcpp::wrap(getConvertedAlignmentToWrap(alignmentMat, numStatesCons, numOpenMP, equivVector, alignmentAlphaMat));
+    rcpp_result_gen = Rcpp::wrap(getConvertedAlignmentToWrap(numStatesCons, numOpenMP, equivVector, alignmentAlphaMat));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -54,24 +32,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // logLikCppToWrapV
-SEXP logLikCppToWrapV(Rcpp::List& edgeMatList, Rcpp::List& alignmentMatList, Rcpp::NumericVector& logLimProbsVec, Rcpp::List& logTransMatList, int numOpenMP, SEXP& equivVector, Rcpp::List& alignmentAlphaMatList, Rcpp::List alignmentBinList, Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const bool priorBySizeTransMatBool);
-RcppExport SEXP DMphyClus_logLikCppToWrapV(SEXP edgeMatListSEXP, SEXP alignmentMatListSEXP, SEXP logLimProbsVecSEXP, SEXP logTransMatListSEXP, SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentAlphaMatListSEXP, SEXP alignmentBinListSEXP, SEXP childNodeInClusIndicSEXP, SEXP returnMatIndicSEXP, SEXP internalFlagSEXP, SEXP priorBySizeTransMatBoolSEXP) {
+SEXP logLikCppToWrapV(List& edgeMatList, NumericVector& logLimProbsVec, List& logTransMatList, int numOpenMP, SEXP& equivVector, List alignmentBinList, NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const List sitePatternsList);
+RcppExport SEXP DMphyClus_logLikCppToWrapV(SEXP edgeMatListSEXP, SEXP logLimProbsVecSEXP, SEXP logTransMatListSEXP, SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentBinListSEXP, SEXP childNodeInClusIndicSEXP, SEXP returnMatIndicSEXP, SEXP internalFlagSEXP, SEXP sitePatternsListSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List& >::type edgeMatList(edgeMatListSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List& >::type alignmentMatList(alignmentMatListSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector& >::type logLimProbsVec(logLimProbsVecSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List& >::type logTransMatList(logTransMatListSEXP);
+    Rcpp::traits::input_parameter< List& >::type edgeMatList(edgeMatListSEXP);
+    Rcpp::traits::input_parameter< NumericVector& >::type logLimProbsVec(logLimProbsVecSEXP);
+    Rcpp::traits::input_parameter< List& >::type logTransMatList(logTransMatListSEXP);
     Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
     Rcpp::traits::input_parameter< SEXP& >::type equivVector(equivVectorSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List& >::type alignmentAlphaMatList(alignmentAlphaMatListSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type alignmentBinList(alignmentBinListSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type childNodeInClusIndic(childNodeInClusIndicSEXP);
+    Rcpp::traits::input_parameter< List >::type alignmentBinList(alignmentBinListSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type childNodeInClusIndic(childNodeInClusIndicSEXP);
     Rcpp::traits::input_parameter< const bool >::type returnMatIndic(returnMatIndicSEXP);
     Rcpp::traits::input_parameter< const bool >::type internalFlag(internalFlagSEXP);
-    Rcpp::traits::input_parameter< const bool >::type priorBySizeTransMatBool(priorBySizeTransMatBoolSEXP);
-    rcpp_result_gen = Rcpp::wrap(logLikCppToWrapV(edgeMatList, alignmentMatList, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentAlphaMatList, alignmentBinList, childNodeInClusIndic, returnMatIndic, internalFlag, priorBySizeTransMatBool));
+    Rcpp::traits::input_parameter< const List >::type sitePatternsList(sitePatternsListSEXP);
+    rcpp_result_gen = Rcpp::wrap(logLikCppToWrapV(edgeMatList, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentBinList, childNodeInClusIndic, returnMatIndic, internalFlag, sitePatternsList));
     return rcpp_result_gen;
 END_RCPP
 }
