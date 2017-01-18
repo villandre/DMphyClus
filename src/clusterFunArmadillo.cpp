@@ -11,6 +11,7 @@
 #include <string>
 #include <cmath>
 #include <boost/functional/hash.hpp>
+#include <sys/resource.h>
 
 //#include <boost/algorithm/string.hpp>
 // [[Rcpp::plugins(openmp)]]
@@ -24,12 +25,13 @@ protected:
     uint Nnode ;
     uint numTips ;
     uint numLoci ;
+    uint numUniqueLoci ;
     //umat alignment ;
     std::vector<mat> logTransMatVec ;
     vec logLimProbs ;
     uvec updateOrder ;
     double logLik ;
-    std::vector<Rcpp::NumericMatrix> pruningMatVec ; // Each element of pruningMatVec comprises all the vectors at the root node used in computing the likelihood with the pruning algorithm. We get the likelihood for one rate category doing sum(log(pruningMat[[x]]%*%logLimProbs)). It follows that pruningMat[[x]] has one column per locus and one row per state (4 for nucleotide alignments, 20 for AA). This vector has as many elements as rate categories.
+    std::vector<Rcpp::NumericMatrix> pruningMatVec ; // Each element of pruningMatVec comprises all the vectors at the root node used in computing the likelihood with the pruning algorithm. It follows that pruningMat[[x]] has one column per locus and one row per state (4 for nucleotide alignments, 20 for AA). This vector has as many elements as rate categories.
     //mat * alignmentBinList ;
     std::vector<mat> alignmentBinList ;
     std::vector< std::vector<mat> > multiAlignmentBinList ;
@@ -37,9 +39,9 @@ protected:
     uint numRateCats;
     std::vector<std::vector<int> > children;
     int numOpenMPthreads ;
-    uvec childNodeInClusIndic ; // This is a vector with 0s and 1s. 1 means that the child node is at the end of an edge inside the cluster. 0 means that the child node is at the end of an edge outside a cluster. This is probably not functional and should be removed, until it's properly implemented.
+    //uvec childNodeInClusIndic ; // This is a vector with 0s and 1s. 1 means that the child node is at the end of an edge inside the cluster. 0 means that the child node is at the end of an edge outside a cluster. This is probably not functional and should be removed, until it's properly implemented.
     bool internalPhyloFlag ; // This flag indicates that this is an internal phylogeny, i.e. a phylogeny that supports subphylogenies for clusters. Concretely, this implies that the configuration corresponding to cluster centroids, that are at some of the tips of this phylogeny, are vectors with as many elements as rate categories.
-
+    uvec sitePatterns ;
     // Member functions:
     // Compute the order in which nodes must be update using Felsenstein's tree-pruning algorithm.
     void compUpdateVec() ;
@@ -53,7 +55,8 @@ protected:
 
 public:
     // constructor, sets up data structures
-    phylo(const Rcpp::NumericMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool, const int, const bool) ;
+    //phylo(const Rcpp::NumericMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool, const int, const bool, const Rcpp::NumericVector &) ;
+    phylo(const NumericMatrix &, const NumericVector &, const List &, const int, const bool, const bool, const NumericVector &) ;
     phylo() ;
     void logLikPhylo(const bool) ;
     std::vector<mat> getAlignmentBin(const uint) ;
@@ -71,8 +74,10 @@ public:
 class phylogenyAlpha: public phylo {
 public:
     // constructor, sets up data structures
-    phylogenyAlpha(const Rcpp::NumericMatrix &, const Rcpp::CharacterMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::CharacterVector &, const Rcpp::NumericVector, const bool, const bool, const int);
-    phylogenyAlpha(const Rcpp::NumericMatrix &, const Rcpp::List &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool, const bool, const int) ; // This is the faster constructor, I guess, since it doesn't need to perform alignment conversion.
+    //phylogenyAlpha(const Rcpp::NumericMatrix &, const Rcpp::CharacterMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::CharacterVector &, const Rcpp::NumericVector, const bool, const bool, const int, const NumericVector &);
+    phylogenyAlpha(const NumericMatrix &, const CharacterMatrix &, const NumericVector &, const List &, const int, const CharacterVector &, const bool, const bool, const NumericVector &) ;
+    //phylogenyAlpha(const Rcpp::NumericMatrix &, const Rcpp::List &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool, const bool, const int, const NumericVector &) ; // This is the faster constructor, I guess, since it doesn't need to perform alignment conversion.
+    phylogenyAlpha(const NumericMatrix &, const List &, const NumericVector &, const List &, const int, const bool, const bool, const NumericVector &) ;
     phylogenyAlpha() ; // Empty constructor
 private:
     Rcpp::CharacterMatrix alignmentRcpp ;
@@ -87,32 +92,43 @@ private:
 
 // The constructor
 
-phylo::phylo(const Rcpp::NumericMatrix & edgeMat, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::NumericVector RcppChildInClusIndic, const bool returnMatIndic, const int numOfLoci, const bool internalFlag) {
-
+phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const NumericVector & sitePatternsVec) {
+    cout << "Building phylo! \n" ;
     mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
     edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
     logLimProbs = Rcpp::as<vec>(logLimProbsVec); // The second argument (numeric) of the R function is called logLimProbs.
-    Nnode = NnodeCons ;
-    numRateCats = numRateCatsCons ;
-    numLoci = numOfLoci ;
-    numStates = numStatesCons ;
+    cout << "Defined edge and logLimProbs! \n" ;
+    numRateCats = logTransMatList.size() ;
+    numStates = logLimProbsVec.size() ;
     numOpenMPthreads = numOpenMP ;
     internalPhyloFlag = internalFlag ;
-    numTips = edge.n_rows + 1 - Nnode ;
     logTransMatVec.resize(numRateCats) ;
+    sitePatterns = as<uvec>(sitePatternsVec) ;
+    numLoci = sitePatterns.n_rows ;
+    numUniqueLoci = sitePatterns.max() ;
+    cout << "Defined a bunch of constants: \n" ;
+    cout << "numStates = " << numStates << "\n";
+    cout << "numOpenMPthreads = " << numOpenMPthreads << "\n" ;
+    cout << "numRateCats: " << numRateCats << "\n" ;
+    //cout << "sitePatterns: " << sitePatterns << "\n" ;
+    cout << "numUniqueLoci: " << numUniqueLoci << "\n" ;
+    cout << "numLoci: " << numLoci << "\n" ;
+    cout << "logTransMatVec! With " << logTransMatVec.size() << "elements \n" ;
 
-    for (int i = 0; i < logTransMatList.size() ; i++) {
+    for (int i = 0; i < numRateCats ; i++) {
 
         logTransMatVec[i] = Rcpp::as<mat>(logTransMatList[i]) ;
     }
-    children.resize(Nnode + numTips + 1) ;
-
+    cout << "Done defining logTransMatVec! With " << numRateCats << "elements \n" ;
+    children.resize(edge.n_rows + 2) ;
+    cout << "Defining children! With " << edge.n_rows << "elements \n" ;
     for(uint i = 0; i < edge.n_rows; i++)
     {
+        cout << "Defining vector element " << edge(i,0) << "\n" ;
         children[edge(i, 0)].push_back(edge(i, 1));
     }
-    compUpdateVec() ;
-    childNodeInClusIndic = Rcpp::as<uvec>(RcppChildInClusIndic) ;
+    cout << "Done defining children! With " << edge.n_rows << "elements \n" ;
+    //childNodeInClusIndic = Rcpp::as<uvec>(RcppChildInClusIndic) ;
     if (returnMatIndic) {
 
         pruningMatVec.resize(numRateCats) ;
@@ -126,48 +142,64 @@ phylo::phylo(const Rcpp::NumericMatrix & edgeMat, const Rcpp::NumericVector & lo
         multiAlignmentBinList.resize(numRateCats) ;
         for (uint i = 0; i < numRateCats; i++) {
 
-            multiAlignmentBinList[i].resize(numLoci) ;
+            multiAlignmentBinList[i].resize(numUniqueLoci) ;
         }
     }
+    cout << "Done building phylo! \n" ;
 }
 
-phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::CharacterMatrix & alignmentAlphaMat, const Rcpp::NumericVector & limProbsVec, const Rcpp::List & transMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::CharacterVector & equivVec, const Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const int numLoci) : phylo(edgeMat, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, numLoci, internalFlag) {
+phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMatrix & alignmentAlphaMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const CharacterVector & equivVec, const bool returnMatIndic, const bool internalFlag, const NumericVector & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
 
     alignmentRcpp = alignmentAlphaMat ;
+    cout << "Created the alignment! \n" ;
     equivalency = Rcpp::as<std::vector<std::string>>(equivVec) ;
+    cout << "Created the useless equivalency vector! \n" ;
     convertSTL() ;
+    cout << "Defined the STL equiv! \n" ;
     defineMap() ;
     convertSeqAlpha() ;
-    numTips = alignmentAlphaMat.nrow() ;
+    if (!(logLimProbsVec[0] == 1000.0)) { // For getConvertedAlignmentToWrao, edgeMat is a placeholder for a phylo with two tips, but alignmentAlphaMat.nrow() is not 2. This is why this last part won't run. I use a placeholder for logLimProbsVec too, with first element equal to 1000, hence this check.
+      numTips = alignmentAlphaMat.nrow() ;
+      cout << "Defined the number of tips! \n" ;
+      Nnode = edgeMat.nrow() - numTips + 1 ;
+      compUpdateVec() ;
+      cout << "Computed the update order vector! \n" ;
+    } else{}
 }
 
 // This is the faster constructor, that does not convert the character alignment into matrices of identity vectors, because it's provided by the user (alignmentList).
-phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const int numLoci) : phylo(edgeMat, logLimProbsVec, logTransMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, numLoci, internalFlag) {
+phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const NumericVector & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
 
     if (!internalFlag) {
 
-        alignmentBinList.resize(numLoci) ;
-        for (int i = 0; i < numLoci ; i++) {
+        numTips = Rcpp::as<mat>(alignmentList[0]).n_cols ;
+        numUniqueLoci = alignmentList.size() ;
+        alignmentBinList.resize(numUniqueLoci) ;
+        for (int i = 0; i < numUniqueLoci ; i++) {
 
             alignmentBinList[i] = Rcpp::as<mat>(alignmentList[i]) ;
         }
     } else { // Tip vectors depend on the rate category.
 
+        numTips = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(alignmentList[0])[0]).n_cols ;
+        numUniqueLoci = Rcpp::as<Rcpp::List>(alignmentList[1]).size() ;
         for (uint i = 0; i < numRateCats ; i++) {
 
-            for (int j = 0; j < numLoci ; j++) {
+            for (int j = 0; j < numUniqueLoci ; j++) {
 
                 multiAlignmentBinList[i][j] = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(alignmentList[i])[j]) ;
             }
         }
     }
+    Nnode = edgeMat.nrow() - numTips + 1 ;
+    compUpdateVec() ;
 }
 
 phylo::phylo() {}
 phylogenyAlpha::phylogenyAlpha():phylo() {}
 
 void phylogenyAlpha::convertSTL() {
-
+    cout << "Number of columns : " << alignmentRcpp.ncol() << "\n" ;
     alignmentAlpha.resize(alignmentRcpp.ncol()) ;
 
     for (int i = 0; i < alignmentRcpp.ncol(); i++) {
@@ -180,8 +212,8 @@ void phylogenyAlpha::convertSTL() {
 }
 
 void phylo::compUpdateVec() {
-
-    uint numNodesTotal = numTips + Nnode ;
+    cout << "Number of  nodes: " << Nnode << "\n" ;
+    uint numNodesTotal = edge.n_rows + 1 ;
     uvec updateOrderVec(Nnode, fill::zeros) ;
     uvec numChildren(Nnode) ;
     for (uint i = 0; (i < Nnode) ; i++) {
@@ -205,7 +237,7 @@ void phylo::compUpdateVec() {
         bool myTest = (countForReady(i) == numChildren(i)) ;
         if (myTest) {
 
-            updateOrderVec(indexForUpdateVec) = numTips + i + 1; // We want an updateOrderVec that reflects the one produced by R.
+            updateOrderVec(indexForUpdateVec) = numTips + i + 1 ;
             indexForUpdateVec += 1 ;
             readyForUpdate.push_back(i) ;
         } else{} ;
@@ -236,14 +268,14 @@ uvec phylo::Children(const umat & edgeMat, const uint parentNum) {
 
 void phylogenyAlpha::convertSeqAlpha() {
 
-    alignmentBinList.resize(numLoci) ;
-    for (uint i = 0; i < numLoci; i++) {
+    alignmentBinList.resize(numUniqueLoci) ;
+    for (uint i = 0; i < numUniqueLoci; i++) {
         convertNucleoToNum(i) ;
     }
 }
 
 void phylogenyAlpha::defineMap() {
-
+    cout << "numStates = " << numStates << "\n" ;
     for (uint i = 0; i < numStates; i++) {
 
         vec unitVec(numStates, fill::zeros) ;
@@ -280,33 +312,33 @@ void phylogenyAlpha::convertNucleoToNum(uint locusIndex)  {
     alignmentBinList[locusIndex] = containerMat ;
 }
 
-// Functions to modify! 
+// Functions to modify!
 
 vec phylo::getLogLikVec(const uint childNodeIndex, mat & nodeTipMat, const int rateIndex) {
-    
+
     double finiteMinLogLikAtTip ;
     rowvec logLikVec((nodeTipMat).n_rows) ;
-    
+
     vec relocNodeTipVec(nodeTipMat.col(childNodeIndex - 1)); // Indices start at 0, not at 1.
     // We remove elements that are -Inf. They will equate 0 later on and so, are of no use.
     bool checkFinite = is_finite(relocNodeTipVec) ;
     vec finiteRelocNodeTipVec(relocNodeTipVec) ;
     mat transpFiniteTransMat(arma::trans(logTransMatVec[rateIndex])) ;
     if (!checkFinite) { // My guess would be that the subsetting is only required when childNodeIndex is inferior to numTips: in this case, the nodes are leaves.
-    
+
         finiteRelocNodeTipVec = finiteRelocNodeTipVec.elem(find_finite(relocNodeTipVec)) ;
         transpFiniteTransMat = transpFiniteTransMat.rows(find_finite(relocNodeTipVec)) ;
     } else {}
     finiteMinLogLikAtTip = min(finiteRelocNodeTipVec) ;
     mat repRelocVecMat(finiteRelocNodeTipVec.size(), relocNodeTipVec.size()) ;
-    repRelocVecMat.each_col() = finiteRelocNodeTipVec ;  
+    repRelocVecMat.each_col() = finiteRelocNodeTipVec ;
     logLikVec = finiteMinLogLikAtTip + log(sum(exp(transpFiniteTransMat + repRelocVecMat - finiteMinLogLikAtTip), 0)) ; // If logTransMatVec is always used in its transposed form, better do the transposition only once, in the R function.
-    
+
     return arma::conv_to<vec>::from(logLikVec) ; // A column vector...
 }
 
 void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIndex) {
-    
+
     vec logLikVecByChild(nodeTipMat.n_rows, fill::zeros) ;\
     uint numChildren = children[parentNum].size() ;
     uvec theChildren(numChildren) ;
@@ -315,15 +347,15 @@ void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIn
         theChildren(i) = children[parentNum][i];
     }
     for (uint i = 0 ; (i < numChildren); i++) {
-        
+
         logLikVecByChild = logLikVecByChild + getLogLikVec(theChildren(i), nodeTipMat, rateIndex) ;
     }
-    
+
     nodeTipMat.col(parentNum - 1) = logLikVecByChild ;
 }
 
 double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, const bool returnMatIndic) {
-    
+
     mat nodeTipMat = zeros<mat>(numStates, edge.max()) ; // This is a matrix that stores likelihood vectors. Each vector has as many elements as potential states.
 
     if (!internalPhyloFlag) {
@@ -338,16 +370,17 @@ double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, co
         internalFun(updateOrder(i), nodeTipMat, rateIndex) ;
     }
     double minLogLikRoot = min(nodeTipMat.col(numTips)) ;
-    
+
     double logLikForOneLocusOneRate = minLogLikRoot + log(sum(exp(nodeTipMat.col(numTips) + logLimProbs - minLogLikRoot))) ;
-    
+
     if (returnMatIndic) {
         for (uint i = 0 ; i < nodeTipMat.n_rows; i++) {
             double valueInMatrix = nodeTipMat.at(i,numTips) ;
             pruningMatVec[rateIndex](i, locusNum) = valueInMatrix ;
         }
+
     } else{}
-    
+
     return logLikForOneLocusOneRate ;
 }
 // End: Functions to modify
@@ -359,8 +392,8 @@ std::vector<mat> phylo::getAlignmentBin(const uint pos) {
 SEXP phylo::getAlignmentBinSEXP() {
 
     std::vector<Rcpp::NumericVector> containerVec ;
-    containerVec.resize(numLoci) ;
-    for (uint i = 0 ; i< numLoci ; i++) {
+    containerVec.resize(numUniqueLoci) ;
+    for (uint i = 0 ; i< numUniqueLoci ; i++) {
 
         Rcpp::NumericVector myVector = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(alignmentBinList[i])) ;
         myVector.attr("dim") = Rcpp::Dimension(alignmentBinList[i].n_rows, alignmentBinList[i].n_cols);
@@ -398,33 +431,45 @@ uint phylo::getNumTips() {
     return numTips ;
 }
 
+NumericMatrix convMatToRcpp(arma::mat x) {
+  NumericMatrix y = wrap(x) ;
+  return(y) ;
+}
+
 SEXP phylo::getPruningMat() {
 
-//     std::vector<Rcpp::NumericMatrix> pruningMatFixed(pruningMatVec.size()) ;
-//     for (uint i = 0 ; i < pruningMatFixed.size() ; i++) {
-//         pruningMatFixed.at(i) = pruningMatVec.at(i)*pow(10, -300) ;
-//     }
-//     return Rcpp::wrap(pruningMatFixed) ;
-    return Rcpp::wrap(pruningMatVec) ; // We can ignore the scaling as long as there's an offset when we compute the log-lik.
+    std::vector<NumericMatrix> pruningMatVecReadj(pruningMatVec.size()) ;
+
+    for (uint i = 0 ; i < pruningMatVec.size(); i++) {
+
+      pruningMatVecReadj[i] = convMatToRcpp(as<mat>(pruningMatVec[i]).cols(sitePatterns - 1)) ;
+    }
+    return Rcpp::wrap(pruningMatVecReadj) ;
 }
 
 void phylo::logLikPhylo(const bool returnMatIndic) {
 
-    mat logLikMat(numLoci, numRateCats, fill::ones);
+    mat logLikMat(numUniqueLoci, numRateCats, fill::ones);
 //    #pragma omp parallel for
     for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
-        
-         #pragma omp parallel for
-        for(uint locusNum = 0; locusNum < numLoci; locusNum++) {
 
-            logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ; 
+         #pragma omp parallel for
+        for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
+
+            logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ;
         }
     }
-    //vec logLikSumRate = sum(logLikMat, 1) ;
-    vec rowMin = min(logLikMat,1) ;
-    logLikMat.each_col() -= rowMin ;
-    logLik = sum(rowMin + log(sum(exp(logLikMat), 1)) - log(3)) ;
-    //logLik = minLogLikSumRate + sum(exp(logLikSumRate - minLogLikSumRate)) - log(numRateCats)  ;
+    if (!returnMatIndic) {
+      vec rowMin = min(logLikMat,1) ;
+      cout << "logLikMat: \n " << logLikMat << "\n" ;
+      logLikMat.each_col() -= rowMin ;
+      cout << "logLikMat (mod): \n " << logLikMat << "\n" ;
+      vec logLiksToSum = rowMin + log(sum(exp(logLikMat), 1)) - log(numRateCats) ;
+      cout << "logLiksToSum: \n " << logLiksToSum << "\n" ;
+      logLik = sum(logLiksToSum.elem(sitePatterns - 1)) ; // Indices begin at zero hence the -1...
+      //logLik = minLogLikSumRate + sum(exp(logLikSumRate - minLogLikSumRate)) - log(numRateCats)  ;
+      cout << "logLik: " << logLik << "\n" ;
+    } else{}
 }
 
 template<class Mat>
@@ -447,42 +492,33 @@ template void print_matrix<arma::cx_mat>(arma::cx_mat matrix);
 template void print_vector<arma::uvec>(arma::uvec colvec);
 template void print_vector<arma::vec>(arma::vec colvec);
 
-SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBin, NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const NumericVector sitePatterns) {
+// [[Rcpp::export]]
+
+SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBin, const bool returnMatIndic, const bool internalFlag, const NumericVector sitePatterns) {
 
     omp_set_num_threads(numOpenMP) ;
-    uint numTips ;
-    uint numLoci ;
-
-    SEXP container ;
-    uint numStatesCons = logLimProbsVec.size() ;
-    uint numRateCatsCons = logTransMatList.size() ;
-    uint NnodeCons ;
-
+    NumericVector sitePatternsAmended(as<List>(alignmentBin[0]).size()) ;
     if (internalFlag) {
-
-        numTips = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(alignmentBin[0])[0]).n_cols ; 
-        numLoci = (Rcpp::as<Rcpp::List>(alignmentBin[0])).size() ;
-    } else {
-
-        numTips = Rcpp::as<mat>(alignmentBin[0]).n_cols ;
-        numLoci = alignmentBin.size() ;
+      
+      sitePatternsAmended = seq_len(sitePatternsAmended.size()) ;
+    } else{
+      
+      sitePatternsAmended = sitePatterns ;
     }
-
-    NnodeCons = edgeMat.nrow() - numTips + 1 ;
+    SEXP container ;
     //         ProfilerStart("/home/villandre/profileOut.out") ;
-    
-    
-    phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
+
+    phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
     //#pragma omp parallel
     {
       phyloObject.logLikPhylo(returnMatIndic);
     }
     //             ProfilerStop();
     if (returnMatIndic) {
-      
+
       container = phyloObject.getPruningMat();
     } else {
-      
+
       container = phyloObject.getLogLik();
 
     }
@@ -491,20 +527,21 @@ SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, Li
 
 // [[Rcpp::export]]
 
-SEXP getConvertedAlignmentToWrap(uint numStatesCons, int numOpenMP, SEXP & equivVector, Rcpp::CharacterMatrix & alignmentAlphaMat) {
+SEXP getConvertedAlignmentToWrap(int numOpenMP, SEXP & equivVector, Rcpp::CharacterMatrix & alignmentAlphaMat, NumericVector & sitePatterns) {
+    struct rlimit limit;
 
+    getrlimit(RLIMIT_STACK, &limit);
+    printf("\nStack Limit = %ld and %ld max\n", limit.rlim_cur, limit.rlim_max);
     double src[] = {3, 3, 1, 2};
-    Rcpp::NumericMatrix placeholderMat(2, 2, src) ; //src is considered an iterator.
-    Rcpp::NumericVector placeholderVec = Rcpp::NumericVector::create(1000,1000) ;
-    Rcpp::List placeholderList(1) ; // This is a placeholder: 1 is an arbitrary number.
+    NumericMatrix placeholderMat(2, 2, src) ; //src is considered an iterator.
+    NumericVector placeholderVec(as<CharacterVector>(equivVector).size(),1000.0) ;
+    List placeholderList(1) ; // This is a placeholder: 1 is an arbitrary number.
     placeholderList[0] = Rcpp::NumericMatrix(2,2) ;
     bool returnMatIndic = false ;
     bool internalFlag = false ;
-    int placeholderNnodeCons = 1;
-    int placeholderNumRateCats = 4;
 
-    uint numLoci = alignmentAlphaMat.ncol() ;
-    phylogenyAlpha phyloObject = phylogenyAlpha(placeholderMat, alignmentAlphaMat, placeholderVec, placeholderList, numStatesCons, placeholderNumRateCats, placeholderNnodeCons, numOpenMP, equivVector, placeholderVec, returnMatIndic, internalFlag, numLoci) ;
+    //phylogenyAlpha phyloObject = phylogenyAlpha(placeholderMat, alignmentAlphaMat, placeholderVec, placeholderList, numOpenMP, equivVector, placeholderVec, returnMatIndic, internalFlag, sitePatterns) ;
+    phylogenyAlpha phyloObject(placeholderMat, alignmentAlphaMat, placeholderVec, placeholderList, numOpenMP, equivVector, returnMatIndic, internalFlag, sitePatterns) ;
 
     return phyloObject.getAlignmentBinSEXP() ;
 }
@@ -543,53 +580,46 @@ SEXP redimMultiBinByClus(Rcpp::List multiBinByClus) {
 }
 // [[Rcpp::export]]
 
-SEXP logLikCppToWrapV(List & edgeMatList, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBinList, NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const List sitePatternsList) {
+SEXP logLikCppToWrapV(List & edgeMatList, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBinList, const bool returnMatIndic, const bool internalFlag, const List sitePatternsList) {
 //     #pragma omp parallel
 //     {
   omp_set_num_threads(numOpenMP) ;
-  
+
   uint numEvals = edgeMatList.size() ;
-  uint numStatesCons = logLimProbsVec.size() ;
-  uint numRateCatsCons, numTips, numBranches, NnodeCons, numLoci ;
+  IntegerVector sitePatterns(as<IntegerVector>(sitePatternsList[0]).size()) ;  // The number of loci does not change across clusters, hence the hard-coded 0.
 
   std::vector<SEXP> container(numEvals) ;
   std::vector<phylogenyAlpha> phylogenyAlphaContainer(numEvals) ;
   
-  Rcpp::List transMatListOneSize ;
-  
-  numRateCatsCons = logTransMatList.size() ;
-  
-  if (internalFlag) {
-    
-    numLoci = Rcpp::as<Rcpp::List>(Rcpp::as<Rcpp::List>(alignmentBinList[0])[0]).size() ;
-  } else {
-    
-    numLoci = Rcpp::as<Rcpp::List>(alignmentBinList[0]).size() ;
-  }
-  
+  NumericVector sitePatternsAmended(as<List>(alignmentBinList[0]).size()) ; 
   //#pragma omp parallel for if(numEvals > 7)
   for (uint i = 0; i < numEvals; i++) {
-    numBranches  = Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i]).nrow() ;
-    numTips = Rcpp::min(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i])(Rcpp::_,0)) - 1 ; 
-    NnodeCons = Rcpp::max(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i])(Rcpp::_,0)) - numTips ; 
     
-    phylogenyAlphaContainer[i] = phylogenyAlpha(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i]), Rcpp::as<Rcpp::List>(alignmentBinList[i]), logLimProbsVec, logTransMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
+    if (!internalFlag) {
+      
+      sitePatternsAmended = as<NumericVector>(sitePatternsList[i]) ;
+    } else {
+      
+      sitePatternsAmended = seq_along(as<List>(alignmentBinList[i])) ; // Site patterns do not apply for internal phylogenetic computations. A placeholder is therefore created here.
+    }
+
+    phylogenyAlphaContainer[i] = phylogenyAlpha(Rcpp::as<NumericMatrix>(edgeMatList[i]), Rcpp::as<List>(alignmentBinList[i]), logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
   }
-  
-  for (int i = 0; i < edgeMatList.size(); i++) {
-    
+
+  for (int i = 0; i < numEvals; i++) {
+
     //ProfilerStart("/home/villandre/profileOut.out") ;
     phylogenyAlphaContainer[i].logLikPhylo(returnMatIndic) ;
     //ProfilerStop();
   }
-  
+
   for (uint i = 0; i < numEvals; i++) {
-    
+
     if (returnMatIndic) {
-      
+
       container[i] = phylogenyAlphaContainer[i].getPruningMat() ;
     } else {
-      
+
       container[i] = phylogenyAlphaContainer[i].getLogLik();
     }
   }

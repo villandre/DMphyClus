@@ -110,19 +110,19 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         poisRateNumClus <- max(startingValues$clusInd)
     } else{}
 
-    convertedData <- .getConvertedAlignment(alignmentMat = alignment, numStatesCons = length(limProbs), equivVector = names(limProbs))
+    convertedData <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), sitePatterns = 1:ncol(alignment))
     convertedData <- lapply(convertedData, FUN = function(x) {
     colnames(x) <- rownames(alignment)
         x
     })
     seqNames <- rownames(alignment)
-    
+
     logAllExtMatList <- lapply(allExtMatList, FUN = function(x) {
       lapply(x, FUN = function(y) {
         log(y)
       })
     })
-    
+
     logAllIntMatList <- lapply(allIntMatList, FUN = function(x) {
       lapply(x, FUN = function(y) {
         log(y)
@@ -201,14 +201,14 @@ logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatLis
         log(y)
       })
     })
-  
+
     logWithinTransMatList <- lapply(withinTransMatList, FUN = function(x) {
       lapply(x, FUN = function(y) {
         log(y)
       })
     })
-  
-    dataBin <- .getConvertedAlignment(alignmentMat = alignment, numStatesCons = length(limProbs), equivVector = names(limProbs), numOpenMP = numLikThreads)
+
+    dataBin <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), numOpenMP = numLikThreads)
     alignmentBin <- lapply(dataBin, FUN = function(x) {
         colnames(x) <- rownames(alignment)
         x
@@ -223,7 +223,7 @@ logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatLis
     if (!identical(colnames(alignmentMultiBin[[1]][[1]]), betweenPhylo$tip.label)) {
         stop("The ordering of the columns in alignmentMultiBin should match that of the tip labels in betweenPhylo! Line 499.\n")
     } else{}
-    
+
    .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE)
 }
 
@@ -288,11 +288,11 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     logBetweenTransMatList <- lapply(betweenTransMatList, FUN = function(x) {
         log(x)
     })
-  
+
     logWithinTransMatList <- lapply(withinTransMatList, FUN = function(x) {        log(x)
     })
 
-    dataBin <- .getConvertedAlignment(alignmentMat = alignment, numStatesCons = length(limProbs), equivVector = names(limProbs), numOpenMP = numLikThreads)
+    dataBin <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), numOpenMP = numLikThreads)
     alignmentBin <- lapply(dataBin, FUN = function(x) {
         colnames(x) <- rownames(alignment)
         x

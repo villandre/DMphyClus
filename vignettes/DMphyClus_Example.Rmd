@@ -34,7 +34,7 @@ startingPhylo <- ape::rtree(numSeqs)
 startingPhylo$tip.label <- rownames(seqsToClusterChar)[sample(1:numSeqs, size = numSeqs)]
 startingPhylo
 ```
-Note that this is meant as an illustration only. Using a sensible starting value greatly reduces time to convergence. In Villandre et al. 2017, we used RAxML to obtain starting values for the phylogenies. RAxML can produce sensible maximum likelihood phylogenetic estimates for large alignments in a matter of minutes. The current version of DMphyClus uses nearest-neighbour interchange to explore the phylogenetic space, a simple but inefficient transition kernel. 
+Note that this is meant as an illustration only. Using a sensible starting value greatly reduces time to convergence. In Villandre et al. 2017, we used RAxML to obtain starting values for the phylogenies. RAxML can produce sensible maximum likelihood phylogenetic estimates for large alignments in a matter of minutes. The current version of DMphyClus uses nearest-neighbour interchange to explore the phylogenetic space, a simple but inefficient transition kernel.
 
 To obtain starting values for the cluster membership indices, we simply select the tips corresponding to the two clades supported by the root node.
 ```{r, fig.width= 7, fig.height=7}
@@ -82,7 +82,7 @@ betweenClusTransProbs[[1]]
 ```
 In the previous block of code, we derived the domain (10 points) of the transition probability matrices for branches in the supporting phylogeny. Each point in the domain corresponds to a different mean branch length assumption. Each element in betweenClusTransProbs is a list with 3 elements, with each element giving transition probabilities in a different rate variation category. Ideally, we may want to include more points in the domain and increase the number of Monte Carlo replicates to 100,000.
 
-We obtain within-cluster transition probability estimates using a similar strategy. We computed more precise estimates, which we now add to the workspace. 
+We obtain within-cluster transition probability estimates using a similar strategy. We computed more precise estimates, which we now add to the workspace.
 ```{r}
 data("betweenClusTransProbs", package = "DMphyClus")
 data("withinClusTransProbs", package = "DMphyClus")
@@ -92,9 +92,9 @@ data("withinClusTransProbs", package = "DMphyClus")
 
 We now specify all the other arguments required by `DMphyClusChain`.
 ```{r}
-alphaVal <- 100 
+alphaVal <- 100
 numIters <- 100
-numLikThreads <- 2
+numLikThreads <- 1
 numMovesNNIbetween <- 1
 numMovesNNIwithin <- 1
 limProbs <- limProbsPosada2001
@@ -106,7 +106,7 @@ poisRateNumClus <- 2
 numSplitMergeMoves <- 3
 startingValues <- list(phylogeny = startingPhylo, clusInd = clusIndStart, alpha = alphaVal)
 ```
-Likelihood computations are parallelized with OpenMP. The number of threads to use is specified by numLikThreads. Properly tuning this parameter can yield vast improvements in computational speed. 
+Likelihood computations are parallelized with OpenMP. The number of threads to use is specified by numLikThreads. Properly tuning this parameter can yield vast improvements in computational speed.
 
 Reducing the value of clusPhyloUpdateProp can also reduce the time required for each iteration. This parameter determines the proportion of within-cluster phylogenies (with 3 tips or more) that should be updated in every MCMC iteration. If this parameter is set to any value below 1, the algorithm will randomly select a subset of within-cluster phylogenies to update, whose size is equal to `ceiling(clusPhyloUpdateProp*(number of clusters of size 3 or more)`.
 
