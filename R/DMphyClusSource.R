@@ -60,6 +60,7 @@
       names(DNAdataMultiBinByClus) <- names(currentValue$paraValues$clusterPhylos)
       currentValue$DNAdataMultiBinByClus <- DNAdataMultiBinByClus ## Will need to be adjusted with redimMultiBinByClus before being used in a call to logLikCpp
       currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$clusterPhylos[[1]]$edge, logLimProbsVec = logLimProbs, logTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = FALSE, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns)
+      cat("Starting log-lik: ", currentValue$logLik, ". \n") 
     } else {
       internalPhylo <- currentValue$paraValues$phylogeny
       clusLabels <- as.character(1:length(unique(currentValue$paraValues$clusInd)))
