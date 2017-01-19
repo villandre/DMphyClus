@@ -493,10 +493,10 @@ SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, Li
     //         ProfilerStart("/home/villandre/profileOut.out") ;
 
     phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
-    //#pragma omp parallel
-    {
-      phyloObject.logLikPhylo(returnMatIndic);
-    }
+    
+    
+    phyloObject.logLikPhylo(returnMatIndic);
+    
     //             ProfilerStop();
     if (returnMatIndic) {
 
