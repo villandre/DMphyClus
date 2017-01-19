@@ -129,7 +129,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
       })
     })
 
-    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, logLimProbs = log(limProbs), numMovesNNIint = numMovesNNIbetween, numMovesNNIext = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, logExtTransMatAll = logAllExtMatList, logIntTransMatAll = logAllIntMatList, DNAdataBin = convertedData, DNAdata = alignment)
+    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, logLimProbs = log(limProbs), numMovesNNIint = numMovesNNIbetween, numMovesNNIext = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, logExtTransMatAll = logAllExtMatList, logIntTransMatAll = logAllIntMatList, DNAdataBin = convertedData)
 
     chainResult <- do.call(".DMphyClusCore", args = argsForDMcore)
 

@@ -1,8 +1,8 @@
 .performStepPhylo <- function(currentValue, logLimProbs, shapePriorAlpha, scalePriorAlpha, numGammaCat, logIntTransMatAll, logExtTransMatAll, enableJainNeal = FALSE, currentIter, DNAdata, numNeighbours, numMovesNNIint = 1, numMovesNNIext = 1, numLikThreads, DNAdataBin, singletonMatrices, poisRateNumClus, clusPhyloUpdateProp = 1, alphaMin, numSplitMergeMoves) {
     if (class(currentValue$paraValues$internalPhylo) == "phylo") {
-      currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logIntTransMatAll, samplingRadius = 2, internalBool = TRUE, logLimProbs = logLimProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
+      currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logIntTransMatAll, samplingRadius = 2, internalBool = TRUE, logLimProbs = logLimProbs, numLikThreads = numLikThreads)
     }
-    currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logExtTransMatAll, currentIntTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], samplingRadius = 2, internalBool = FALSE, logLimProbs = logLimProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
+    currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = logExtTransMatAll, currentIntTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], samplingRadius = 2, internalBool = FALSE, logLimProbs = logLimProbs, numLikThreads = numLikThreads)
 
     if (length(currentValue$paraValues$clusterPhylos) > 2) {
         internalPhyloList <- .updateSupportingPhylo(internalPhylo = currentValue$paraValues$internalPhylo, logLimProbs = logLimProbs, logTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], numMovesNNI = numMovesNNIint, numLikThreads = numLikThreads, DNAdataMultiBinByClus = currentValue$DNAdataMultiBinByClus, currentLogLik = currentValue$logLik) ## This step updates the supporting phylogeny.
@@ -17,7 +17,7 @@
     })
 
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
-
+    cat("\n Log-lik. at the end of iteration ", currentIter, ": ", currentValue$logLik)
     currentValue
 }
 
@@ -34,7 +34,7 @@
     currentValue
 }
 
-.initCurrentValue <- function(startingValues, DNAdataBin, logIntTransMatAll, logExtTransMatAll, logLimProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin) {
+.initCurrentValue <- function(startingValues, DNAdataBin, logIntTransMatAll, logExtTransMatAll, logLimProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin, singletonMatrices) {
     currentValue <- list()
     startingValues$phylogeny$node.label <- NULL
 
@@ -100,7 +100,11 @@
       names(sitePatternsByClus) <- names(currentValue$paraValues$clusterPhylos)
       currentValue$sitePatternsByClus <- sitePatternsByClus
       DNAdataMultiBinByClus <- lapply(names(currentValue$paraValues$clusterPhylos), FUN = function(x) {
-        .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusName = x, clusInd = currentValue$paraValues$clusInd, DNAdataBin = currentValue$sitePatternsByClus[[x]]$uniqueDNAdataBin, logExtMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], numLikThreads = numLikThreads, logLimProbs = logLimProbs, sitePatterns = currentValue$sitePatternsByClus[[x]]$sitePatterns)
+        if (class(currentValue$paraValues$clusterPhylos[[x]]) != "phylo") {
+          singletonMatrices[[names(currentValue$paraValues$clusInd)[match(as.numeric(x), currentValue$paraValues$clusInd)]]] 
+        } else {
+          .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusName = x, clusInd = currentValue$paraValues$clusInd, DNAdataBin = currentValue$sitePatternsByClus[[x]]$uniqueDNAdataBin, logExtMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], numLikThreads = numLikThreads, logLimProbs = logLimProbs, sitePatterns = currentValue$sitePatternsByClus[[x]]$sitePatterns)
+        }
       })
       names(DNAdataMultiBinByClus) <- names(currentValue$paraValues$clusterPhylos)
 
@@ -128,7 +132,7 @@
     graftedTree$edge.length <- NULL
     graftedTree$tip.label <- c(clusLabel, newClusLabel)
     if (length(currentValue$paraValues$clusterPhylos) > 1) {
-        newInternalTree <- ape::bind.tree(x = ape::reorder.phylo(currentValue$paraValues$internalPhylo), y = graftedTree, where = match(clusLabel, currentValue$paraValues$internalPhylo$tip.label)) ## Breaking up a cluster results in the internal phylogeny changing too, since it must now integrate the part of the cluster phylogeny that used to link the two new clusters. The ordering of the labels in the size 2 phylogeny supporting the clusters doesn't matter: it is symmetrical.
+        newInternalTree <- suppressWarnings(ape::bind.tree(x = ape::reorder.phylo(currentValue$paraValues$internalPhylo), y = graftedTree, where = match(clusLabel, currentValue$paraValues$internalPhylo$tip.label))) ## Breaking up a cluster results in the internal phylogeny changing too, since it must now integrate the part of the cluster phylogeny that used to link the two new clusters. The ordering of the labels in the size 2 phylogeny supporting the clusters doesn't matter: it is symmetrical.
     } else {
         newInternalTree <- graftedTree
     }
@@ -177,14 +181,14 @@
     list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel, sitePatterns = newSitePatterns)
 }
 
-.performMerge <- function(currentValue, ancestorsGroupsPairs, pairToSelect, DNAdataBin, logLimProbs, clusTransMatList, intTransMatList, numLikThreads, singletonMatrices, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
+.performMerge <- function(currentValue, ancestorsGroupsPairs, pairToSelect, DNAdataBin, logLimProbs, clusTransMatList, intTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
 
     numPairs <- length(ancestorsGroupsPairs)
     clustersInPair <- names(ancestorsGroupsPairs[[pairToSelect]])
     hostTree <- ape::rtree(2, tip.label = c(0,0))
     hostTree$edge.length <- 0
     if (class(currentValue$paraValues$clusterPhylos[[clustersInPair[[1]]]]) == "phylo") {
-        hostTree <- ape::bind.tree(x = hostTree, y = ape::reorder.phylo(currentValue$paraValues$clusterPhylos[[clustersInPair[[1]]]]), where = 1)
+        hostTree <- suppressWarnings(ape::bind.tree(x = hostTree, y = ape::reorder.phylo(currentValue$paraValues$clusterPhylos[[clustersInPair[[1]]]]), where = 1))
         hostChildren <- phangorn::Children(hostTree, ape::Ntip(hostTree)+1)
         whereToBind <- hostChildren[hostChildren < ape::Ntip(hostTree)]
     } else{
@@ -193,7 +197,7 @@
     }
 
     if (class(currentValue$paraValues$clusterPhylos[[clustersInPair[[2]]]]) == "phylo") {
-        newClusterPhylo <- ape::bind.tree(x = hostTree, y = ape::reorder.phylo(currentValue$paraValues$clusterPhylos[[clustersInPair[[2]]]]), where = whereToBind)
+        newClusterPhylo <- suppressWarnings(ape::bind.tree(x = hostTree, y = ape::reorder.phylo(currentValue$paraValues$clusterPhylos[[clustersInPair[[2]]]]), where = whereToBind))
     } else{
         hostTree$tip.label[whereToBind] <- names(currentValue$paraValues$clusInd)[match(as.numeric(clustersInPair[[2]]), currentValue$paraValues$clusInd)]
         newClusterPhylo <- hostTree
@@ -261,7 +265,7 @@
     } else {
         pairToSelect <- sample.int(n = numPairs, size = 1)
         clustersInPair <- names(ancestorsGroupsPairs[[pairToSelect]])
-        splitMergeResult <- .performMerge(currentValue = currentValue, ancestorsGroupsPairs = ancestorsGroupsPairs, pairToSelect = pairToSelect, DNAdataBin = DNAdataBin, logLimProbs = logLimProbs, clusTransMatList = clusTransMatList, intTransMatList = intTransMatList, numLikThreads = numLikThreads, singletonMatrices = singletonMatrices, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+        splitMergeResult <- .performMerge(currentValue = currentValue, ancestorsGroupsPairs = ancestorsGroupsPairs, pairToSelect = pairToSelect, DNAdataBin = DNAdataBin, logLimProbs = logLimProbs, clusTransMatList = clusTransMatList, intTransMatList = intTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
     }
 
     MHratio <- splitMergeResult$transKernRatio*exp(splitMergeResult$logPostProb - currentValue$logPostProb)
@@ -293,52 +297,56 @@
     currentValue
 }
 
-.updateTransMatrix <- function(currentValue, allTransMatList, currentIntTransMatList, samplingRadius = 2, internalBool, logLimProbs, numLikThreads, DNAdataBin) {
+.updateTransMatrix <- function(currentValue, allTransMatList, currentIntTransMatList, samplingRadius = 2, internalBool, logLimProbs, numLikThreads) {
+  if (internalBool) {
+    basicIndex <- currentValue$paraValues$logIntMatListIndex
+    DNAdataMultiBin <- redimMultiBinByClus(currentValue$DNAdataMultiBinByClus)
+  } else{
+    basicIndex <- currentValue$paraValues$logExtMatListIndex
+    intTransMatList <- currentIntTransMatList
+  }
+  newIndex <- basicIndex + sample(c(-samplingRadius:-1,1:samplingRadius), size = 1)
+  newIndex <- (newIndex<=0)*(length(allTransMatList) + newIndex) + (newIndex > length(allTransMatList))*(newIndex - length(allTransMatList)) + ((newIndex > 0) & (newIndex <= length(allTransMatList)))*newIndex  ## We have a circular transition kernel. If the range for allTransMatList is wide enough, the circularity should be never invoked.
+  if (internalBool) {
+    intTransMatList <- allTransMatList[[newIndex]]
+  } else{ ## THis is for the external phylogenies: we need to rederive DNAdataMultiBinByClus
+    
+    DNAdataMultiBinByClus <- lapply(names(currentValue$paraValues$clusterPhylos), FUN = function(x) {
+      if (class(currentValue$paraValues$clusterPhylos[[x]]) != "phylo") {
+        currentValue$DNAdataMultiBinByClus[[x]] ## If the tip is a singleton, a change in the transition rate matrices does not affect DNAdataMultiBinByClus[[x]]. Besides, this should be equal to one of the singleton matrices.
+      } else {
+        .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusInd = currentValue$paraValues$clusInd, clusName = x, DNAdataBin = currentValue$sitePatternsByClus[[x]]$uniqueDNAdataBin, numLikThreads = numLikThreads, logExtMatList = allTransMatList[[newIndex]], logLimProbs = logLimProbs, sitePatterns = currentValue$sitePatternsByClus[[x]]$sitePatterns)
+      }
+    })
+    DNAdataMultiBin <- redimMultiBinByClus(DNAdataMultiBinByClus)
+  }
+  if (class(currentValue$paraValues$internalPhylo) == "phylo") {
+    newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE)
+  } else { ## Only one cluster...
+    newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$clusterPhylos[[1]]$edge, logLimProbsVec = logLimProbs, logTransMatList = allTransMatList[[newIndex]], numOpenMP = numLikThreads, alignmentBin = currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, internalFlag = FALSE, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns) ## Not very efficient...
+  }
+  MHratio <- exp(newLogLik - currentValue$logLik)
+  if (runif(1) < MHratio) {
     if (internalBool) {
-        basicIndex <- currentValue$paraValues$logIntMatListIndex
-        DNAdataMultiBin <- redimMultiBinByClus(currentValue$DNAdataMultiBinByClus)
+      currentValue$paraValues$logIntMatListIndex <- newIndex
     } else{
-        basicIndex <- currentValue$paraValues$logExtMatListIndex
-        intTransMatList <- currentIntTransMatList
+      currentValue$paraValues$logExtMatListIndex <- newIndex
     }
-    newIndex <- basicIndex + sample(c(-samplingRadius:-1,1:samplingRadius), size = 1)
-    newIndex <- (newIndex<=0)*(length(allTransMatList) + newIndex) + (newIndex > length(allTransMatList))*(newIndex - length(allTransMatList)) + ((newIndex > 0) & (newIndex <= length(allTransMatList)))*newIndex  ## We have a circular transition kernel. If the range for allTransMatList is wide enough, the circularity should be never invoked.
-    if (internalBool) {
-        intTransMatList <- allTransMatList[[newIndex]]
-    } else{ ## THis is for the external phylogenies: we need to rederive DNAdataMultiBinByClus
-
-        DNAdataMultiBinByClus <- lapply(names(currentValue$paraValues$clusterPhylos), FUN = function(x) {
-            .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusInd = currentValue$paraValues$clusInd, clusName = x, DNAdataBin = currentValue$sitePatternsByClus[[x]]$uniqueDNAdataBin, numLikThreads = numLikThreads, logExtMatList = allTransMatList[[newIndex]], logLimProbs = logLimProbs, sitePatterns = currentValue$sitePatternsByClus[[x]]$sitePatterns)
-        })
-        DNAdataMultiBin <- redimMultiBinByClus(DNAdataMultiBinByClus)
-    }
-    if (class(currentValue$paraValues$internalPhylo) == "phylo") {
-      newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE)
-    } else { ## Only one cluster...
-      newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$clusterPhylos[[1]]$edge, logLimProbsVec = logLimProbs, logTransMatList = allTransMatList[[newIndex]], numOpenMP = numLikThreads, alignmentBin = currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, internalFlag = FALSE, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns) ## Not very efficient...
-    }
-    MHratio <- exp(newLogLik - currentValue$logLik)
-    if (runif(1) < MHratio) {
-        if (internalBool) {
-            currentValue$paraValues$logIntMatListIndex <- newIndex
-        } else{
-            currentValue$paraValues$logExtMatListIndex <- newIndex
-        }
-        currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
-        currentValue$logLik <- newLogLik
-    } else{}
-    currentValue
+    currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
+    currentValue$logLik <- newLogLik
+  } else{}
+  currentValue
 }
 
 .outputDNAdataMultiBin <- function(clusterPhylo, clusInd, clusName, DNAdataBin, logExtMatList, numLikThreads, logLimProbs, sitePatterns) {
 
-    if (class(clusterPhylo) != "phylo") {
-        tipInClus <- names(clusInd)[match(as.numeric(clusName), clusInd)]
-        alignRedim <- sapply(1:length(DNAdataBin), FUN = function(locusIndex) {
-            DNAdataBin[[locusIndex]][,tipInClus]
-        })
-        return(replicate(n = length(logExtMatList), expr = identity(alignRedim), simplify = FALSE))
-    } else{}
+    # if (class(clusterPhylo) != "phylo") {
+    #     tipInClus <- names(clusInd)[match(as.numeric(clusName), clusInd)]
+    #     alignRedim <- sapply(1:length(DNAdataBin), FUN = function(locusIndex) {
+    #         DNAdataBin[[locusIndex]][,tipInClus]
+    #     })
+    #     return(replicate(n = length(logExtMatList), expr = identity(alignRedim), simplify = FALSE))
+    # } else{}
 
     if (!identical(colnames(DNAdataBin[[1]]), clusterPhylo$tip.label)) {
         stop("The ordering of the columns in DNAdataMultiBin should match that of the tip labels in internalPhylo! Line 486.\n")
@@ -347,42 +355,43 @@
     .logLikCpp(edgeMat = clusterPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = logExtMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = sitePatterns)
 }
 
-.DMphyClusCore <- function(nIter, startingValues, DNAdata, logLimProbs, shapeForAlpha, scaleForAlpha, numMovesNNIint, numMovesNNIext, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, logExtTransMatAll, logIntTransMatAll) {
-
-    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, logLimProbs = logLimProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
-    if (is.matrix(logExtTransMatAll[[1]])) {
-        numGammaCat <- length(logExtTransMatAll) ## We only have one set of substitution rate matrices.
-    } else{
-        numGammaCat <- length(logExtTransMatAll[[1]])
-    }
-    singletonMatrices <- lapply(names(currentValue$paraValues$clusInd), FUN = function(obsName) {
-        alignRedim <- sapply(seq_along(DNAdataBin), FUN = function(locusIndex) {
-            DNAdataBin[[locusIndex]][,obsName] ## This is an offset to prevent computational zeros.
-        })
-        rep(list(alignRedim), numGammaCat)
+.DMphyClusCore <- function(nIter, startingValues, logLimProbs, shapeForAlpha, scaleForAlpha, numMovesNNIint, numMovesNNIext, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, logExtTransMatAll, logIntTransMatAll) {
+  
+  if (is.matrix(logExtTransMatAll[[1]])) {
+    numGammaCat <- length(logExtTransMatAll) ## We only have one set of substitution rate matrices.
+  } else{
+    numGammaCat <- length(logExtTransMatAll[[1]])
+  }
+  singletonMatrices <- lapply(colnames(DNAdataBin[[1]]), FUN = function(obsName) {
+    alignRedim <- sapply(seq_along(DNAdataBin), FUN = function(locusIndex) {
+      DNAdataBin[[locusIndex]][,obsName]
     })
-    names(singletonMatrices) <- names(currentValue$paraValues$clusInd)
-    cat("Launching chain... \n \n")
-
-    progress <- txtProgressBar(style = 3)
-    setTxtProgressBar(pb = progress, value = 0)
-    onePerc <- nIter/100
-    longOut <- lapply(1:nIter, FUN = function(x) {
-        if ((x %% onePerc) == 0) {
-            setTxtProgressBar(pb = progress, value = x/nIter)
-        } else{}
-
-        currentValue <<- .performStepPhylo(currentValue = currentValue, logLimProbs = logLimProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, currentIter = x, numMovesNNIint = numMovesNNIint, numMovesNNIext = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
-
-        paraVec <- currentValue$paraValues
-        names(paraVec) <- replace(names(paraVec), match(c("internalPhylo", "logExtMatListIndex","logIntMatListIndex"), names(paraVec)), c("supportPhylo", "withinTransMatListIndex", "betweenTransMatListIndex"))
-        c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
-    })
-    setTxtProgressBar(pb = progress, value = 1)
-    close(con = progress)
-    cat("\n Chain complete. \n\n\n")
-
-    longOut
+    rep(list(alignRedim), numGammaCat)
+  })
+  names(singletonMatrices) <- colnames(DNAdataBin[[1]])
+  currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, logLimProbs = logLimProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, singletonMatrices = singletonMatrices)
+  
+  cat("Launching chain... \n \n")
+  
+  # progress <- txtProgressBar(style = 3)
+  # setTxtProgressBar(pb = progress, value = 0)
+  # onePerc <- nIter/100
+  longOut <- lapply(1:nIter, FUN = function(x) {
+    # if ((x %% onePerc) == 0) {
+    #   setTxtProgressBar(pb = progress, value = x/nIter)
+    # } else{}
+    
+    currentValue <<- .performStepPhylo(currentValue = currentValue, logLimProbs = logLimProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, currentIter = x, numMovesNNIint = numMovesNNIint, numMovesNNIext = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
+    
+    paraVec <- currentValue$paraValues
+    names(paraVec) <- replace(names(paraVec), match(c("internalPhylo", "logExtMatListIndex","logIntMatListIndex"), names(paraVec)), c("supportPhylo", "withinTransMatListIndex", "betweenTransMatListIndex"))
+    c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
+  })
+  # setTxtProgressBar(pb = progress, value = 1)
+  # close(con = progress)
+  cat("\n Chain complete. \n\n\n")
+  
+  longOut
 }
 
 .relabel <- function(xVector) {
@@ -437,7 +446,7 @@
         newPhylo$tip.label[multiTips] <- "removeMe"
         newTree <- ape::stree(length(seqsInClusInd), tip.label = seqsInClusInd)
         newTree$edge.length <- distsToMRCA
-        incrementedTree <- ape::reorder.phylo(ape::bind.tree(x = newPhylo, y = newTree, where = mrcaNode))
+        incrementedTree <- ape::reorder.phylo(suppressWarnings(ape::bind.tree(x = newPhylo, y = newTree, where = mrcaNode)))
         newPhylo <<- ape::reorder.phylo(ape::drop.tip(phy = incrementedTree, tip = which(incrementedTree$tip.label == "removeMe")))
     }
     lapply(nodeListCut, FUN = internalFun)
