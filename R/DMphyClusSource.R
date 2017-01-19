@@ -364,7 +364,7 @@
   }
   singletonMatrices <- lapply(colnames(DNAdataBin[[1]]), FUN = function(obsName) {
     alignRedim <- sapply(seq_along(DNAdataBin), FUN = function(locusIndex) {
-      DNAdataBin[[locusIndex]][,obsName]
+      log(DNAdataBin[[locusIndex]][,obsName]) ## Since all calculations are on the log scale, these matrices must be on the log-scale too.
     })
     rep(list(alignRedim), numGammaCat)
   })
