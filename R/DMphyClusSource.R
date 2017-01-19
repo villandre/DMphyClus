@@ -144,11 +144,12 @@
             if (!identical(colnames(alignmentBin[[1]]), newSubTree$tip.label)) {
                 stop("Look at names... \n")
             } else{}
-            return(list(tree = newSubTree, clusMatrix = .logLikCpp(edgeMat = newSubTree$edge, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, numOpenMP = numLikThreads, alignmentBin = newSitePatterns$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = newSitePatterns$sitePatterns)))
+            return(list(tree = newSubTree, clusMatrix = .logLikCpp(edgeMat = newSubTree$edge, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, numOpenMP = numLikThreads, alignmentBin = newSitePatterns$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = newSitePatterns$sitePatterns), sitePatterns = newSitePatterns))
         }
     })
     DNAdataMultiBinByClusCopy[graftedTree$tip.label] <- lapply(splitDNAbyClus, FUN = function(x) x$clusMatrix)
     newClusterPhylo <- lapply(splitDNAbyClus, FUN = function(x) x$tree)
+    newSitePatterns <- lapply(splitDNAbyClus, FUN = function(x) x$sitePatterns)
     newClusPhylosLabel <- graftedTree$tip.label
 
     DNAdataMultiBinByClusCopy <- DNAdataMultiBinByClusCopy[newInternalTree$tip.label]
@@ -173,7 +174,7 @@
     ancestorsGroupsPairsNew <- ancestorsGroupsNew[sapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1})]
     numPairsNew <- length(ancestorsGroupsPairsNew)
     transKernRatio <- numSplits/numPairsNew
-    list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel)
+    list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel, sitePatterns = newSitePatterns)
 }
 
 .performMerge <- function(currentValue, ancestorsGroupsPairs, pairToSelect, DNAdataBin, logLimProbs, clusTransMatList, intTransMatList, numLikThreads, singletonMatrices, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
@@ -227,7 +228,8 @@
     newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
     transKernRatio <- numPairs/sum(newCounts>1)
     newClusterPhylo <- list(newClusterPhylo)
-    list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel)
+    newSitePatterns <- list(newSitePatterns)
+    list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel, sitePatterns = newSitePatterns)
 }
 
 .splitJoinClusterMove <- function(currentValue, DNAdataBin, logLimProbs, clusTransMatList, intTransMatList, numLikThreads, singletonMatrices, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
@@ -273,11 +275,16 @@
         currentValue$clusterCounts <- splitMergeResult$counts
         currentValue$paraValues$internalPhylo <- splitMergeResult$internalPhylo
         currentValue$paraValues$clusterPhylos[splitMergeResult$newClusPhylosLabel] <- splitMergeResult$clusterPhylos
+        currentValue$sitePatternsByClus[splitMergeResult$newClusPhylosLabel] <- splitMergeResult$sitePatterns
 
         if (!splitMove) {
-            currentValue$paraValues$clusterPhylos <- currentValue$paraValues$clusterPhylos[-match(clustersInPair, names(currentValue$paraValues$clusterPhylos))]
-            names(currentValue$DNAdataMultiBinByClus) <- as.character(.relabel(as.numeric(names(currentValue$DNAdataMultiBinByClus))))
+          
+            matchingClusters <- match(clustersInPair, names(currentValue$paraValues$clusterPhylos))
+            currentValue$paraValues$clusterPhylos <- currentValue$paraValues$clusterPhylos[-matchingClusters] ## Removing the clusters that have been merged into a new cluster.
             names(currentValue$paraValues$clusterPhylos) <- as.character(.relabel(as.numeric(names(currentValue$paraValues$clusterPhylos))))
+            currentValue$sitePatternsByClus <- currentValue$sitePatternsByClus[-matchingClusters]
+            names(currentValue$sitePatternsByClus) <- as.character(.relabel(as.numeric(names(currentValue$sitePatternsByClus))))
+            names(currentValue$DNAdataMultiBinByClus) <- as.character(.relabel(as.numeric(names(currentValue$DNAdataMultiBinByClus))))
             names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
             currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
             currentValue$paraValues$internalPhylo$tip.label <- as.character(.relabel(as.numeric(currentValue$paraValues$internalPhylo$tip.label)))
