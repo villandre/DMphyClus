@@ -17,7 +17,6 @@
     })
 
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
-    cat("\n Log-lik. at the end of iteration ", currentIter, ": ", currentValue$logLik)
     currentValue
 }
 
@@ -373,13 +372,13 @@
   
   cat("Launching chain... \n \n")
   
-  # progress <- txtProgressBar(style = 3)
-  # setTxtProgressBar(pb = progress, value = 0)
-  # onePerc <- nIter/100
+  progress <- txtProgressBar(style = 3)
+  setTxtProgressBar(pb = progress, value = 0)
+  onePerc <- nIter/100
   longOut <- lapply(1:nIter, FUN = function(x) {
-    # if ((x %% onePerc) == 0) {
-    #   setTxtProgressBar(pb = progress, value = x/nIter)
-    # } else{}
+    if ((x %% onePerc) == 0) {
+      setTxtProgressBar(pb = progress, value = x/nIter)
+    } else{}
     
     currentValue <<- .performStepPhylo(currentValue = currentValue, logLimProbs = logLimProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, currentIter = x, numMovesNNIint = numMovesNNIint, numMovesNNIext = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
     
@@ -387,8 +386,8 @@
     names(paraVec) <- replace(names(paraVec), match(c("internalPhylo", "logExtMatListIndex","logIntMatListIndex"), names(paraVec)), c("supportPhylo", "withinTransMatListIndex", "betweenTransMatListIndex"))
     c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
   })
-  # setTxtProgressBar(pb = progress, value = 1)
-  # close(con = progress)
+  setTxtProgressBar(pb = progress, value = 1)
+  close(con = progress)
   cat("\n Chain complete. \n\n\n")
   
   longOut
