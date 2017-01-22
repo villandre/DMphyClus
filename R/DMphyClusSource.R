@@ -372,13 +372,13 @@
   
   cat("Launching chain... \n \n")
   
-  progress <- txtProgressBar(style = 3)
-  setTxtProgressBar(pb = progress, value = 0)
-  onePerc <- nIter/100
+  # progress <- txtProgressBar(style = 3)
+  # setTxtProgressBar(pb = progress, value = 0)
+  # onePerc <- nIter/100
   longOut <- lapply(1:nIter, FUN = function(x) {
-    if ((x %% onePerc) == 0) {
-      setTxtProgressBar(pb = progress, value = x/nIter)
-    } else{}
+    # if ((x %% onePerc) == 0) {
+    #   setTxtProgressBar(pb = progress, value = x/nIter)
+    # } else{}
     
     currentValue <<- .performStepPhylo(currentValue = currentValue, logLimProbs = logLimProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, currentIter = x, numMovesNNIint = numMovesNNIint, numMovesNNIext = numMovesNNIext, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
     
@@ -386,8 +386,8 @@
     names(paraVec) <- replace(names(paraVec), match(c("internalPhylo", "logExtMatListIndex","logIntMatListIndex"), names(paraVec)), c("supportPhylo", "withinTransMatListIndex", "betweenTransMatListIndex"))
     c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
   })
-  setTxtProgressBar(pb = progress, value = 1)
-  close(con = progress)
+  # setTxtProgressBar(pb = progress, value = 1)
+  # close(con = progress)
   cat("\n Chain complete. \n\n\n")
   
   longOut
@@ -540,21 +540,35 @@
     names(newClusMats) <- names(newTreesWithoutNAs)
 
     internalClusPhylos <- function(x) {
+        cat("Launching internalClusPhylos! \n")
         DNAdataMultiBinByClusCurr <- currentValue$DNAdataMultiBinByClus
-        DNAdataMultiBinByClusCurr[[names(newClusMats)[x]]] <- newClusMats[[x]] ###################
+        cat("Assigned DNAdataMultiBinByClusCurr! \n")
+        # cat("Old config: \n")
+        # print(DNAdataMultiBinByClusCurr[[names(newClusMats)[x]]])
+        # cat("\n New config: \n")
+        # print(newClusMats[[x]])
+        # cat("\n")
+        DNAdataMultiBinByClusCurr[[names(newClusMats)[x]]] <- newClusMats[[x]] #################### Problem appears here...
+        cat("Updated DNAdataMultiBinByClusCurr! \n")
         intAlignmentBin <- redimMultiBinByClus(DNAdataMultiBinByClusCurr)
-
+        cat("Created intAlignmentBin! \n")
         newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, equivVector = names(logLimProbs), alignmentBin = intAlignmentBin, returnRootMat = FALSE, internalFlag = TRUE, numOpenMP = numLikThreads)
+        cat("Done running .logLikCpp! \n")
         #MHratio <- exp(newLogLik - logLikNow) ## Prior doesn't change... Shouldn't it be currentValue$logLik
         MHratio <- exp(newLogLik - currentValue$logLik)
+        cat("Computed MHratio! \n")
         if (runif(1) < MHratio) {
 
             labelClusToChange <- names(newClusMats)[x]
+            cat("Assigned labelClusToChange !\n")
             currentValue$logPostProb <<- currentValue$logPostProb - currentValue$logLik + newLogLik
+            cat("Updated logPostProb! \n")
             currentValue$logLik <<- newLogLik
-
+            cat("Updated logLik! \n")
             currentValue$DNAdataMultiBinByClus <<- DNAdataMultiBinByClusCurr
+            cat("Updated currentValue$DNAdataMultiBinByClus! \n")
             currentValue$paraValues$clusterPhylos[[labelClusToChange]] <<- newTreesWithoutNAs[[labelClusToChange]]
+            cat("Updated clusterPhylos! End of internalClusPhylos. \n")
             ## The prior doesn't change, so we don't need to update logPostProb.
         } else{}
         NULL

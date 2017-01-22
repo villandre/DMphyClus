@@ -1,2 +1,2 @@
-PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS)
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -std=c++11
+PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CXXFLAGS) -L/home/villandre/gperftools/lib 
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -I/home/villandre/gperftools/include -std=c++11 -fno-omit-frame-pointer

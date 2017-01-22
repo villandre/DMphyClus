@@ -1,6 +1,6 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
-//#include <gperftools/profiler.h>
+#include <gperftools/profiler.h>
 #include <RcppArmadillo.h>
 #include <vector>
 #include <array>
@@ -417,7 +417,7 @@ uint phylo::getNumTips() {
 }
 
 NumericMatrix convMatToRcpp(arma::mat x) {
-  NumericMatrix y = wrap(x) ;
+  NumericMatrix y = wrap(x) ; // Valgrind says there's a problem here...
   return(y) ;
 }
 
@@ -427,7 +427,7 @@ SEXP phylo::getPruningMat() {
 
     for (uint i = 0 ; i < pruningMatVec.size(); i++) {
 
-      pruningMatVecReadj[i] = convMatToRcpp(as<mat>(pruningMatVec[i]).cols(sitePatterns - 1)) ;
+      pruningMatVecReadj[i] = convMatToRcpp(as<mat>(pruningMatVec[i]).cols(sitePatterns - 1)) ; // Valgrind says there's a problem here.
     }
     return Rcpp::wrap(pruningMatVecReadj) ;
 }
@@ -438,7 +438,7 @@ void phylo::logLikPhylo(const bool returnMatIndic) {
 
     for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
 
-        #pragma omp parallel for
+//praaagma omp parallel for
         for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
 
             logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ;
@@ -490,14 +490,11 @@ SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, Li
       sitePatternsAmended = as<uvec>(sitePatterns) ;
     }
     SEXP container ;
-    //         ProfilerStart("/home/villandre/profileOut.out") ;
-
+   
+    //ProfilerStart("/home/villandre/profileOut.out") ;
     phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
-    
-    
     phyloObject.logLikPhylo(returnMatIndic);
-    
-    //             ProfilerStop();
+    //ProfilerStop() ;
     if (returnMatIndic) {
 
       container = phyloObject.getPruningMat();
@@ -533,8 +530,8 @@ SEXP redimMultiBinByClus(Rcpp::List multiBinByClus) {
 
     uint numClus = multiBinByClus.size() ;
     uint numRateCats = (Rcpp::as<Rcpp::List>(multiBinByClus[0])).size() ;
-    uint numStates = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[0]))[0]).nrow() ;
-    uint numLoci = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[0]))[0]).ncol() ;
+    uint numStates = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[0]))[0]).nrow() ; //Valgrind says there's a problem here?
+    uint numLoci = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[0]))[0]).ncol() ; // Valgrind says there's a problem here.
     std::vector<std::vector<Rcpp::NumericMatrix>> outputVec(numRateCats);
 
     for(uint i = 0; i < numRateCats ; i++) {
@@ -553,7 +550,7 @@ SEXP redimMultiBinByClus(Rcpp::List multiBinByClus) {
 
             for (uint k = 0; k < numClus; k++) {
 
-               (outputVec.at(j).at(i))(Rcpp::_,k) = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[k]))[j])(Rcpp::_, i) ;
+               (outputVec.at(j).at(i))(Rcpp::_,k) = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[k]))[j])(Rcpp::_, i) ; // Valgrind says there's a problem here...
             }
         }
     }
@@ -562,8 +559,7 @@ SEXP redimMultiBinByClus(Rcpp::List multiBinByClus) {
 // [[Rcpp::export]]
 
 SEXP logLikCppToWrapV(List & edgeMatList, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBinList, const bool returnMatIndic, const bool internalFlag, const List sitePatternsList) {
-//     #pragma omp parallel
-//     {
+
   omp_set_num_threads(numOpenMP) ;
 
   uint numEvals = edgeMatList.size() ;
@@ -574,7 +570,7 @@ SEXP logLikCppToWrapV(List & edgeMatList, NumericVector & logLimProbsVec, List &
 
   uvec sitePatternsAmended ;
   uint numLoci ;
-  //#pragma omp parallel for if(numEvals > 7)
+  //#praaaaagma omp parallel for if(numEvals > 7)
   for (uint i = 0; i < numEvals; i++) {
 
     if (!internalFlag) {
@@ -602,7 +598,7 @@ SEXP logLikCppToWrapV(List & edgeMatList, NumericVector & logLimProbsVec, List &
 
     if (returnMatIndic) {
 
-      container[i] = phylogenyAlphaContainer[i].getPruningMat() ;
+      container[i] = phylogenyAlphaContainer[i].getPruningMat() ; // Valgrind says there's a problem here...
     } else {
 
       container[i] = phylogenyAlphaContainer[i].getLogLik();
