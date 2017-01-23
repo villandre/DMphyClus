@@ -434,23 +434,23 @@ SEXP phylo::getPruningMat() {
 
 void phylo::logLikPhylo(const bool returnMatIndic) {
 
-    mat logLikMat(numUniqueLoci, numRateCats, fill::ones);
-
-    for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
-
+  mat logLikMat(numUniqueLoci, numRateCats, fill::ones);
+  
+  for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
+    
     #pragma omp parallel for
-        for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
-
-            logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ;
-        }
+    for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
+      
+      logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ;
     }
-    if (!returnMatIndic) {
-      vec rowMin = min(logLikMat,1) ;
-      logLikMat.each_col() -= rowMin ;
-      vec logLiksToSum = rowMin + log(sum(exp(logLikMat), 1)) - log(numRateCats) ;
-      logLik = sum(logLiksToSum.elem(sitePatterns - 1)) ; // Indices begin at zero hence the -1...
-      //logLik = minLogLikSumRate + sum(exp(logLikSumRate - minLogLikSumRate)) - log(numRateCats)  ;
-    } else{}
+  }
+  if (!returnMatIndic) {
+    vec rowMin = min(logLikMat,1) ;
+    logLikMat.each_col() -= rowMin ;
+    vec logLiksToSum = rowMin + log(sum(exp(logLikMat), 1)) - log(numRateCats) ;
+    logLik = sum(logLiksToSum.elem(sitePatterns - 1)) ; // Indices begin at zero hence the -1...
+    //logLik = minLogLikSumRate + sum(exp(logLikSumRate - minLogLikSumRate)) - log(numRateCats)  ;
+  } else{}
 }
 
 template<class Mat>
