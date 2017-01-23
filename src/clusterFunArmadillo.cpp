@@ -438,7 +438,7 @@ void phylo::logLikPhylo(const bool returnMatIndic) {
 
     for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
 
-//praaagma omp parallel for
+    #pragma omp parallel for
         for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
 
             logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ;
@@ -555,56 +555,6 @@ SEXP redimMultiBinByClus(Rcpp::List multiBinByClus) {
         }
     }
     return(Rcpp::wrap(outputVec)) ;
-}
-// [[Rcpp::export]]
-
-SEXP logLikCppToWrapV(List & edgeMatList, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBinList, const bool returnMatIndic, const bool internalFlag, const List sitePatternsList) {
-
-  omp_set_num_threads(numOpenMP) ;
-
-  uint numEvals = edgeMatList.size() ;
-  IntegerVector sitePatterns(as<IntegerVector>(sitePatternsList[0]).size()) ;  // The number of loci does not change across clusters, hence the hard-coded 0.
-
-  std::vector<SEXP> container(numEvals) ;
-  std::vector<phylogenyAlpha> phylogenyAlphaContainer(numEvals) ;
-
-  uvec sitePatternsAmended ;
-  uint numLoci ;
-  //#praaaaagma omp parallel for if(numEvals > 7)
-  for (uint i = 0; i < numEvals; i++) {
-
-    if (!internalFlag) {
-
-      numLoci = as<List>(sitePatternsList[i]).size() ;
-      sitePatternsAmended.resize(numLoci) ;
-      sitePatternsAmended = as<uvec>(sitePatternsList[i]) ;
-    } else {
-
-      numLoci = as<List>(alignmentBinList[i]).size() ;
-      sitePatternsAmended = conv_to<uvec>::from(conv_to<uvec>::from(linspace(1, numLoci, numLoci))) ; // Site patterns do not apply for internal phylogenetic computations. A placeholder is therefore created here.
-    }
-
-    phylogenyAlphaContainer[i] = phylogenyAlpha(Rcpp::as<NumericMatrix>(edgeMatList[i]), Rcpp::as<List>(alignmentBinList[i]), logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
-  }
-
-  for (int i = 0; i < numEvals; i++) {
-
-    //ProfilerStart("/home/villandre/profileOut.out") ;
-    phylogenyAlphaContainer[i].logLikPhylo(returnMatIndic) ;
-    //ProfilerStop();
-  }
-
-  for (uint i = 0; i < numEvals; i++) {
-
-    if (returnMatIndic) {
-
-      container[i] = phylogenyAlphaContainer[i].getPruningMat() ; // Valgrind says there's a problem here...
-    } else {
-
-      container[i] = phylogenyAlphaContainer[i].getLogLik();
-    }
-  }
-  return Rcpp::wrap(container) ;
 }
 
 // [[Rcpp::export]]aa

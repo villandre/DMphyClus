@@ -533,10 +533,7 @@
         return(currentValue) ## If no phylogenies can be updated, we simply return the current value of the chain.
     } else{}
     newTreesWithoutNAs <- newTreesWithNAs[!NAbool]
-    #alignmentBinList <- lapply(newTreesWithoutNAs, FUN = function(x) .dataBinSubset(DNAdataBin = DNAdataBin, keepSeqNamesOrNums = x$tip.label))
-    #edgeMatList <- lapply(newTreesWithoutNAs, FUN = function(x) x$edge)
-
-    #newClusMats <- .logLikCppV(edgeMatL = edgeMatList, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, equivVector = names(logLimProbs), alignmentBinL = lapply(currentValue$sitePatternsByClus[names(newTreesWithoutNAs)], FUN = function(x) x$uniqueDNAdataBin), returnRootMat = TRUE, numOpenMP = numLikThreads, internalFlag = FALSE, priorBySizeTransMatBool = FALSE, sitePatternsList = lapply(currentValue$sitePatternsByClus[names(newTreesWithoutNAs)], FUN = function(x) x$sitePatterns))
+   
     newClusMats <- lapply(names(newTreesWithoutNAs), FUN = function(phyloName) {
       edgeMat <- newTreesWithoutNAs[[phyloName]]$edge
       alignmentBin <- currentValue$sitePatternsByClus[[phyloName]]$uniqueDNAdataBin
@@ -569,18 +566,6 @@
 
     currentValue
 }
-
-.logLikCppV <- function(edgeMatL, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentBinL, returnRootMat = FALSE, internalFlag = FALSE, priorBySizeTransMatBool, sitePatternsList) {
-    numStatesCons <- length(logLimProbsVec)
-    ## The placeholders exist because Rcpp will want these arguments to be defined.
-    placeholderEquiv <- rep("a",numStatesCons)
-    if (internalFlag) {
-      sitePatternsList <- list(1) ## The site patterns do not matter for internal phylogeny computations! Instead of copying a large placeholder, it should be recreated within the C++ module.
-    } else{}
-    output <- logLikCppToWrapV(edgeMatList = edgeMatL, logLimProbsVec = logLimProbsVec, logTransMatList = logTransMatList, numOpenMP = numOpenMP, equivVector = placeholderEquiv, alignmentBinList = alignmentBinL, returnMatIndic = returnRootMat, internalFlag = internalFlag, sitePatternsList = sitePatternsList)
-    output
-}
-
 
 .checkInput <- function(startingValues, Qmatrix, alignment, limProbs, shiftForAlpha) {
     ## Check if all necessary starting values are defined...
