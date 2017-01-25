@@ -9,11 +9,3 @@ getConvertedAlignmentToWrap <- function(numOpenMP, equivVector, alignmentAlphaMa
     .Call('DMphyClus_getConvertedAlignmentToWrap', PACKAGE = 'DMphyClus', numOpenMP, equivVector, alignmentAlphaMat, sitePatterns)
 }
 
-redimMultiBinByClus <- function(multiBinByClus) {
-    .Call('DMphyClus_redimMultiBinByClus', PACKAGE = 'DMphyClus', multiBinByClus)
-}
-
-logLikCppToWrapV <- function(edgeMatList, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentBinList, returnMatIndic, internalFlag, sitePatternsList) {
-    .Call('DMphyClus_logLikCppToWrapV', PACKAGE = 'DMphyClus', edgeMatList, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentBinList, returnMatIndic, internalFlag, sitePatternsList)
-}
-

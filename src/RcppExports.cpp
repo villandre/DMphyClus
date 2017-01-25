@@ -39,33 +39,3 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// redimMultiBinByClus
-SEXP redimMultiBinByClus(Rcpp::List multiBinByClus);
-RcppExport SEXP DMphyClus_redimMultiBinByClus(SEXP multiBinByClusSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type multiBinByClus(multiBinByClusSEXP);
-    rcpp_result_gen = Rcpp::wrap(redimMultiBinByClus(multiBinByClus));
-    return rcpp_result_gen;
-END_RCPP
-}
-// logLikCppToWrapV
-SEXP logLikCppToWrapV(List& edgeMatList, NumericVector& logLimProbsVec, List& logTransMatList, int numOpenMP, SEXP& equivVector, List alignmentBinList, const bool returnMatIndic, const bool internalFlag, const List sitePatternsList);
-RcppExport SEXP DMphyClus_logLikCppToWrapV(SEXP edgeMatListSEXP, SEXP logLimProbsVecSEXP, SEXP logTransMatListSEXP, SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentBinListSEXP, SEXP returnMatIndicSEXP, SEXP internalFlagSEXP, SEXP sitePatternsListSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List& >::type edgeMatList(edgeMatListSEXP);
-    Rcpp::traits::input_parameter< NumericVector& >::type logLimProbsVec(logLimProbsVecSEXP);
-    Rcpp::traits::input_parameter< List& >::type logTransMatList(logTransMatListSEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    Rcpp::traits::input_parameter< SEXP& >::type equivVector(equivVectorSEXP);
-    Rcpp::traits::input_parameter< List >::type alignmentBinList(alignmentBinListSEXP);
-    Rcpp::traits::input_parameter< const bool >::type returnMatIndic(returnMatIndicSEXP);
-    Rcpp::traits::input_parameter< const bool >::type internalFlag(internalFlagSEXP);
-    Rcpp::traits::input_parameter< const List >::type sitePatternsList(sitePatternsListSEXP);
-    rcpp_result_gen = Rcpp::wrap(logLikCppToWrapV(edgeMatList, logLimProbsVec, logTransMatList, numOpenMP, equivVector, alignmentBinList, returnMatIndic, internalFlag, sitePatternsList));
-    return rcpp_result_gen;
-END_RCPP
-}

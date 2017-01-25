@@ -57,7 +57,7 @@
       names(currentValue$paraValues$clusterPhylos) <- names(currentValue$sitePatternsByClus[[1]]) <- "1"
       DNAdataMultiBinByClus <- list(.outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[1]], clusName = "1", clusInd = currentValue$paraValues$clusInd, DNAdataBin = lapply(currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, FUN = function(x) x[,currentValue$paraValues$clusterPhylos[[1]]$tip.label]), logExtMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], numLikThreads = numLikThreads, logLimProbs = logLimProbs, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns))
       names(DNAdataMultiBinByClus) <- names(currentValue$paraValues$clusterPhylos)
-      currentValue$DNAdataMultiBinByClus <- DNAdataMultiBinByClus ## Will need to be adjusted with redimMultiBinByClus before being used in a call to logLikCpp
+      currentValue$DNAdataMultiBinByClus <- DNAdataMultiBinByClus 
       currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$clusterPhylos[[1]]$edge, logLimProbsVec = logLimProbs, logTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = FALSE, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns)
        
     } else {
@@ -107,12 +107,12 @@
       })
       names(DNAdataMultiBinByClus) <- names(currentValue$paraValues$clusterPhylos)
 
-      currentValue$DNAdataMultiBinByClus <- DNAdataMultiBinByClus ## Will need to be adjusted with redimMultiBinByClus before being used in a call to logLikCpp
-      DNAdataMultiBin <- redimMultiBinByClus(currentValue$DNAdataMultiBinByClus) ## Danger: the functions don't produce an error if we ask for DNAdataMultiBin when it is not defined, because they assume that we mean DNAdataMultiBinByClus.
-      if (!identical(colnames(DNAdataMultiBin[[1]][[1]]), currentValue$paraValues$internalPhylo$tip.label)) {
+      currentValue$DNAdataMultiBinByClus <- DNAdataMultiBinByClus
+      
+      if (!identical(names(DNAdataMultiBinByClus), currentValue$paraValues$internalPhylo$tip.label)) {
         stop("The ordering of the columns in DNAdataMultiBin should match that of the tip labels in internalPhylo! Line 499.\n")
       } else{}
-      currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE, returnRootMat = FALSE) 
+      currentValue$logLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]],  numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBinByClus, internalFlag = TRUE, returnRootMat = FALSE) 
        
     }
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
@@ -156,11 +156,11 @@
     newClusPhylosLabel <- graftedTree$tip.label
 
     DNAdataMultiBinByClusCopy <- DNAdataMultiBinByClusCopy[newInternalTree$tip.label]
-    newDNAdataMultiBin <- redimMultiBinByClus(DNAdataMultiBinByClusCopy) ## This works only if the number of elements in the list on the LHS matches that in the list on the RHS.
-    if (!identical(colnames(newDNAdataMultiBin[[1]][[1]]), newInternalTree$tip.label)) {
-        stop("Look at column names! \n")
+    
+    if (!identical(names(DNAdataMultiBinByClusCopy), newInternalTree$tip.label)) {
+        stop("Look at element names! \n")
     } else{}
-    newLogLik <- .logLikCpp(edgeMat = newInternalTree$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = newDNAdataMultiBin, internalFlag = TRUE, returnRootMat = FALSE)
+    newLogLik <- .logLikCpp(edgeMat = newInternalTree$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBinByClusCopy, internalFlag = TRUE, returnRootMat = FALSE)
     newClusInd <- currentValue$paraValues$clusInd
     if (!(class(splitDNAbyClus[[2]]$tree) == "phylo"))  {
         labelsToAmend <- originalPhylo$tip.label[rootChildren[[2]]]
@@ -174,7 +174,7 @@
     tipAncestorsNew <- phangorn::Ancestors(newInternalTree, node = 1:ape::Ntip(newInternalTree), type = "parent")
     names(tipAncestorsNew) <- newInternalTree$tip.label
     ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
-    ancestorsGroupsPairsNew <- ancestorsGroupsNew[sapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1})]
+    ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
     numPairsNew <- length(ancestorsGroupsPairsNew)
     transKernRatio <- numSplits/numPairsNew
     list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel, sitePatterns = newSitePatterns)
@@ -214,12 +214,12 @@
     DNAdataMultiBinByClusCopy[[newTipLabel]] <- .logLikCpp(edgeMat = newClusterPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, numOpenMP = numLikThreads, alignmentBin = newSitePatterns$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = newSitePatterns$sitePatterns) ## This is automatically added to the end of the list, which means the ordering of the list should not be affected.
 
     newClusPhylosLabel <- newTipLabel
-    newDNAdataMultiBin <- redimMultiBinByClus(DNAdataMultiBinByClusCopy)
+    
     if (!is.null(newInternalTree)) {
-      if (!identical(newInternalTree$tip.label, colnames(newDNAdataMultiBin[[1]][[1]]))) {
-        stop("Look at colnames! \n")
+      if (!identical(newInternalTree$tip.label, names(DNAdataMultiBinByClusCopy))) {
+        stop("Look at ordering of DNAdataMultiBinByClusCopy! \n")
       } else{}
-      newLogLik <- .logLikCpp(edgeMat = newInternalTree$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = newDNAdataMultiBin, internalFlag = TRUE, returnRootMat = FALSE)
+      newLogLik <- .logLikCpp(edgeMat = newInternalTree$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBinByClusCopy, internalFlag = TRUE, returnRootMat = FALSE)
     } else { ## If the internal tree is NULL, it means we only have one cluster!
       if (!identical(colnames(mergeDataBin[[1]]), newClusterPhylo$tip.label)) {
         stop("Error in .performMerge: orders of columns in mergeDataBin should match that of the tip labels in newClusterPhylo!\n")
@@ -241,7 +241,7 @@
       tipAncestors <- phangorn::Ancestors(currentValue$paraValues$internalPhylo, node = seq_along(currentValue$paraValues$internalPhylo$tip.label), type = "parent")
       names(tipAncestors) <- currentValue$paraValues$internalPhylo$tip.label
       ancestorsGroups <- split(tipAncestors, f = tipAncestors)
-      ancestorsGroupsPairs <- ancestorsGroups[sapply(ancestorsGroups, FUN = function(x) {length(x) > 1})]
+      ancestorsGroupsPairs <- ancestorsGroups[vapply(ancestorsGroups, FUN = function(x) {length(x) > 1}, FUN.VALUE = logical(1))]
       numPairs <- length(ancestorsGroupsPairs)
     } else {
       numPairs <- 0
@@ -299,7 +299,6 @@
 .updateTransMatrix <- function(currentValue, allTransMatList, currentIntTransMatList, samplingRadius = 2, internalBool, logLimProbs, numLikThreads) {
   if (internalBool) {
     basicIndex <- currentValue$paraValues$logIntMatListIndex
-    DNAdataMultiBin <- redimMultiBinByClus(currentValue$DNAdataMultiBinByClus)
   } else{
     basicIndex <- currentValue$paraValues$logExtMatListIndex
     intTransMatList <- currentIntTransMatList
@@ -308,6 +307,7 @@
   newIndex <- (newIndex<=0)*(length(allTransMatList) + newIndex) + (newIndex > length(allTransMatList))*(newIndex - length(allTransMatList)) + ((newIndex > 0) & (newIndex <= length(allTransMatList)))*newIndex  ## We have a circular transition kernel. If the range for allTransMatList is wide enough, the circularity should be never invoked.
   if (internalBool) {
     intTransMatList <- allTransMatList[[newIndex]]
+    DNAdataMultiBinByClus <- currentValue$DNAdataMultiBinByClus
   } else{ ## THis is for the external phylogenies: we need to rederive DNAdataMultiBinByClus
     
     DNAdataMultiBinByClus <- lapply(names(currentValue$paraValues$clusterPhylos), FUN = function(x) {
@@ -317,10 +317,9 @@
         .outputDNAdataMultiBin(clusterPhylo = currentValue$paraValues$clusterPhylos[[x]], clusInd = currentValue$paraValues$clusInd, clusName = x, DNAdataBin = currentValue$sitePatternsByClus[[x]]$uniqueDNAdataBin, numLikThreads = numLikThreads, logExtMatList = allTransMatList[[newIndex]], logLimProbs = logLimProbs, sitePatterns = currentValue$sitePatternsByClus[[x]]$sitePatterns)
       }
     })
-    DNAdataMultiBin <- redimMultiBinByClus(DNAdataMultiBinByClus)
   }
   if (class(currentValue$paraValues$internalPhylo) == "phylo") {
-    newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE)
+    newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBinByClus, internalFlag = TRUE)
   } else { ## Only one cluster...
     newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$clusterPhylos[[1]]$edge, logLimProbsVec = logLimProbs, logTransMatList = allTransMatList[[newIndex]], numOpenMP = numLikThreads, alignmentBin = currentValue$sitePatternsByClus[[1]]$uniqueDNAdataBin, internalFlag = FALSE, sitePatterns = currentValue$sitePatternsByClus[[1]]$sitePatterns) ## Not very efficient...
   }
@@ -435,7 +434,7 @@
         toSplit <- phylogeny$tip.label
     }
     nodeListCut <- split(x = toSplit, f = clusInd)
-    keepIndices <- sapply(nodeListCut, FUN = function(x) length(x) > 2)
+    keepIndices <- vapply(nodeListCut, FUN = function(x) {length(x) > 2}, FUN.VALUE = c(Logical = TRUE))
     nodeListCut <- nodeListCut[keepIndices]
     newPhylo <- phylogeny
     internalFun <- function(seqsInClusInd) {
@@ -475,12 +474,11 @@
 ## DNAdataMultiBin is a list of lists of matrices. Outer list has # elements = # rate categories. The next level has # elements = #loci, the inner level is a matrix with # rows = # states and # col. = number of tips.
 .updateSupportingPhylo <- function(internalPhylo, currentLogLik, logLimProbs, logTransMatList, numMovesNNI, numLikThreads, DNAdataMultiBinByClus) {
 
-    DNAdataMultiBin <- redimMultiBinByClus(DNAdataMultiBinByClus)
     neighbourTree <- phangorn::rNNI(internalPhylo, moves = numMovesNNI)
-    if (!identical(neighbourTree$tip.label, colnames(DNAdataMultiBin[[1]][[1]]))) {
+    if (!identical(neighbourTree$tip.label, names(DNAdataMultiBinByClus))) {
         stop("Ordering of columns differ... Computing log-lik in internalPhylo... \n")
     } else{}
-    updatedLogLik <- .logLikCpp(edgeMat = neighbourTree$edge, logLimProbsVec = logLimProbs, logTransMatList = logTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBin, internalFlag = TRUE) ## Note that all edges belong to the same rate category, hence extTransMatList and intTransMatList taking the same value.
+    updatedLogLik <- .logLikCpp(edgeMat = neighbourTree$edge, logLimProbsVec = logLimProbs, logTransMatList = logTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBinByClus, internalFlag = TRUE) ## Note that all edges belong to the same rate category, hence extTransMatList and intTransMatList taking the same value.
     MHratio <- exp(updatedLogLik - currentLogLik) ## Prior doesn't change...
     if (runif(1) < MHratio) {
 
@@ -528,7 +526,7 @@
       } else{}
       return(currentValue)
     } else{}
-    NAbool <- sapply(newTreesWithNAs, FUN = function(x) class(x) != "phylo") ## NAs correspond to singletons and transmission pairs, since a NNI move does not change them.
+    NAbool <- vapply(newTreesWithNAs, FUN = function(x) {class(x) != "phylo"}, FUN.VALUE = logical(1)) ## NAs correspond to singletons and transmission pairs, since a NNI move does not change them.
     if (all(NAbool)) {
         return(currentValue) ## If no phylogenies can be updated, we simply return the current value of the chain.
     } else{}
@@ -546,8 +544,7 @@
         
         DNAdataMultiBinByClusCurr <- currentValue$DNAdataMultiBinByClus
         DNAdataMultiBinByClusCurr[[names(newClusMats)[x]]] <- newClusMats[[x]] #################### Problem appears here...
-        intAlignmentBin <- redimMultiBinByClus(DNAdataMultiBinByClusCurr)
-        newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, equivVector = names(logLimProbs), alignmentBin = intAlignmentBin, returnRootMat = FALSE, internalFlag = TRUE, numOpenMP = numLikThreads)
+        newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, equivVector = names(logLimProbs), alignmentBin = DNAdataMultiBinByClusCurr, returnRootMat = FALSE, internalFlag = TRUE, numOpenMP = numLikThreads)
         #MHratio <- exp(newLogLik - logLikNow) ## Prior doesn't change... Shouldn't it be currentValue$logLik
         MHratio <- exp(newLogLik - currentValue$logLik)
         
@@ -640,9 +637,9 @@
 
 getSitePatterns <- function(alignment) { ## Works for DNAdataBin type alignments by also for conventional alignments in matrix form (1 row for each sequence, 1 col for each locus)
   if (is.list(alignment)) {
-    hashesVec <- sapply(alignment, FUN = digest::digest, algo = "xxhash64")
+    hashesVec <- vapply(alignment, FUN = digest::digest, algo = "xxhash64", FUN.VALUE = character(1))
   } else {
-    hashesVec <- apply(alignment, MARGIN = 2, FUN = digest::digest, algo = "xxhash64")
+    hashesVec <- vapply(1:ncol(alignment), FUN = function(x) {digest::digest(alignment[,x], algo = "xxhash64")}, FUN.VALUE = character(1))
   }
   noDuplicates <- !duplicated(hashesVec)
   uniqueHashes <- hashesVec[noDuplicates]
