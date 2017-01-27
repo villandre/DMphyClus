@@ -88,39 +88,37 @@ private:
 
 phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) {
 
-    mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
-    edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
-    logLimProbs = Rcpp::as<vec>(logLimProbsVec); // The second argument (numeric) of the R function is called logLimProbs.
-    numRateCats = logTransMatList.size() ;
-    numStates = logLimProbsVec.size() ;
-    numOpenMPthreads = numOpenMP ;
-    internalPhyloFlag = internalFlag ;
-    logTransMatVec.resize(numRateCats) ;
-    sitePatterns = sitePatternsVec ;
-    numLoci = sitePatterns.n_rows ;
-    numUniqueLoci = sitePatterns.max() ;
-
-    for (int i = 0; i < numRateCats ; i++) {
-
-        logTransMatVec[i] = Rcpp::as<mat>(logTransMatList[i]) ;
-    }
-
-    children.resize(edge.n_rows + 2) ;
-
-    for(uint i = 0; i < edge.n_rows; i++)
-    {
-
-        children[edge(i, 0)].push_back(edge(i, 1));
-    }
+  mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
+  edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
+  logLimProbs = Rcpp::as<vec>(logLimProbsVec); // The second argument (numeric) of the R function is called logLimProbs.
+  numRateCats = logTransMatList.size() ;
+  numStates = logLimProbsVec.size() ;
+  numOpenMPthreads = numOpenMP ;
+  internalPhyloFlag = internalFlag ;
+  sitePatterns = sitePatternsVec ;
+  numLoci = sitePatterns.n_rows ;
+  numUniqueLoci = sitePatterns.max() ;
+  
+  logTransMatVec.resize(numRateCats) ;
+  
+  std::transform(logTransMatList.begin(), logTransMatList.end(), logTransMatVec.begin(), [] (const NumericMatrix &initialMatrix) {return as<mat>(initialMatrix);}) ;
+  
+  children.resize(edge.n_rows + 2) ;
+  
+  for(uint i = 0; i < edge.n_rows; i++)
+  {
     
-    if (returnMatIndic) {
-
-        pruningMatVec.resize(numRateCats) ;
-        for (uint i = 0 ; i < numRateCats; i++) {
-
-            pruningMatVec[i] = Rcpp::NumericMatrix(numStates, numLoci) ;
-        }
-    } else{}
+    children[edge(i, 0)].push_back(edge(i, 1));
+  }
+  
+  if (returnMatIndic) {
+    
+    pruningMatVec.resize(numRateCats) ;
+    for (auto& i : pruningMatVec) {
+      
+      i = NumericMatrix(numStates, numLoci) ;
+    }
+  } else{}
 }
 
 phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMatrix & alignmentAlphaMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const CharacterVector & equivVec, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
@@ -175,10 +173,10 @@ void phylo::compUpdateVec() {
     uint numNodesTotal = edge.n_rows + 1 ;
     uvec updateOrderVec(Nnode, fill::zeros) ;
     uvec numChildren(Nnode) ;
-    for (uint i = 0; (i < Nnode) ; i++) {
-
-        numChildren(i) = children[i+numTips+1].size() ;
-    }
+    
+    auto childrenIter = std::next(children.begin(), numTips + 1) ;
+    std::transform(childrenIter, std::next(childrenIter, Nnode), numChildren.begin(), [] (std::vector<int> &arg) { return arg.size(); }) ;
+    
     uvec parentVec(numNodesTotal, fill::zeros) ;
     for (uint i = 0; (i < edge.n_rows); i ++) {
 
@@ -311,8 +309,8 @@ void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIn
 }
 
 double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, const bool returnMatIndic) {
-    
-    mat nodeTipMat = zeros<mat>(numStates, edge.max()) ; // This is a matrix that stores likelihood vectors. Each vector has as many elements as potential states.
+  
+  mat nodeTipMat = zeros<mat>(numStates, edge.max()) ; // This is a matrix that stores likelihood vectors. Each vector has as many elements as potential states.
   
   if (!internalPhyloFlag) {
     
@@ -324,7 +322,6 @@ double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, co
     for (uint i = 0 ; i < numTips; i++) {
       
       NumericVector theColumn = as<NumericMatrix>(as<List>(alignmentBin[i])[rateIndex])(_, locusNum) ;
-      
       nodeTipMat.col(i) = as<vec>(theColumn) ;
     }
   }
@@ -395,9 +392,10 @@ SEXP phylo::getPruningMat() {
 void phylo::logLikPhylo(const bool returnMatIndic) {
 
   mat logLikMat(numUniqueLoci, numRateCats, fill::ones);
-  //#praaagma omp parallel for
+  
   for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
     
+    //#pragma omp parallel for
     for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
       
       logLikMat.at(locusNum, rateNum) = logLikOneLocusOneRate(locusNum, rateNum, returnMatIndic) ;
