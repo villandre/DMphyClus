@@ -112,8 +112,7 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
 
         children[edge(i, 0)].push_back(edge(i, 1));
     }
-
-    //childNodeInClusIndic = Rcpp::as<uvec>(RcppChildInClusIndic) ;
+    
     if (returnMatIndic) {
 
         pruningMatVec.resize(numRateCats) ;
@@ -314,42 +313,39 @@ void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIn
 double phylo::logLikOneLocusOneRate(const uint locusNum, const int rateIndex, const bool returnMatIndic) {
     
     mat nodeTipMat = zeros<mat>(numStates, edge.max()) ; // This is a matrix that stores likelihood vectors. Each vector has as many elements as potential states.
-
-    if (!internalPhyloFlag) {
-
-        nodeTipMat.cols(0, numTips-1) = log(as<mat>(alignmentBin[locusNum])) ;
-    } else {
-
-        //nodeTipMat.cols(0, numTips-1) = multiAlignmentBinList[rateIndex][locusNum] ; // The alignment now depends on the rate category.
-        
-        for (uint i = 0 ; i < numTips; i++) {
-          
-          NumericVector theColumn = as<NumericMatrix>(as<List>(alignmentBin[i])[rateIndex])(_, locusNum) ;
-          
-          nodeTipMat.col(i) = as<vec>(theColumn) ;
-        }
+  
+  if (!internalPhyloFlag) {
+    
+    nodeTipMat.cols(0, numTips-1) = log(as<mat>(alignmentBin[locusNum])) ;
+  } else {
+    
+    //nodeTipMat.cols(0, numTips-1) = multiAlignmentBinList[rateIndex][locusNum] ; // The alignment now depends on the rate category.
+    
+    for (uint i = 0 ; i < numTips; i++) {
+      
+      NumericVector theColumn = as<NumericMatrix>(as<List>(alignmentBin[i])[rateIndex])(_, locusNum) ;
+      
+      nodeTipMat.col(i) = as<vec>(theColumn) ;
     }
-    for (uint i = 0; (i < updateOrder.n_rows) ; i++) {
-
-        internalFun(updateOrder(i), nodeTipMat, rateIndex) ;
+  }
+  for (uint i = 0; (i < updateOrder.n_rows) ; i++) {
+    
+    internalFun(updateOrder(i), nodeTipMat, rateIndex) ;
+  }
+  
+  double minLogLikRoot = min(nodeTipMat.col(numTips)) ;
+  
+  double logLikForOneLocusOneRate = minLogLikRoot + log(sum(exp(nodeTipMat.col(numTips) + logLimProbs - minLogLikRoot))) ;
+  
+  if (returnMatIndic) {
+    
+    for (uint i = 0 ; i < nodeTipMat.n_rows; i++) {
+      double valueInMatrix = nodeTipMat.at(i,numTips) ;
+      pruningMatVec[rateIndex](i, locusNum) = valueInMatrix ;
     }
-    double minLogLikRoot = min(nodeTipMat.col(numTips)) ;
-
-    double logLikForOneLocusOneRate = minLogLikRoot + log(sum(exp(nodeTipMat.col(numTips) + logLimProbs - minLogLikRoot))) ;
-
-    if (returnMatIndic) {
-        
-        for (uint i = 0 ; i < nodeTipMat.n_rows; i++) {
-            double valueInMatrix = nodeTipMat.at(i,numTips) ;
-            pruningMatVec[rateIndex](i, locusNum) = valueInMatrix ;
-        }
-        Rcout << "pruningMatVec: \n" ;
-      Rcout << pruningMatVec[rateIndex] ;
-      cout << "\n" ;
-
-    } else{}
-
-    return logLikForOneLocusOneRate ;
+  } else{}
+  
+  return logLikForOneLocusOneRate ;
 }
 
 SEXP phylo::getAlignmentBin() {
@@ -387,9 +383,8 @@ uint phylo::getNumTips() {
 }
 
 SEXP phylo::getPruningMat() {
-
+    
     std::vector<NumericMatrix> pruningMatVecReadj(pruningMatVec.size()) ;
-
     for (uint i = 0 ; i < pruningMatVec.size(); i++) {
       
       pruningMatVecReadj[i] = as<NumericMatrix>(wrap(conv_to<mat>::from(as<mat>(pruningMatVec[i]).cols(sitePatterns - 1)))) ; 
@@ -400,7 +395,7 @@ SEXP phylo::getPruningMat() {
 void phylo::logLikPhylo(const bool returnMatIndic) {
 
   mat logLikMat(numUniqueLoci, numRateCats, fill::ones);
-  #pragma omp parallel for
+  //#praaagma omp parallel for
   for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
     
     for(uint locusNum = 0; locusNum < numUniqueLoci; locusNum++) {
