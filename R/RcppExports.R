@@ -9,3 +9,7 @@ getConvertedAlignmentToWrap <- function(numOpenMP, equivVector, alignmentAlphaMa
     .Call('DMphyClus_getConvertedAlignmentToWrap', PACKAGE = 'DMphyClus', numOpenMP, equivVector, alignmentAlphaMat, sitePatterns)
 }
 
+getSitePatterns <- function(alignmentBin) {
+    .Call('DMphyClus_getSitePatterns', PACKAGE = 'DMphyClus', alignmentBin)
+}
+

@@ -39,3 +39,14 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// getSitePatterns
+List getSitePatterns(List alignmentBin);
+RcppExport SEXP DMphyClus_getSitePatterns(SEXP alignmentBinSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type alignmentBin(alignmentBinSEXP);
+    rcpp_result_gen = Rcpp::wrap(getSitePatterns(alignmentBin));
+    return rcpp_result_gen;
+END_RCPP
+}

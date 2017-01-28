@@ -543,7 +543,7 @@
     internalClusPhylos <- function(x) {
         
         DNAdataMultiBinByClusCurr <- currentValue$DNAdataMultiBinByClus
-        DNAdataMultiBinByClusCurr[[names(newClusMats)[x]]] <- newClusMats[[x]] #################### Problem appears here...
+        DNAdataMultiBinByClusCurr[[names(newClusMats)[x]]] <- newClusMats[[x]] 
         newLogLik <- .logLikCpp(edgeMat = currentValue$paraValues$internalPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, equivVector = names(logLimProbs), alignmentBin = DNAdataMultiBinByClusCurr, returnRootMat = FALSE, internalFlag = TRUE, numOpenMP = numLikThreads)
         #MHratio <- exp(newLogLik - logLikNow) ## Prior doesn't change... Shouldn't it be currentValue$logLik
         MHratio <- exp(newLogLik - currentValue$logLik)
@@ -635,21 +635,21 @@
 
 .checkArgumentsLogLikFromClusInd <- function() {}
 
-getSitePatterns <- function(alignment) { ## Works for DNAdataBin type alignments by also for conventional alignments in matrix form (1 row for each sequence, 1 col for each locus)
-  if (is.list(alignment)) {
-    hashesVec <- vapply(alignment, FUN = digest::digest, algo = "xxhash64", FUN.VALUE = character(1))
-  } else {
-    hashesVec <- vapply(1:ncol(alignment), FUN = function(x) {digest::digest(alignment[,x], algo = "xxhash64")}, FUN.VALUE = character(1))
-  }
-  noDuplicates <- !duplicated(hashesVec)
-  uniqueHashes <- hashesVec[noDuplicates]
-  matchVector <- match(hashesVec, uniqueHashes)
-
-  if (is.list(alignment)) {
-    uniqueMat <- alignment[noDuplicates]
-  } else{
-    uniqueMat <- alignment[,noDuplicates]
-  }
-
-  list(uniqueDNAdataBin = uniqueMat, sitePatterns = matchVector)
-}
+# getSitePatterns <- function(alignment) { ## Works for DNAdataBin type alignments by also for conventional alignments in matrix form (1 row for each sequence, 1 col for each locus)
+#   if (is.list(alignment)) {
+#     hashesVec <- vapply(alignment, FUN = digest::digest, algo = "xxhash64", FUN.VALUE = character(1))
+#   } else {
+#     hashesVec <- vapply(1:ncol(alignment), FUN = function(x) {digest::digest(alignment[,x], algo = "xxhash64")}, FUN.VALUE = character(1))
+#   }
+#   noDuplicates <- !duplicated(hashesVec)
+#   uniqueHashes <- hashesVec[noDuplicates]
+#   matchVector <- match(hashesVec, uniqueHashes)
+# 
+#   if (is.list(alignment)) {
+#     uniqueMat <- alignment[noDuplicates]
+#   } else{
+#     uniqueMat <- alignment[,noDuplicates]
+#   }
+# 
+#   list(uniqueDNAdataBin = uniqueMat, sitePatterns = matchVector)
+# }

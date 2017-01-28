@@ -10,8 +10,11 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <algorithm>
 #include <boost/functional/hash.hpp>
 #include <sys/resource.h>
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/range.hpp>
 
 //#include <boost/algorithm/string.hpp>
 // [[Rcpp::plugins(openmp)]]
@@ -480,6 +483,44 @@ SEXP getConvertedAlignmentToWrap(int numOpenMP, SEXP & equivVector, Rcpp::Charac
   return phyloObject.getAlignmentBin() ;
 }
 
+template<class... Conts>
+auto zip_range(Conts&... conts)
+  -> decltype(boost::make_iterator_range(
+      boost::make_zip_iterator(boost::make_tuple(conts.begin()...)),
+      boost::make_zip_iterator(boost::make_tuple(conts.end()...))))
+  {
+    return {boost::make_zip_iterator(boost::make_tuple(conts.begin()...)),
+            boost::make_zip_iterator(boost::make_tuple(conts.end()...))};
+  }
+
+// [[Rcpp::export]]
+
+List getSitePatterns(List alignmentBin) {
+  
+  std::size_t myHash ;
+  std::vector<std::size_t> hashVector ;
+  NumericVector sitePatterns(alignmentBin.size()) ;
+  std::vector<NumericMatrix> uniqueDNAdataBin ;
+  auto hashIterator = hashVector.begin() ;
+  std::vector<NumericMatrix> convertedAlignmentBin = as<std::vector<NumericMatrix> >(alignmentBin) ;
+  
+  for(auto&& i : zip_range(convertedAlignmentBin, sitePatterns)) {
+    
+    myHash = boost::hash_range(as<NumericMatrix>(i.get<0>()).begin(), as<NumericMatrix>(i.get<0>()).end()) ;
+    
+    hashIterator = std::find(hashVector.begin(), hashVector.end(), myHash) ;
+    i.get<1>() = std::distance(hashVector.begin(), hashIterator) + 1 ;
+
+    if (hashIterator == hashVector.end()) {
+
+      hashVector.push_back(myHash) ;
+      uniqueDNAdataBin.push_back(as<NumericMatrix>(i.get<0>())) ;
+    }
+  }
+  
+  return List::create(Named("uniqueDNAdataBin") = wrap(uniqueDNAdataBin),
+                      Named("sitePatterns") = wrap(sitePatterns));
+}
 
 // [[Rcpp::export]]aa
 
