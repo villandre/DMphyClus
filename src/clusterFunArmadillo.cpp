@@ -14,7 +14,6 @@
 #include <boost/range.hpp>
 #include "PhyloAlpha.h"
 
-//#include <boost/algorithm/string.hpp>
 // [[Rcpp::plugins(openmp)]]
 
 using namespace arma;
@@ -44,7 +43,7 @@ template void print_vector<arma::vec>(arma::vec colvec);
 SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBin, const bool returnMatIndic, const bool internalFlag, const NumericVector sitePatterns) {
 
   omp_set_num_threads(numOpenMP) ;
-  //uvec sitePatternsAmended(as<List>(alignmentBin[0]).size()) ;
+
   uint numLoci ;
   uvec sitePatternsAmended ;
   if (internalFlag) 
@@ -86,7 +85,6 @@ SEXP getConvertedAlignmentToWrap(int numOpenMP, SEXP & equivVector, Rcpp::Charac
   bool returnMatIndic = false ;
   bool internalFlag = false ;
   
-  //phylogenyAlpha phyloObject = phylogenyAlpha(placeholderMat, alignmentAlphaMat, placeholderVec, placeholderList, numOpenMP, equivVector, placeholderVec, returnMatIndic, internalFlag, sitePatterns) ;
   phylogenyAlpha phyloObject(placeholderMat, alignmentAlphaMat, placeholderVec, placeholderList, numOpenMP, equivVector, returnMatIndic, internalFlag, as<uvec>(sitePatterns)) ;
   return phyloObject.getAlignmentBin() ;
 }
