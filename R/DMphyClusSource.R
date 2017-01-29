@@ -89,10 +89,9 @@
       currentValue$paraValues$internalPhylo <- internalPhylo
 
       sitePatternsByClus <- lapply(currentValue$paraValues$clusterPhylos, FUN = function(x) {
+        output <- NULL
         if (!is.null(x)) {
           output <- getSitePatterns(lapply(DNAdataBin, FUN = function(dataBin) dataBin[,x$tip.label]))
-        } else {
-          output <- NULL
         }
         output
       })

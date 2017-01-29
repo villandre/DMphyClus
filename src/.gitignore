@@ -1,3 +1,5 @@
 clusterFunArmadillo.o
 RcppExports.o
 DMphyClus.so
+PhyloAlpha.o
+Phylo.o

@@ -324,18 +324,25 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     clusterPhylos <- clusterPhylos[betweenPhylo$tip.label] ## The order of the elements in clusterPhylos must match that of the tip labels in betweenPhylo.
     oriNames <- names(clusInd)[!grepl(names(clusInd), pattern = "C")]
     names(clusInd)[!grepl(names(clusInd), pattern = "C")] <- substr(oriNames, start = 1, stop = nchar(oriNames) - 6) ## This restores the original names for clusInd. We changed them because they were responsible for confusing the function that creates betweenPhylo.
-
+    sitePatternsByClus <- lapply(clusterPhylos, FUN = function(x) {
+      output <- NULL
+      if (!is.null(x)) {
+        output <- getSitePatterns(lapply(dataBin, FUN = function(dataB) dataB[,x$tip.label]))
+      }
+      output
+    })
+    names(sitePatternsByClus) <- names(clusterPhylos)
     alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
-
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, logExtMatList = logWithinTransMatList, numLikThreads = numLikThreads, logLimProbs = log(limProbs), DNAdataBin = alignmentBin)
+      if (class(clusterPhylos[[x]]) != "phylo") {
+        alignRedim <- sapply(seq_along(dataBin), FUN = function(locusIndex) {
+          log(dataBin[[locusIndex]][,x]) ## Since all calculations are on the log scale, these matrices must be on the log-scale too.
+        })
+        rep(list(alignRedim), numGammaCat)
+      } else {    
+        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, logExtMatList = logWithinTransMatList, numLikThreads = numLikThreads, logLimProbs = log(limProbs), DNAdataBin = alignmentBin, sitePatterns = sitePatternsByClus[[x]])
+      }
     })
     names(alignmentMultiBinByClus) <- names(clusterPhylos)
-
-    alignmentMultiBin <- redimMultiBinByClus(alignmentMultiBinByClus) ## Danger: the functions don't produce an error if we ask for alignmentMultiBin when it is not defined, because they assume that we mean alignmentMultiBinByClus.
-
-    if (!identical(colnames(alignmentMultiBin[[1]][[1]]), betweenPhylo$tip.label)) {
-        stop("The ordering of the columns in alignmentMultiBin should match that of the tip labels in betweenPhylo! Line 499.\n")
-    } else{}
 
    .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
 }
