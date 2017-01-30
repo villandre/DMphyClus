@@ -110,7 +110,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         poisRateNumClus <- max(startingValues$clusInd)
     } else{}
 
-    convertedData <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), sitePatterns = 1:ncol(alignment))
+    convertedData <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs))
     convertedData <- lapply(convertedData, FUN = function(x) {
     colnames(x) <- rownames(alignment)
         x
@@ -170,7 +170,7 @@ clusIndLogPrior <- function(clusInd, alpha, k) {
 
 #' Phylogenetic log-likelihood
 #'
-#' This function gives the log-likelihood for a given alignment, conditional on a phylogeny split in between- and within- cluster components.
+#' This function gives the log-likelihood for a given alignment, conditional on a phylogeny split in between- and within- cluster components. It's very slow and should only be used for testing purposes.
 #'
 #' @param clusterPhylos list of phylo objects or NULL (indicating a singleton) with names matching tip labels in betweenPhylo
 #' @param betweenPhylo phylo object with tip labels matching list names in clusterPhylos
@@ -191,7 +191,7 @@ clusIndLogPrior <- function(clusInd, alpha, k) {
 #' }
 #'
 #' @export
-logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatList, withinTransMatList, clusInd, alignment, limProbs, numLikThreads = 1, basicChecks = TRUE) {
+logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatList, withinTransMatList, clusInd, alignment, limProbs, numLikThreads = 1, basicChecks = TRUE) { ## BROKEN
     if (basicChecks) {
         environment(.checkArgumentsLogLikFromSplitPhylo) <- environment()
         .checkArgumentsLogLikFromSplitPhylo()
@@ -260,7 +260,7 @@ outputTransMatList <- function(QmatScaled, numGammaCat, gammaShape, numReplicate
 
 #' Phylogenetic log-likelihood
 #'
-#' This function gives the log-likelihood for a given alignment, conditional on a phylogeny and a cluster assignment index vector.
+#' This function gives the log-likelihood for a given alignment, conditional on a phylogeny and a cluster assignment index vector. It's very slow and should only be used for testing purposes.
 #'
 #' @param phylogeny phylo object
 #' @param clusInd vector of cluster assingment indices (should not contain any gaps)
@@ -327,24 +327,24 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     sitePatternsByClus <- lapply(clusterPhylos, FUN = function(x) {
       output <- NULL
       if (!is.null(x)) {
-        output <- getSitePatterns(lapply(dataBin, FUN = function(dataB) dataB[,x$tip.label]))
+        output <- getSitePatterns(lapply(alignmentBin, FUN = function(dataB) dataB[,x$tip.label]))
       }
       output
     })
     names(sitePatternsByClus) <- names(clusterPhylos)
     alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
       if (class(clusterPhylos[[x]]) != "phylo") {
-        alignRedim <- sapply(seq_along(dataBin), FUN = function(locusIndex) {
-          log(dataBin[[locusIndex]][,x]) ## Since all calculations are on the log scale, these matrices must be on the log-scale too.
+        alignRedim <- sapply(seq_along(alignmentBin), FUN = function(locusIndex) {
+          log(alignmentBin[[locusIndex]][,x]) ## Since all calculations are on the log scale, these matrices must be on the log-scale too.
         })
         rep(list(alignRedim), numGammaCat)
       } else {    
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, logExtMatList = logWithinTransMatList, numLikThreads = numLikThreads, logLimProbs = log(limProbs), DNAdataBin = alignmentBin, sitePatterns = sitePatternsByClus[[x]])
+        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, logExtMatList = logWithinTransMatList, numLikThreads = numLikThreads, logLimProbs = log(limProbs), DNAdataBin = sitePatternsByClus[[x]]$uniqueDNAdataBin, sitePatterns = sitePatternsByClus[[x]]$sitePatterns)
       }
     })
     names(alignmentMultiBinByClus) <- names(clusterPhylos)
 
-   .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
+   .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBinByClus, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
 }
 #' @useDynLib DMphyClus
 #' @importFrom Rcpp sourceCpp

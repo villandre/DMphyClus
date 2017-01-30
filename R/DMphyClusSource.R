@@ -421,8 +421,8 @@
     output
 }
 
-.getConvertedAlignment <- function(alignmentMat, equivVector, numOpenMP = 2, sitePatterns) {
-
+.getConvertedAlignment <- function(alignmentMat, equivVector, numOpenMP = 2) {
+    sitePatterns <- 1:ncol(alignmentMat)
     getConvertedAlignmentToWrap(numOpenMP = numOpenMP, equivVector = equivVector, alignmentAlphaMat = alignmentMat, sitePatterns = sitePatterns)
 }
 
