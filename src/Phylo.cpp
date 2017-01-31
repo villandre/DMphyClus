@@ -229,9 +229,9 @@ void phylo::logLikPhylo(const bool returnMatIndic) {
   }
   if (!returnMatIndic) 
   {
-    vec rowMin = min(logLikMat,1) ;
-    logLikMat.each_col() -= rowMin ;
-    vec logLiksToSum = rowMin + log(sum(exp(logLikMat), 1)) - log(numRateCats) ;
+    vec rowMax = max(logLikMat,1) ;
+    logLikMat.each_col() -= rowMax ;
+    vec logLiksToSum = rowMax + log(sum(exp(logLikMat), 1)) - log(numRateCats) ;
     logLik = sum(logLiksToSum.elem(sitePatterns - 1)) ; // Indices begin at zero hence the -1...
   }
 }
