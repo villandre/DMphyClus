@@ -1,12 +1,25 @@
 #include <RcppArmadillo.h>
+#include <boost/graph/adjacency_list.hpp>
 using namespace Rcpp;
 using namespace arma;
+
+struct VertexProperties 
+{ 
+  unsigned id;
+  Cube<double> intermediateCube;
+  VertexProperties() : id(0) {}
+  VertexProperties(unsigned i) : id(i) {}
+};
+
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> DirectedGraph;
+typedef boost::graph_traits<DirectedGraph>::edge_iterator edge_iterator;
 
 class phylo { // NOTE: ONCE CODE IS DEBUGGED, YOU CAN SPEED IT UP BY USING [] or .at() FOR INDEXING.
 
   // Attributes
   
 protected:
+  DirectedGraph phyloGraph ;
   umat edge ;
   uint Nnode ;
   uint numTips ;
@@ -29,6 +42,7 @@ protected:
   
 protected:
   // Compute the order in which nodes must be update using Felsenstein's tree-pruning algorithm.
+  void buildTreeGraph() ;
   void compUpdateVec() ;
   // Output node children:
   uvec Children(const umat &, const uint) ;

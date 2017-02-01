@@ -5,8 +5,11 @@ using namespace arma;
 
 phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) {
   
-  mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
-  edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
+  //mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
+  edge = as<umat>(edgeMat) ;
+  buildTreeGraph() ;
+  
+  //edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
   logLimProbs = Rcpp::as<vec>(logLimProbsVec); // The second argument (numeric) of the R function is called logLimProbs.
   numRateCats = logTransMatList.size() ;
   numStates = logLimProbsVec.size() ;
@@ -39,6 +42,13 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
 }
 
 phylo::phylo() {}
+
+void phylo::buildTreeGraph() {
+  // Can this be coded with iterators?
+  for (auto i = 0 ; i < edge.n_rows; i++) {
+                            //TO_WRITE
+  }
+}
 
 void phylo::compUpdateVec() {
   
