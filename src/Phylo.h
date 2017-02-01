@@ -11,6 +11,12 @@ struct VertexProperties
   VertexProperties(unsigned i) : id(i) {}
 };
 
+struct GraphProperties 
+{ 
+  unsigned id ;
+  GraphProperties() ; // Empty constructor
+};
+
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> DirectedGraph;
 typedef boost::graph_traits<DirectedGraph>::edge_iterator edge_iterator;
 
@@ -42,7 +48,6 @@ protected:
   
 protected:
   // Compute the order in which nodes must be update using Felsenstein's tree-pruning algorithm.
-  void buildTreeGraph() ;
   void compUpdateVec() ;
   // Output node children:
   uvec Children(const umat &, const uint) ;
@@ -50,6 +55,7 @@ protected:
   double logLikOneLocusOneRate(const uint, const int, const bool) ;
   vec getLogLikVec(const uint, mat &, const int) ;
   void internalFun(const uint, mat &, const int) ;
+  void buildTreeGraph() ;
   
 public:
   phylo(const NumericMatrix &, const NumericVector &, const List &, const int, const bool, const bool, const uvec &) ;

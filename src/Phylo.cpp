@@ -7,7 +7,6 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
   
   //mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
   edge = as<umat>(edgeMat) ;
-  buildTreeGraph() ;
   
   //edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
   logLimProbs = Rcpp::as<vec>(logLimProbsVec); // The second argument (numeric) of the R function is called logLimProbs.
@@ -44,10 +43,15 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
 phylo::phylo() {}
 
 void phylo::buildTreeGraph() {
-  // Can this be coded with iterators?
-  for (auto i = 0 ; i < edge.n_rows; i++) {
-                            //TO_WRITE
-  }
+  
+  typedef boost::graph_traits<DirectedGraph>::vertices_size_type Vsize;
+  typedef std::vector<std::pair<uint,uint>> pairVector ;
+  edge = edge - 1 ;// Vertices must be encoded from 0 to n.
+  pairVector edgeRecast(edge.n_rows) ;
+  std::transform(edge.begin(), edge.begin() + edge.n_rows, edge.begin() + edge.n_rows + 1, edgeRecast.begin(),
+                 [](const int& a, const int& b) { return std::make_pair(a, b); });
+  DirectedGraph myGraph(edgeRecast.begin(), edgeRecast.end(), (Vsize) edge.max()) ;
+  phyloGraph = myGraph ;
 }
 
 void phylo::compUpdateVec() {

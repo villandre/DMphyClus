@@ -16,6 +16,7 @@ phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMat
 phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
   
   alignmentBin = alignmentList ;
+  
   if (!internalFlag) 
   {
     numTips = as<NumericMatrix>(alignmentBin[0]).ncol() ;
@@ -31,6 +32,10 @@ phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::
 }
 
 phylogenyAlpha::phylogenyAlpha():phylo() {}
+
+void initializeGraph() { // Note that this function assumes that the ordering of elements in alignmentBin matches the tip numbers in edge!
+  //TO_DO
+}
 
 void phylogenyAlpha::convertSTL() {
   

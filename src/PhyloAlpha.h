@@ -18,6 +18,7 @@ private:
   void convertSTL() ;
   void convertNucleoToNum() ;
   void defineMap() ;
+  void initializeGraph() ;
   
 public:
   phylogenyAlpha(const NumericMatrix &, const CharacterMatrix &, const NumericVector &, const List &, const int, const CharacterVector &, const bool, const bool, const uvec &) ;
