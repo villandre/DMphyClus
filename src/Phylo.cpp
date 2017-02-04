@@ -2,6 +2,7 @@
 #include "Phylo.h"
 using namespace Rcpp;
 using namespace arma;
+using namespace boost;
 
 phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) {
   
@@ -40,11 +41,21 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
   } 
 }
 
+void phylo::convertAlignmentList(const List & alignmentList) {
+  std::vector<NumericVector> foo=as<std::vector<NumericVector>>(alignmentList) ;
+  cube cubeArray(as<NumericVector>(alignmentList[0]).begin(), 4, 4, 4, false);
+  std::transform(foo.begin(), foo.end(), alignmentBin.begin(), [](NumericVector & a) { // Why can't I have a const here?
+    IntegerVector arrayDims = a.attr("dim");
+    cube cubeArray(a.begin(), arrayDims[0], arrayDims[1], arrayDims[2], false);
+    return cubeArray ;
+  }) ;
+}
+
 phylo::phylo() {}
 
 void phylo::buildTreeGraph() {
   
-  typedef boost::graph_traits<DirectedGraph>::vertices_size_type Vsize;
+  typedef graph_traits<DirectedGraph>::vertices_size_type Vsize;
   typedef std::vector<std::pair<uint,uint>> pairVector ;
   edge = edge - 1 ;// Vertices must be encoded from 0 to n.
   pairVector edgeRecast(edge.n_rows) ;
@@ -52,6 +63,63 @@ void phylo::buildTreeGraph() {
                  [](const int& a, const int& b) { return std::make_pair(a, b); });
   DirectedGraph myGraph(edgeRecast.begin(), edgeRecast.end(), (Vsize) edge.max()) ;
   phyloGraph = myGraph ;
+}
+
+graph_traits<DirectedGraph>::vertex_descriptor phylo::parentVertex(const vertex_iter v) {
+  return source(*in_edges(*v, phyloGraph).first, phyloGraph) ;
+} 
+
+void phylo::writeTips() {
+  // get the property map for vertex indices
+  typedef property_map<DirectedGraph, vertex_index_t>::type IndexMap;
+  IndexMap index = get(vertex_index, phyloGraph);
+  
+  std::pair<vertex_iter, vertex_iter> vp = vertices(phyloGraph);
+  
+  // Takes advantage of the fact that tips are identified by numbers 0, ..., numTips - 1.
+  for (vertex_iter v = vp.first; v < vp.first + numTips;  v++) { // Since lambda functions are basically closures, I don't see how I can use for_each in this setting.
+    phyloGraph[*v].CubeLiOneSlicePerRate = alignmentBin[phyloGraph[*v].id] ;
+    phyloGraph[*v].valueAssigned = TRUE ;
+    phyloGraph[parentVertex(v)].numChildrenDefined++ ;
+  }
+}
+
+
+void phylo::updateInternalVertices() {
+  
+  std::vector<vertex_iter> updateVertexIterVec ;
+  updateVertexIterVec.reserve((int) num_vertices(phyloGraph) - numTips) ; // This is to prevent re-allocation when the vector is grown, which would mess up the iterator.
+  
+  // We find a place to start the update by doing a first pass through the internal nodes.
+  
+  for (vertex_iter v = vertices(phyloGraph).first + numTips ; v != vertices(phyloGraph).second; v++) {
+    if (phyloGraph[*v].numChildrenDefined >= out_degree(*v, phyloGraph)) { // Since internal vertices values will be saved and restored later on, it might be that numChildrenDefined ends up larged than the number of children.
+      updateVertexIterVec.push_back(v) ;
+    }
+  }
+  
+  // Now, we actually perform the updates.
+   
+  std::vector<vertex_iter>::iterator currentPos = updateVertexIterVec.begin() ; 
+  while (currentPos != updateVertexIterVec.end()) { // Hopefully, .end() does not refer to the capacity, but to the actual number of elements in a vector...
+    if (!phyloGraph[**currentPos].valueAssigned) {
+      updateVertex(*currentPos) ;
+      phyloGraph[**currentPos].valueAssigned = TRUE ;
+    }
+    if (in_degree(**currentPos, phyloGraph) == 0) { // We have reached the root, we must break the loop.
+      break ;
+    } // The while condition is useless... This logical scheme should be reformulated.
+    phyloGraph[parentVertex(*currentPos)].numChildrenDefined++ ;
+    if (phyloGraph[parentVertex(*currentPos)].numChildrenDefined >= out_degree(parentVertex(*currentPos), phyloGraph)) {
+      updateVertexIterVec.push_back(*currentPos) ;
+    }
+    currentPos++ ;// currentPos indicates the position in the updateVertexIterVec. Once no new element can be added, it will move to .end(), thus ending the loop.
+  }
+}
+
+// IMPORTANT FUNCTION: THIS IS AN INTEGRAL PART OF THE TREE_PRUNING ALGORITHM
+void phylo::updateVertex(const vertex_iter v) {
+  phyloGraph[*v].CubeLiOneSlicePerRate = ;
 }
 
 void phylo::compUpdateVec() {

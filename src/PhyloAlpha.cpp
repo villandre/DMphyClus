@@ -16,6 +16,7 @@ phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMat
 phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
   
   alignmentBin = alignmentList ;
+  convertAlignmentList(alignmentList) ; 
   
   if (!internalFlag) 
   {
