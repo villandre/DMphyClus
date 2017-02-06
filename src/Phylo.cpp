@@ -4,7 +4,7 @@ using namespace Rcpp;
 using namespace arma;
 using namespace boost;
 
-phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) {
+phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const uvec & sitePatternsVec) {
   
   //mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
   edge = as<umat>(edgeMat) ;
@@ -23,13 +23,6 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
   
   std::transform(logTransMatList.begin(), logTransMatList.end(), logTransMatVec.begin(), [] (const NumericMatrix &initialMatrix) {return as<mat>(initialMatrix);}) ;
   
-  children.resize(edge.n_rows + 2) ;
-  
-  for(uint i = 0; i < edge.n_rows; i++)
-  {
-    
-    children[edge(i, 0)].push_back(edge(i, 1));
-  }
   
   if (returnMatIndic) 
   {
@@ -41,15 +34,15 @@ phylo::phylo(const NumericMatrix & edgeMat, const NumericVector & logLimProbsVec
   } 
 }
 
-void phylo::convertAlignmentList(const List & alignmentList) {
-  std::vector<NumericVector> foo=as<std::vector<NumericVector>>(alignmentList) ;
-  cube cubeArray(as<NumericVector>(alignmentList[0]).begin(), 4, 4, 4, false);
-  std::transform(foo.begin(), foo.end(), alignmentBin.begin(), [](NumericVector & a) { // Why can't I have a const here?
-    IntegerVector arrayDims = a.attr("dim");
-    cube cubeArray(a.begin(), arrayDims[0], arrayDims[1], arrayDims[2], false);
-    return cubeArray ;
-  }) ;
-}
+// void phylo::convertAlignmentList(const List & alignmentList) {
+//   std::vector<NumericVector> foo=as<std::vector<NumericVector>>(alignmentList) ;
+//   cube cubeArray(as<NumericVector>(alignmentList[0]).begin(), 4, 4, 4, false);
+//   std::transform(foo.begin(), foo.end(), alignmentBin.begin(), [](NumericVector & a) { // Why can't I have a const here?
+//     IntegerVector arrayDims = a.attr("dim");
+//     cube cubeArray(a.begin(), arrayDims[0], arrayDims[1], arrayDims[2], false);
+//     return conv_to<Cube<long double> >::from(cubeArray) ;
+//   }) ;
+// }
 
 phylo::phylo() {}
 
@@ -69,7 +62,8 @@ graph_traits<DirectedGraph>::vertex_descriptor phylo::parentVertex(const vertex_
   return source(*in_edges(*v, phyloGraph).first, phyloGraph) ;
 } 
 
-void phylo::writeTips() {
+void phylo::initializeVertices() {
+  
   // get the property map for vertex indices
   typedef property_map<DirectedGraph, vertex_index_t>::type IndexMap;
   IndexMap index = get(vertex_index, phyloGraph);
@@ -77,8 +71,9 @@ void phylo::writeTips() {
   std::pair<vertex_iter, vertex_iter> vp = vertices(phyloGraph);
   
   // Takes advantage of the fact that tips are identified by numbers 0, ..., numTips - 1.
-  for (vertex_iter v = vp.first; v < vp.first + numTips;  v++) { // Since lambda functions are basically closures, I don't see how I can use for_each in this setting.
-    phyloGraph[*v].CubeLiOneSlicePerRate = alignmentBin[phyloGraph[*v].id] ;
+  
+  for (vertex_iter v = vp.first; v < vp.first + alignmentBin.size();  v++) { // Since lambda functions are basically closures, I don't see how I can use for_each in this setting.
+    phyloGraph[*v].partLikVecOneElementPerRate = alignmentBin[index[*v]] ;
     phyloGraph[*v].valueAssigned = TRUE ;
     phyloGraph[parentVertex(v)].numChildrenDefined++ ;
   }
@@ -119,7 +114,8 @@ void phylo::updateInternalVertices() {
 
 // IMPORTANT FUNCTION: THIS IS AN INTEGRAL PART OF THE TREE_PRUNING ALGORITHM
 void phylo::updateVertex(const vertex_iter v) {
-  phyloGraph[*v].CubeLiOneSlicePerRate = ;
+  
+  phyloGraph[*v].partLikVecOneElementPerRate = 
 }
 
 void phylo::compUpdateVec() {

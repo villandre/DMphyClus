@@ -3,7 +3,7 @@
 using namespace Rcpp;
 using namespace arma;
 
-phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMatrix & alignmentAlphaMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const CharacterVector & equivVec, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
+phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMatrix & alignmentAlphaMat, const NumericVector & logLimProbsVec, const List & logTransMatList, const int numOpenMP, const CharacterVector & equivVec, const bool returnMatIndic, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, sitePatternsVec) {
   
   alignmentRcpp = alignmentAlphaMat ;
   equivalency = Rcpp::as<std::vector<std::string>>(equivVec) ;
@@ -13,23 +13,14 @@ phylogenyAlpha::phylogenyAlpha(const NumericMatrix & edgeMat, const CharacterMat
 }
 
 // This is the faster constructor, that does not convert the character alignment into matrices of identity vectors, because it's provided by the user (alignmentList).
-phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const bool internalFlag, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsVec) {
+phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & logLimProbsVec, const Rcpp::List & logTransMatList, const int numOpenMP, const bool returnMatIndic, const uvec & sitePatternsVec) : phylo(edgeMat, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, sitePatternsVec) {
   
-  alignmentBin = alignmentList ;
-  convertAlignmentList(alignmentList) ; 
-  
-  if (!internalFlag) 
-  {
-    numTips = as<NumericMatrix>(alignmentBin[0]).ncol() ;
-    numUniqueLoci = alignmentBin.size() ;
-  } 
-  else
-  { // Tip vectors depend on the rate category.
-    numTips = alignmentBin.size() ;
-    numUniqueLoci = as<NumericMatrix>(as<List>(alignmentBin[0])[0]).ncol() ;
-  }
+  alignmentBin = as<std::vector<std::vector<Mat<long double>>>>(alignmentList) ;
+   
+  numTips = alignmentBin.size() ;
+  numUniqueLoci = alignmentBin[0][0].n_cols ;
+ 
   Nnode = edgeMat.nrow() - numTips + 1 ;
-  compUpdateVec() ;
 }
 
 phylogenyAlpha::phylogenyAlpha():phylo() {}

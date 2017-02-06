@@ -21,7 +21,7 @@ private:
   void initializeGraph() ;
   
 public:
-  phylogenyAlpha(const NumericMatrix &, const CharacterMatrix &, const NumericVector &, const List &, const int, const CharacterVector &, const bool, const bool, const uvec &) ;
-  phylogenyAlpha(const NumericMatrix &, const List &, const NumericVector &, const List &, const int, const bool, const bool, const uvec &) ;
+  phylogenyAlpha(const NumericMatrix &, const CharacterMatrix &, const NumericVector &, const List &, const int, const CharacterVector &, const bool, const uvec &) ;
+  phylogenyAlpha(const NumericMatrix &, const List &, const NumericVector &, const List &, const int, const bool, const uvec &) ;
   phylogenyAlpha() ; // Empty constructor
 };

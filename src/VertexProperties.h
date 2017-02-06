@@ -4,10 +4,13 @@ using namespace arma;
 
 struct VertexProperties 
 { 
-  unsigned id;
-  Cube<double> CubeLiOneSlicePerRate;
+  uint _id;
+  bool _isSolved = false;
+  
+  
+  std::vector<Mat<long double>> partLikVecOneElementPerRate ;
   bool valueAssigned = FALSE ;
-  VertexProperties() : id(0) {}
-  VertexProperties(unsigned i) : id(i) {}
+  VertexProperties() : _id(0) {}
+  VertexProperties(unsigned i) : _id(i) {}
   uint numChildrenDefined = 0 ; 
 };
