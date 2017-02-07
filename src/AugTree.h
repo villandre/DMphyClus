@@ -13,10 +13,10 @@ protected:
   std::vector<mat> _transProbMatrixVec ;
   vec _limProbs ;
   std::unordered_map<int, Col<long double>> dictionary ;
-  umat _alignmentBin ;
+  std::vector<umat> _alignmentBin ;
   
 public:
-  AugTree(IntegerMatrix &, IntegerMatrix &, List &, NumericVector &) ;
+  AugTree(IntegerMatrix &, List &, List &, NumericVector &) ;
   void BuildTree(umat &) ;
   void ComputeLik() ;
 };

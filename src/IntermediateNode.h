@@ -13,6 +13,7 @@ public:
   virtual void SetSolution(mat &, std::unordered_map<size_t, Col<long double>> &) ;
   virtual void InvalidateSolution() ;
   virtual void SetPattern(std::unordered_map<size_t, Col<long double>> &) ;
+  IntermediateNode() ;
   
 protected:
   

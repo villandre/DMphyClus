@@ -11,6 +11,7 @@ public:
   virtual void RemoveChild(TreeNode* child) {assert(false) ;};
   virtual void SetSolution(Col<long double> & inputVec) {_solution = inputVec ;};
   virtual void SetPattern() ;
+  InputNode() ;
   
 protected:
   virtual void InvalidateSolution() {assert(false) ;};
