@@ -4,7 +4,7 @@
 #include <RcppArmadillo.h>
 
 using namespace arma ;
-using namespace Rcpp ;
+using namespace Rcpp ; // Tandy Warnow
 
 class AugTree 
 {
@@ -15,8 +15,13 @@ protected:
   std::unordered_map<int, Col<long double>> dictionary ;
   std::vector<umat> _alignmentBin ;
   
+  void BuildTree(umat &) ;
+  
 public:
   AugTree(IntegerMatrix &, List &, List &, NumericVector &) ;
-  void BuildTree(umat &) ;
-  void ComputeLik() ;
+  bool TrySolve(TreeNode *)  ;
+  long double ComputeLogLik() ;
+  void NearestNeighbourSwap() ;
+  bool SolveRoot() ;
+  SEXP BuildEdgeMatrix() ;
 };

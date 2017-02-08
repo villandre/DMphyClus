@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "TreeNode.h"
 
-class InputNode:TreeNode
+class InputNode:public TreeNode
 {
 public:
   virtual bool IsSolved() {return true ;};

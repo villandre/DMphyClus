@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "TreeNode.h"
 
-class IntermediateNode:TreeNode
+class IntermediateNode:public TreeNode
 {
 public:
   virtual bool IsSolved() {return _isSolved ;};
@@ -13,7 +13,7 @@ public:
   virtual void SetSolution(mat &, std::unordered_map<size_t, Col<long double>> &) ;
   virtual void InvalidateSolution() ;
   virtual void SetPattern(std::unordered_map<size_t, Col<long double>> &) ;
-  IntermediateNode() ;
+  IntermediateNode() {_isSolved = false ;};
   
 protected:
   

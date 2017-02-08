@@ -13,6 +13,7 @@
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range.hpp>
 #include "PhyloAlpha.h"
+#include "AugTree.h"
 
 // [[Rcpp::plugins(openmp)]]
 
@@ -126,4 +127,12 @@ List getSitePatterns(List alignmentBin) {
   
   return List::create(Named("uniqueDNAdataBin") = wrap(uniqueDNAdataBin),
                       Named("sitePatterns") = wrap(sitePatterns));
+}
+
+// [[Rcpp::export]]
+
+double logLikCppToWrap(IntegerMatrix & edgeMat, NumericVector & limProbsVec, List & transMatList, int numOpenMP, List alignmentBin)
+{
+  AugTree Phylogeny(edgeMat, alignmentBin, transMatList, limProbsVec) ;
+  return Phylogeny.ComputeLogLik() ; 
 }
