@@ -12,14 +12,21 @@ public:
   virtual void RemoveChild(TreeNode* child) ;
   virtual void SetSolution() ;
   virtual void InvalidateSolution() ;
-  virtual void SetPattern() ; 
-  Col<long double> GetSolution() {return _solution ;};
-  std::size_t GetPattern() {return _pattern;}; 
+  virtual void SetPattern() ;
+  virtual void ToggleSolved() ;
+  Col<long double> GetSolution() {return _solution ;} ;
+  std::size_t GetPattern() {return _pattern;} ; 
   TreeNode * GetParent() {return _parent ;} ;
-  void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;};
-  void SetId(uint vertexId) {_id = vertexId ;}
+  void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
+  void SetId(uint vertexId) {_id = vertexId ;} ;
+  void AssignSolution(const Col<long double> & knownSolution) {_solution = knownSolution ;} ;
+  void InvalidatePattern() 
+  {
+    _pattern = 0 ;
+    _parent->InvalidatePattern() ;
+  }; 
   
-  std::vector<TreeNode *> Children ;
+  std::vector<TreeNode *> _children ;
 
   protected:
     

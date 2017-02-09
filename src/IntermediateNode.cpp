@@ -38,7 +38,7 @@ void IntermediateNode::SetSolution(mat & transProbMatrix, std::unordered_map<siz
   _solution = accumulate(childrenCombined.begin(), childrenCombined.end(), childrenCombined.at(0), [] (Col<long double> & a, Col<long double> & b) {return a%b ;}) ;
 }
 
-void IntermediateNode::SetPattern(std::unordered_map<size_t, Col<long double>> & dictionary) 
+void IntermediateNode::SetPattern(std::unordered_map<mapKey, Col<long double>, MyHash> & dictionary) 
 {
   std::vector<int> childrenHashes(_children.size()) ;
   //TO_DO

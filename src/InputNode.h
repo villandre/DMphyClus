@@ -10,8 +10,9 @@ public:
   virtual void AddChild(TreeNode* child) {assert(false) ;};
   virtual void RemoveChild(TreeNode* child) {assert(false) ;};
   virtual void SetSolution(Col<long double> & inputVec) {_solution = inputVec ;};
+  virtual void ToggleSolved() {};
   virtual void SetPattern() ;
-  InputNode() ;
+  InputNode() {};
   
 protected:
   virtual void InvalidateSolution() {assert(false) ;};
