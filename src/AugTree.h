@@ -6,43 +6,52 @@
 using namespace arma ;
 using namespace Rcpp ; // Tandy Warnow
 
+typedef std::unordered_map<std::size_t, Col<long double>, MyHash> dictionary ;
+
 class AugTree 
 {
 protected:
   std::vector<TreeNode *> _tree ;
-  std::vector<mat> _withinTransProbMatrixVec ;
-  std::vector<mat> _betweenTransProbMatrixVec ;
-  vec _limProbs ;
-  std::vector<longVec> _alignmentBin ;
-  std::unordered_map<mapKey, Col<long double>, MyHash> _dictionary ;
-  double _logLik ;
-  uint _numRateCats ;
+  mat _withinTransProbMatrix ;
+  mat _betweenTransProbMatrix ;
+  Col<long double> _limProbs ;
+  double _likelihood ;
+  uint _numTips ;
   
   void BuildTree(umat &) ;
-  void SolveOneLevel(uint locusNum, uint rateNum) ;
+  void SolveOneLevel() ;
   void SetPatterns() ;
-  void InitializeFromDictionary(uint, uint) ; 
+  void InitializeFromDictionary() ;
+  void InitializeTips(const std::vector<uvec> &) ;
+  void AssociateTransProbMatrices(const NumericVector &, const mat &, const mat &) ;
+  void BindMatrixChildren(TreeNode *, const mat &) ;
+  void PatternLookup(dictionary &, TreeNode *) ;
   
 public:
-  AugTree(IntegerMatrix &, List &, List &, List &, NumericVector &) ;
-  bool TrySolve(TreeNode *)  ;
+  AugTree(const IntegerMatrix &, const NumericVector &, const mat &, const mat &, const std::vector<uvec> &, const NumericVector &, const uint) ;
+  void TrySolve(TreeNode *)  ;
   void NearestNeighbourSwap() ;
-  bool SolveRoot() ;
+  void SolveRoot(dictionary &) ;
   SEXP BuildEdgeMatrix() ;
-  void InitializePatterns(TreeNode *) ;
-  void InitializeTips(longVec &) ;
-  double GetLogLik() {return _logLik ;} ;
-  std::vector<mat> GetWithinTransProbMatrix() {return _withinTransProbMatrixVec ;} ;
-  std::vector<mat> GetBetweenTransProbMatrix() {return _betweenTransProbMatrixVec ;} ;
-  std::vector<longVec> GetLogSolutions() ; // R cannot understand long doubles. We'll have to work on the log scale.
+  void IdentifyPatterns(TreeNode *) ;
+  double GetLikelihood() const {return _likelihood ;} ;
+  mat GetWithinTransProbMatrix() {return _withinTransProbMatrix ;} ;
+  mat GetBetweenTransProbMatrix() {return _betweenTransProbMatrix ;} ;
+  void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
+  void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
 };
 
 class Forest 
 {
-private:
+protected:
   std::vector<AugTree> _forest ;
+  double _loglik ;
+  dictionary _dictionary ;
+  uint _numLoci ;
+  uint _numRateCats ; 
 
 public:
-  Forest(std::vector<longVec> &, )
-  
+  Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint) ;
+  void ComputeLoglik() ;
+  double GetLoglik() {return _loglik ;} ;
 };

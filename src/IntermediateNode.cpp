@@ -28,14 +28,14 @@ void IntermediateNode::RemoveChild(TreeNode* child)
   _children.erase(childPos) ;
 }
 
-void IntermediateNode::SetSolution(mat & transProbMatrix, std::unordered_map<size_t, Col<long double>> & dictionary) 
+void IntermediateNode::ComputeSolution() 
 {
-  if (dictionary.find(_pattern) != dictionary.end()) {
-    _solution = dictionary[_pattern] ;
-  } 
-  std::vector<Col<long double>> childrenCombined(_children.size()) ;
-  std::transform(_children.begin(), _children.end(), childrenCombined, [&transProbMatrix] (TreeNode * child) {return transProbMatrix*child->GetSolution() ;}) ;  
-  _solution = accumulate(childrenCombined.begin(), childrenCombined.end(), childrenCombined.at(0), [] (Col<long double> & a, Col<long double> & b) {return a%b ;}) ;
+  Col<long double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
+  for(auto & child : _children) 
+  {
+    mySolution = mySolution % child->GetTransMatrix()*child->GetSolution() ;
+  }
+  _solution = mySolution ;
 }
 
 void IntermediateNode::SetPattern(std::unordered_map<mapKey, Col<long double>, MyHash> & dictionary) 

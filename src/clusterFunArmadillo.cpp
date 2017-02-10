@@ -131,10 +131,10 @@ List getSitePatterns(List alignmentBin) {
 
 // [[Rcpp::export]]
 
-double logLikCppToWrap(IntegerMatrix & edgeMat, NumericVector & limProbsVec, List & transMatList, int numOpenMP, List alignmentBin)
+List logLikCppToWrap(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, int numTips)
 {
-  AugTree Phylogeny(edgeMat, alignmentBin, transMatList, limProbsVec) ;
-  Phylogeny.ComputeLogLik() ; 
-  return List::create(Named("logLik") = Phylogeny.GetLogLik(),
-                      Named("intermediateNodes") = wrap(Phylogeny.GetSolutions())) ;
+  Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips);
+  Phylogenies.ComputeLoglik() ; 
+  return List::create(Named("logLik") = Phylogenies.GetLoglik(),
+                      Named("intermediateNodes") = wrap(Phylogenies.GetSolutions())) ;
 }
