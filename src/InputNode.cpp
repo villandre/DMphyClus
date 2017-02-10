@@ -1,8 +1,14 @@
 #include <gsl/gsl_sf_pow_int.h>
 #include "InputNode.h"
 
-void InputNode::SetPattern() 
+InputNode::InputNode(longVec alignmentBinOneTip, uint numRateCats)
 {
-  _pattern = 
+  _solution.resize(numRateCats) ;
+  
+  for (auto & iter : _solution)
+  {
+    iter.resize(alignmentBinOneTip.size()) ;
+    iter = alignmentBinOneTip ;
+  }
 }
    

@@ -39,40 +39,40 @@ template void print_matrix<arma::cx_mat>(arma::cx_mat matrix);
 template void print_vector<arma::uvec>(arma::uvec colvec);
 template void print_vector<arma::vec>(arma::vec colvec);
 
-// [[Rcpp::export]]
-
-SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBin, const bool returnMatIndic, const bool internalFlag, const NumericVector sitePatterns) {
-
-  omp_set_num_threads(numOpenMP) ;
-
-  uint numLoci ;
-  uvec sitePatternsAmended ;
-  if (internalFlag) 
-  { 
-    numLoci = as<NumericMatrix>(as<List>(alignmentBin[0])[0]).ncol() ;
-    sitePatternsAmended.resize(numLoci) ;
-    sitePatternsAmended = conv_to<uvec>::from(linspace(1, numLoci, numLoci))  ;
-  } 
-  else
-  {
-    sitePatternsAmended = as<uvec>(sitePatterns) ;
-  }
-  SEXP container ;
-  
-  //ProfilerStart("/home/villandre/profileOut.out") ;
-  phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
-  phyloObject.logLikPhylo(returnMatIndic);
-  //ProfilerStop() ;
-  if (returnMatIndic) 
-  {
-    container = phyloObject.getPruningMat();
-  } 
-  else 
-  {
-    container = phyloObject.getLogLik();
-  }
-  return container ;
-}
+// // [[Rcpp::export]]a
+// 
+// SEXP logLikCppToWrap(NumericMatrix & edgeMat, NumericVector & logLimProbsVec, List & logTransMatList, int numOpenMP, SEXP & equivVector, List alignmentBin, const bool returnMatIndic, const bool internalFlag, const NumericVector sitePatterns) {
+// 
+//   omp_set_num_threads(numOpenMP) ;
+// 
+//   uint numLoci ;
+//   uvec sitePatternsAmended ;
+//   if (internalFlag) 
+//   { 
+//     numLoci = as<NumericMatrix>(as<List>(alignmentBin[0])[0]).ncol() ;
+//     sitePatternsAmended.resize(numLoci) ;
+//     sitePatternsAmended = conv_to<uvec>::from(linspace(1, numLoci, numLoci))  ;
+//   } 
+//   else
+//   {
+//     sitePatternsAmended = as<uvec>(sitePatterns) ;
+//   }
+//   SEXP container ;
+//   
+//   //ProfilerStart("/home/villandre/profileOut.out") ;
+//   phylogenyAlpha phyloObject(edgeMat, alignmentBin, logLimProbsVec, logTransMatList, numOpenMP, returnMatIndic, internalFlag, sitePatternsAmended) ;
+//   phyloObject.logLikPhylo(returnMatIndic);
+//   //ProfilerStop() ;
+//   if (returnMatIndic) 
+//   {
+//     container = phyloObject.getPruningMat();
+//   } 
+//   else 
+//   {
+//     container = phyloObject.getLogLik();
+//   }
+//   return container ;
+// }
 
 // [[Rcpp::export]]
 
@@ -134,5 +134,7 @@ List getSitePatterns(List alignmentBin) {
 double logLikCppToWrap(IntegerMatrix & edgeMat, NumericVector & limProbsVec, List & transMatList, int numOpenMP, List alignmentBin)
 {
   AugTree Phylogeny(edgeMat, alignmentBin, transMatList, limProbsVec) ;
-  return Phylogeny.ComputeLogLik() ; 
+  Phylogeny.ComputeLogLik() ; 
+  return List::create(Named("logLik") = Phylogeny.GetLogLik(),
+                      Named("intermediateNodes") = wrap(Phylogeny.GetSolutions())) ;
 }

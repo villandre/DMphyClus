@@ -5,15 +5,18 @@
 class InputNode:public TreeNode
 {
 public:
-  virtual bool IsSolved() {return true ;};
-  virtual bool CanSolve() {return true ;};
-  virtual void AddChild(TreeNode* child) {assert(false) ;};
-  virtual void RemoveChild(TreeNode* child) {assert(false) ;};
-  virtual void SetSolution(Col<long double> & inputVec) {_solution = inputVec ;};
-  virtual void ToggleSolved() {};
-  virtual void SetPattern() ;
-  InputNode() {};
+  bool IsSolved() {return true ;};
+  bool CanSolve() {return true ;};
+  void AddChild(TreeNode* child) {assert(false) ;};
+  void RemoveChild(TreeNode* child) {assert(false) ;};
+  void SetSolution(Col<long double> & inputVec) {assert(false) ;};
+  void GetSolution() ;
+  void ToggleSolved() {};
+  void SetPattern() ;
+  
+  InputNode(longVec, uint) ; // An input node has inputs structured as a vector, with each element corresponding to a different locus.
   
 protected:
-  virtual void InvalidateSolution() {assert(false) ;};
+  void InvalidateSolution() {assert(false) ;};
+  std::vector<std::vector<uint>> _input ;
 };
