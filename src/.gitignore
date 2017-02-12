@@ -3,3 +3,13 @@ RcppExports.o
 DMphyClus.so
 PhyloAlpha.o
 Phylo.o
+PhyloAlpha.cpp
+PhyloAlpha.h
+Phylo.cpp
+Phylo.h
+GraphFunctions.cpp
+GraphFunctions.h
+GraphProperties.cpp
+GraphProperties.h
+VertexProperties.cpp
+VertexProperties.h

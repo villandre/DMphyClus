@@ -110,7 +110,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         poisRateNumClus <- max(startingValues$clusInd)
     } else{}
 
-    convertedData <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs))
+    convertedData <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs), numOpenMP = numLikThreads)
     convertedData <- lapply(convertedData, FUN = function(x) {
     colnames(x) <- rownames(alignment)
         x

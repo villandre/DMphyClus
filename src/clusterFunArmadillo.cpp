@@ -131,7 +131,7 @@ List getSitePatterns(List alignmentBin) {
 
 // [[Rcpp::export]]
 
-List logLikCppToWrap(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, int numTips)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, int numTips)
 {
   omp_set_num_threads(numOpenMP) ;
   solutionDictionaryType solutionDictionary ;
