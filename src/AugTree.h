@@ -50,7 +50,7 @@ protected:
   uint _numRateCats ; 
 
 public:
-  Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, solutionDictionaryType & solutionDictionary) ;
+  Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, solutionDictionaryType &) ;
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
   void NNmovePropagate() ;

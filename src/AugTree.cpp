@@ -209,9 +209,10 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
 
 void Forest::ComputeLoglik() 
 {
-  for (auto & forestIter : _forest) 
+  #pragma omp parallel for
+  for (std::vector<AugTree>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
-    forestIter.SolveRoot(_solutionDictionary) ;
+    forestIter->SolveRoot(_solutionDictionary) ;
   }
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   Col<long double> rateAveragedLogLiks(_numLoci) ;
