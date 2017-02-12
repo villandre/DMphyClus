@@ -1,8 +1,7 @@
 #include "AugTree.h"
-#include "IntermediateNode.h"
 #include "InputNode.h"
-#include <boost/iterator/zip_iterator.hpp>
-#include <boost/range.hpp>
+#include "IntermediateNode.h"
+#include <unordered_map>
 
 using namespace Rcpp ;
 using namespace arma ;
@@ -151,8 +150,8 @@ void AugTree::InitializeTips(const std::vector<uvec> & alignmentBinOneLocus)
 void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) {
   if (!currentNode->IsSolved()) 
     { // If the node is already solved, no need to update it with a stored pattern.
-    solutionDictionaryType::iterator patternIter = solutionDictionary.find(currentNode->GetDictionaryKey()) ;
-    if (patternIter == solutionDictionary.end()) 
+
+    if (solutionDictionary.count(currentNode->GetDictionaryKey()) == 0) 
     {
       for (auto & i : currentNode->GetChildren())
       {
@@ -161,7 +160,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
     } 
     else 
     {
-      currentNode->SetSolution((*patternIter).second) ;
+      currentNode->SetSolution(solutionDictionary[currentNode->GetDictionaryKey()]) ;
       currentNode->ToggleSolved() ;
     }
   }

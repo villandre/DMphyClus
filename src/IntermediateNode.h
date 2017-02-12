@@ -8,7 +8,7 @@ public:
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
   std::size_t GetPattern() {return _pattern ;};
-  void AddChild(TreeNode*) {_children.push_back(child) ;};
+  void AddChild(TreeNode * child) {_children.push_back(child) ;};
   void RemoveChild(TreeNode*) ;
   void SetSolution(Col<long double> &) ;
   void ComputeSolution() ;

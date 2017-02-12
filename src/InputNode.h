@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "TreeNode.h"
 
 class InputNode:public TreeNode

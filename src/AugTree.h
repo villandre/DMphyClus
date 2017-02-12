@@ -1,6 +1,6 @@
 #include "TreeNode.h"
-#include "IntermediateNode.h"
-#include "InputNode.h" 
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/range.hpp>
 
 using namespace arma ;
 using namespace Rcpp ; // Tandy Warnow

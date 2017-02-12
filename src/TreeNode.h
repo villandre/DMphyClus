@@ -1,8 +1,12 @@
 #include <boost/functional/hash.hpp>
+#include <assert.h>
 #include <RcppArmadillo.h>
 #include <unordered_map>
 
 using namespace arma ;
+
+#ifndef TREENODE_H
+#define TREENODE_H
 
 typedef std::unordered_map<std::size_t, Col<long double>, std::size_t> solutionDictionaryType ;
 typedef std::unordered_map<std::size_t, Col<long double>, std::size_t> nodePatternDictionaryType ;
@@ -41,3 +45,5 @@ public:
   bool _withinCluster ; // Like before, used to hash the pattern, will be converted to std::size_t.
   std::size_t _dictionaryKey ;
 };
+
+#endif /* TREENODE_H */
