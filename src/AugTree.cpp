@@ -92,22 +92,21 @@ void AugTree::BuildTree(umat & edgeMatrix)
 SEXP AugTree::BuildEdgeMatrix() 
 {
   //TO_DO
+  return wrap(0) ;
 }
 
 void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary) 
 {
-  if (vertex->GetChildren()[0] != NULL) { 
+  if (vertex->CanSolve()) // If a vertex can be solved, then its children have patterns assigned to them.
+  {
+    vertex->DeriveKey(solutionDictionary) ;
+    vertex->ToggleSolved() ;
+  } 
+  else // Vertex cannot be a tip, else, CanSolve would have returned true.
+  {
     for (auto & i : vertex->GetChildren())
     {
-      if (i->CanSolve())
-      {
-        i->DeriveKey(solutionDictionary) ;
-        i->ToggleSolved() ;
-      }
-      else
-      {
-        IdentifyPatterns(i) ;
-      }
+      ComputeKeys(i, solutionDictionary) ;
     }
   }
   // The nodes had been marked as solved only so that we could get a pattern indicator for each. They are not really solved and so, must be marked as such.
