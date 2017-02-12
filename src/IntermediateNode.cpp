@@ -1,5 +1,6 @@
-#include "IntermediateNode.h"
 #include <RcppArmadillo.h>
+#include <gsl/gsl_sf_gamma.h>
+#include "IntermediateNode.h"
 
 void IntermediateNode::InvalidateSolution() 
 {
@@ -17,10 +18,6 @@ bool IntermediateNode::CanSolve() {
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-void IntermediateNode::AddChild(TreeNode* child) {
-  
-  _children.push_back(child) ;
-}
 
 void IntermediateNode::RemoveChild(TreeNode* child) 
 {
@@ -38,8 +35,27 @@ void IntermediateNode::ComputeSolution()
   _solution = mySolution ;
 }
 
-void IntermediateNode::SetPattern(std::unordered_map<mapKey, Col<long double>, MyHash> & dictionary) 
+void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
 {
-  std::vector<int> childrenHashes(_children.size()) ;
-  //TO_DO
+  std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())) ;
+  std::vector<std::size_t> hashKeys ;
+  hashKeys.reserve(permutations.size()) ;
+  std::transform(_children.begin(), _children.end(), permutations.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
+  permutations.at(_children.size()) = _rateCategory ;
+  permutations.at(_children.size() + 1) = (std::size_t) _withinCluster ;
+  std::sort(permutations.begin(), permutations.end()-2); // The children keys should be re-ordered, not the rate category index and within-cluster indicator.
+  do {
+    hashKeys.push_back(std::hash<std::vector<size_t>>(permutations)) ;
+  } while ( std::next_permutation(permutations.begin(),permutations.end() - 2) );
+  bool foundSolution = false ;
+  for(auto & hashKey : hashKeys) {
+    if (solutionDictionary.find(hashKey) != solutionDictionary.end()) {
+      _dictionaryKey = hashKey ;
+      foundSolution = true ;
+      break ;
+    }
+  }
+  if (!foundSolution) {
+    _dictionaryKey = hashKeys.at(0) ;
+  }
 }

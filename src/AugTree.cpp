@@ -19,7 +19,7 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 }
 
 
-AugTree::AugTree(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<uvec> & alignmentBinOneLocus, const NumericVector & limProbs, const uint numTips) 
+AugTree::AugTree(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<uvec> & alignmentBinOneLocus, const NumericVector & limProbs, const uint numTips, const uint rateCategIndex) 
 {
   _numTips = numTips ;
   _limProbs = as<Col<long double>>(limProbs) ;
@@ -27,35 +27,35 @@ AugTree::AugTree(const IntegerMatrix & edgeMatrix, const NumericVector & cluster
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
   BuildTree(edgeMatrixCopy) ;
   InitializeTips(alignmentBinOneLocus) ;
-  AssociateTransProbMatrices(clusterMRCAs, withinTransProbMatrix, betweenTransProbMatrix) ;
+  AssociateTransProbMatrices(clusterMRCAs, withinTransProbMatrix, betweenTransProbMatrix, rateCategIndex) ;
   IdentifyPatterns(_tree.at(numTips)) ;
 }
 
-void AugTree::AssociateTransProbMatrices(const NumericVector & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
+void AugTree::AssociateTransProbMatrices(const NumericVector & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const uint rateCategIndex) {
   
   // By default all nodes are considered between clusters.
   for (auto & i : _tree) 
   {
-    i->SetTransProbMatrix(betweenTransProbMatrix) ;
+    i->SetTransProbMatrix(betweenTransProbMatrix, rateCategIndex, false) ;
   }
   for (auto & i : clusterMRCAs) 
   { 
     if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
       for (auto & j : _tree.at(i-1)->GetChildren()) // The -1 accounts for the difference between R and C++ in terms of indices.
       {
-        BindMatrixChildren(j, withinTransProbMatrix) ; 
+        BindMatrixChildren(j, withinTransProbMatrix, rateCategIndex, true) ; 
       }
     }
   }
 }
 
-void AugTree::BindMatrixChildren(TreeNode * vertex, const mat & transProbMatrix)
+void AugTree::BindMatrixChildren(TreeNode * vertex, const mat & transProbMatrix, const uint rateCategIndex, const bool withinCluster)
 {
-  vertex->SetTransProbMatrix(transProbMatrix) ;
+  vertex->SetTransProbMatrix(transProbMatrix, rateCategIndex, withinCluster) ;
   if (!(vertex->GetChildren()[0] == NULL)) { // A null pointer indicates that we've reached an input node.
     for (auto & i : vertex->GetChildren()) 
     {
-      BindMatrixChildren(i, transProbMatrix) ;
+      BindMatrixChildren(i, transProbMatrix, rateCategIndex, withinCluster) ; 
     }
   } 
 }
@@ -117,8 +117,8 @@ void AugTree::IdentifyPatterns(TreeNode * vertex)
   }
 }
 
-void AugTree::SolveRoot(dictionary & patternDictionary) {
-  PatternLookup(patternDictionary, _tree.at(_numTips - 1)) ;
+void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary) {
+  PatternLookup(solutionDictionary, _tree.at(_numTips - 1)) ;
   if (!(_tree.at(_numTips - 1)->IsSolved()))
   {
     if (!_tree.at(_numTips - 1)->CanSolve())
@@ -155,14 +155,14 @@ void AugTree::InitializeTips(const std::vector<uvec> & alignmentBinOneLocus)
   }
 }
 
-void AugTree::PatternLookup(dictionary & phyloDictionary, TreeNode * currentNode) {
+void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) {
   if (!currentNode->IsSolved()) { // If the node is already solved, no need to update it with a stored pattern.
-    dictionary::iterator patternIter=phyloDictionary.find(currentNode->GetPattern()) ;
-    if (patternIter == phyloDictionary.end()) 
+    solutionDictionaryType::iterator patternIter=solutionDictionary.find(currentNode->GetDictionaryKey()) ;
+    if (patternIter == solutionDictionary.end()) 
     {
       for (auto & i : currentNode->GetChildren())
       {
-        PatternLookup(phyloDictionary, i) ;
+        PatternLookup(solutionDictionary, i) ;
       }
     } 
     else 
@@ -210,8 +210,9 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
 
 void Forest::ComputeLoglik() 
 {
-  for (auto & forestIter : _forest) {
-    forestIter.SolveRoot(_dictionary) ;
+  for (auto & forestIter : _forest) 
+  {
+    forestIter.SolveRoot(_solutionDictionary) ;
   }
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   Col<long double> rateAveragedLogLiks(_numLoci) ;
@@ -221,6 +222,11 @@ void Forest::ComputeLoglik()
     rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;
   }
   _loglik = sum(rateAveragedLogLiks) ;
+}
+
+void Forest::NNmovePropagate() 
+{
+  
 }
 
 
