@@ -1,5 +1,6 @@
 #include <boost/functional/hash.hpp>
 #include <RcppArmadillo.h>
+#include <unordered_map>
 
 using namespace arma ;
 

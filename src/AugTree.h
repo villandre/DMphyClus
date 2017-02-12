@@ -1,7 +1,6 @@
 #include "TreeNode.h"
 #include "IntermediateNode.h"
-#include "InputNode.h"
-#include <RcppArmadillo.h>
+#include "InputNode.h" 
 
 using namespace arma ;
 using namespace Rcpp ; // Tandy Warnow

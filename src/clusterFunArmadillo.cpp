@@ -2,7 +2,6 @@
 
 //#include <gperftools/profiler.h>
 #include <RcppArmadillo.h>
-#include <vector>
 #include <omp.h>
 #include <iostream>
 #include <string>

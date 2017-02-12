@@ -1,11 +1,8 @@
 #include "AugTree.h"
 #include "IntermediateNode.h"
 #include "InputNode.h"
-#include<vector.h>
-#include<memory.h>
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range.hpp>
-#include <unordered_map>
 
 using namespace Rcpp ;
 using namespace arma ;
