@@ -6,13 +6,14 @@ void IntermediateNode::InvalidateSolution()
 {
   _isSolved = FALSE ;
   _solution = zeros<Col<long double>>(_solution.size()) ;
-  if (_parent != NULL) { // Root has a NULL parent. 
+  if (_parent != NULL) 
+  { // Root has a NULL parent. 
     _parent->InvalidateSolution() ; 
   }
 }
 
-bool IntermediateNode::CanSolve() {
-  
+bool IntermediateNode::CanSolve() 
+{
   std::vector<bool> childDefined(_children.size()) ; 
   std::transform(_children.begin(), _children.end(), childDefined.begin(), [] (TreeNode * childNodePointer) {return childNodePointer->IsSolved() ;}) ; 
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });

@@ -24,20 +24,12 @@ public:
   virtual void DeriveKey(solutionDictionaryType &) ;
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   virtual Col<long double> GetSolution() ;
-  //mapKey GetPattern(uint locusNum) {return _pattern.at(locusNum) ;} ; 
   TreeNode * GetParent() {return _parent ;} ;
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
   void SetId(uint vertexId) {_id = vertexId ;} ;
   uint GetId() {return _id ;} ;
   void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinCluster = withinCluster ;} ;
   mat GetTransMatrix() {return _transProbMatrix ;} ;
-  // void InvalidatePattern() 
-  // {
-  //   _pattern.clear() ;
-  //   if (_parent != NULL) {
-  //     _parent->InvalidatePattern() ;
-  //   }
-  // }; 
 
   protected:
     
