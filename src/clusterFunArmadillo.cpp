@@ -1,12 +1,13 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 //#include <gperftools/profiler.h>
-#include <RcppArmadillo.h>
 #include <omp.h>
 #include <iostream>
 #include <string>
 #include <algorithm>
 #include "AugTree.h"
+#include <limits>
+
 
 // [[Rcpp::plugins(openmp)]]
 
@@ -36,18 +37,19 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, int numTips)
 {
+  cout << "Lower limit for long doubles: " << std::numeric_limits<long double>::lowest() << " \n" ;
   omp_set_num_threads(numOpenMP) ;
   solutionDictionaryType solutionDictionary ;
   Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, solutionDictionary);
-  Phylogenies.ComputeLoglik() ; 
+  Phylogenies.ComputeLoglik() ;
   return List::create(Named("logLik") = Phylogenies.GetLoglik(),
                       Named("intermediateNodes") = wrap(0)) ;
 }
 
-std::unordered_map<std::string, Col<uvec>> defineMap(std::vector<std::string> & equivalency) 
+std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
 {
   uint numStates = equivalency.size() ;
-  std::unordered_map<std::string, Col<uvec>> myMap ;
+  std::unordered_map<std::string, uvec> myMap ;
   for (uint i = 0; i < numStates; i++) 
   {
     uvec unitVec(numStates, fill::zeros) ;
@@ -75,20 +77,22 @@ std::unordered_map<std::string, Col<uvec>> defineMap(std::vector<std::string> & 
   return myMap ;
 }
 
+// [[Rcpp::export]]
+
 SEXP getConvertedAlignment(int numOpenMP, SEXP & equivVector, CharacterMatrix & alignmentAlphaMat)
 {
   std::vector<std::vector<uvec>> alignmentBin ;
   alignmentBin.reserve(alignmentAlphaMat.ncol()) ;
   std::vector<std::string> equivVectorAlpha = as<std::vector<std::string>>(equivVector) ;
-  std::unordered_map<std::string, Col<uvec>> siteMap = defineMap(equivVectorAlpha) ;
-  
-  for (uint i = 0; i < alignmentBin.size(); i++) 
+  std::unordered_map<std::string, uvec> siteMap = defineMap(equivVectorAlpha) ;
+
+  for (uint i = 0; i < alignmentBin.size(); i++) // Could probably be done more elegantly, i.e. with C++11 syntax...
   {
     alignmentBin.at(i).reserve(alignmentAlphaMat.nrow()) ;
-    std::transform(alignmentAlphaMat.begin()+i*alignmentAlphaMat.nrow(),
-                   alignmentAlphaMat.begin()+(i+1)*alignmentAlphaMat.nrow(),
-                   alignmentBin.at(i).begin(),
-                   [& siteMap] (std::string & myLetter) { return siteMap[myLetter] ;}) ;
+    for (uint j = 0; j < alignmentAlphaMat.nrow(); j++) 
+    {
+      alignmentBin.at(i).push_back(siteMap[(std::string) alignmentAlphaMat(j,i)]) ;
+    }
   }
   return wrap(alignmentBin) ;
 }

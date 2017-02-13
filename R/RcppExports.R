@@ -5,3 +5,7 @@ logLikCpp <- function(edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, be
     .Call('DMphyClus_logLikCpp', PACKAGE = 'DMphyClus', edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, betweenTransMatList, numOpenMP, alignmentBin, numTips)
 }
 
+getConvertedAlignment <- function(numOpenMP, equivVector, alignmentAlphaMat) {
+    .Call('DMphyClus_getConvertedAlignment', PACKAGE = 'DMphyClus', numOpenMP, equivVector, alignmentAlphaMat)
+}
+

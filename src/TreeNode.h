@@ -1,3 +1,5 @@
+// [[Rcpp::depends(RcppArmadillo)]]
+
 #include <boost/functional/hash.hpp>
 #include <assert.h>
 #include <RcppArmadillo.h>
@@ -8,27 +10,27 @@ using namespace arma ;
 #ifndef TREENODE_H
 #define TREENODE_H
 
-typedef std::unordered_map<std::size_t, Col<long double>, std::size_t> solutionDictionaryType ;
-typedef std::unordered_map<std::size_t, Col<long double>, std::size_t> nodePatternDictionaryType ;
-typedef std::vector<Col<long double>> longVec ;
+typedef std::unordered_map<std::size_t, Col<double>> solutionDictionaryType ;
+typedef std::unordered_map<std::size_t, Col<double>> nodePatternDictionaryType ;
+typedef std::vector<Col<double>> doubleVec ;
 
 class TreeNode
 {
 public:
   virtual bool IsSolved() = 0;
-  virtual bool CanSolve() ;
-  virtual void AddChild(TreeNode* child) ;
-  virtual void RemoveChild(TreeNode* child) ;
-  virtual void SetSolution(Col<long double>) ;
-  virtual void ComputeSolution() ;
-  virtual void InvalidateSolution() ;
-  virtual void SetPattern() ;
-  virtual void ToggleSolved() ;
-  virtual void SetInput(const uvec &) ;
-  virtual std::vector<TreeNode *> GetChildren() ;
-  virtual void DeriveKey(solutionDictionaryType &) ;
+  virtual bool CanSolve() = 0;
+  virtual void AddChild(TreeNode *) = 0 ;
+  virtual void RemoveChild(TreeNode *) = 0 ;
+  virtual void SetSolution(Col<double> &) = 0 ;
+  virtual void ComputeSolution() = 0 ;
+  virtual void InvalidateSolution() = 0;
+  virtual void ToggleSolved() = 0;
+  virtual void SetInput(const uvec &) = 0 ;
+  virtual std::vector<TreeNode *> GetChildren() = 0;
+  virtual void DeriveKey(solutionDictionaryType &) = 0;
+  virtual Col<double> GetSolution() = 0;
+   
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
-  virtual Col<long double> GetSolution() ;
   TreeNode * GetParent() {return _parent ;} ;
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
   void SetId(uint vertexId) {_id = vertexId ;} ;

@@ -1,30 +1,32 @@
-#include <assert.h>
 #include "TreeNode.h"
+
+#ifndef INTERMEDIATENODE_H
+#define INTERMEDIATENODE_H
 
 class IntermediateNode : public TreeNode
 {
 public:
-  
+
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
-  std::size_t GetPattern() {return _pattern ;};
   void AddChild(TreeNode * child) {_children.push_back(child) ;};
-  void RemoveChild(TreeNode*) ;
-  void SetSolution(Col<long double> &) ;
+  void RemoveChild(TreeNode *) ;
+  void SetSolution(Col<double> & solution) { _solution = solution ;};
   void ComputeSolution() ;
   void InvalidateSolution() ;
-  //void SetPattern(std::unordered_map<mapKey, Col<long double>, MyHash> &) ;
   void ToggleSolved() {_isSolved = !_isSolved ;};
-  void SetInput(const std::vector<uint> &) { assert(false) ;};
-  void DeriveKey(solutionDictionaryType &) ;
-  Col<long double> GetSolution() {return _solution ;} ;
-  IntermediateNode(): _isSolved(false)  {_parent = NULL ;};
+  void SetInput(const uvec &) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
-  
+  void DeriveKey(solutionDictionaryType &) ;
+  Col<double> GetSolution() {return _solution ;} ;
+
+  IntermediateNode(): _isSolved(false)  {_parent = NULL ;};
+
 protected:
-  
-  bool _isSolved ;
-  std::size_t _pattern ;
-  std::vector<TreeNode *> _children ;
-  Col<long double> _solution ;
+
+   bool _isSolved ;
+   std::vector<TreeNode *> _children ;
+   Col<double> _solution ;
 };
+
+#endif /* INTERMEDIATENODE_H */

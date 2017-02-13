@@ -24,3 +24,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// getConvertedAlignment
+SEXP getConvertedAlignment(int numOpenMP, SEXP& equivVector, CharacterMatrix& alignmentAlphaMat);
+RcppExport SEXP DMphyClus_getConvertedAlignment(SEXP numOpenMPSEXP, SEXP equivVectorSEXP, SEXP alignmentAlphaMatSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
+    Rcpp::traits::input_parameter< SEXP& >::type equivVector(equivVectorSEXP);
+    Rcpp::traits::input_parameter< CharacterMatrix& >::type alignmentAlphaMat(alignmentAlphaMatSEXP);
+    rcpp_result_gen = Rcpp::wrap(getConvertedAlignment(numOpenMP, equivVector, alignmentAlphaMat));
+    return rcpp_result_gen;
+END_RCPP
+}

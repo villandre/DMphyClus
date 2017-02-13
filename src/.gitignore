@@ -13,3 +13,6 @@ GraphProperties.cpp
 GraphProperties.h
 VertexProperties.cpp
 VertexProperties.h
+AugTree.o
+InputNode.o
+IntermediateNode.o

@@ -1,35 +1,38 @@
-#include <RcppArmadillo.h>
 #include <gsl/gsl_sf_gamma.h>
+#include <boost/functional/hash.hpp>
 #include "IntermediateNode.h"
 
-void IntermediateNode::InvalidateSolution() 
+void IntermediateNode::InvalidateSolution()
 {
   _isSolved = FALSE ;
-  _solution = zeros<Col<long double>>(_solution.size()) ;
-  if (_parent != NULL) 
-  { // Root has a NULL parent. 
-    _parent->InvalidateSolution() ; 
+  _solution = zeros<Col<double>>(_solution.size()) ;
+  if (_parent != NULL)
+  { // Root has a NULL parent.
+    _parent->InvalidateSolution() ;
   }
 }
 
-bool IntermediateNode::CanSolve() 
+bool IntermediateNode::CanSolve()
 {
-  std::vector<bool> childDefined(_children.size()) ; 
-  std::transform(_children.begin(), _children.end(), childDefined.begin(), [] (TreeNode * childNodePointer) {return childNodePointer->IsSolved() ;}) ; 
+  std::vector<bool> childDefined(_children.size()) ;
+  childDefined.reserve(_children.size()) ;
+  for (auto & i : _children)
+  {
+    childDefined.push_back(i->IsSolved()) ;
+  }
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-
-void IntermediateNode::RemoveChild(TreeNode* child) 
+void IntermediateNode::RemoveChild(TreeNode* child)
 {
   auto childPos = find(_children.begin(), _children.end(), child);
   _children.erase(childPos) ;
 }
 
-void IntermediateNode::ComputeSolution() 
+void IntermediateNode::ComputeSolution()
 {
-  Col<long double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
-  for(auto & child : _children) 
+  Col<double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
+  for(auto & child : _children)
   {
     mySolution = mySolution % child->GetTransMatrix()*child->GetSolution() ;
   }
@@ -46,7 +49,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   permutations.at(_children.size() + 1) = (std::size_t) _withinCluster ;
   std::sort(permutations.begin(), permutations.end()-2); // The children keys should be re-ordered, not the rate category index and within-cluster indicator.
   do {
-    hashKeys.push_back(std::hash<std::vector<size_t>>(permutations)) ;
+    hashKeys.push_back(boost::hash_range(permutations.begin(), permutations.end())) ;
   } while ( std::next_permutation(permutations.begin(),permutations.end() - 2) );
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
