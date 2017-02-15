@@ -26,13 +26,13 @@ protected:
   void BuildTree(umat &) ;
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
-  void InitializeTips(const std::vector<uvec> &) ;
+  void InitializeTips(const std::vector<vec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void BindMatrixChildren(TreeNode *, const mat &, const bool) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
 
 public:
-  AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
+  AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<vec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
   void TrySolve(TreeNode *, solutionDictionaryType &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &) ;

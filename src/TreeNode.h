@@ -19,13 +19,14 @@ class TreeNode
 public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
+  virtual bool CanFindKey() = 0;
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
   virtual void SetSolution(Col<double> &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void ToggleSolved() = 0;
-  virtual void SetInput(const uvec &) = 0 ;
+  virtual void SetInput(const vec &) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual Col<double> GetSolution() = 0;
@@ -37,6 +38,7 @@ public:
   uint GetId() {return _id ;} ;
   void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinCluster = withinCluster ;} ;
   mat GetTransMatrix() {return _transProbMatrix ;} ;
+  bool IsKeyDefined() {return _keyDefined ;}
   
   virtual ~TreeNode() { };
   
@@ -48,6 +50,7 @@ public:
   std::size_t _rateCategory ; // transProbMatrix gives that indication too, but it's easier to have it mentioned explicitly.
   bool _withinCluster ; // Like before, used to hash the pattern, will be converted to std::size_t.
   std::size_t _dictionaryKey ;
+  bool _keyDefined ;
 };
 
 #endif /* TREENODE_H */

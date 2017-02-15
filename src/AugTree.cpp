@@ -16,7 +16,7 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 }
 
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<uvec> & alignmentBinOneLocus, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<vec> & alignmentBinOneLocus, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
 {
   _numTips = numTips ;
   _limProbs = limProbs ;
@@ -26,14 +26,11 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat &
   BuildTree(edgeMatrixCopy) ;
   InitializeTips(alignmentBinOneLocus) ;
   AssociateTransProbMatrices(clusterMRCAs, withinTransProbMatrix, betweenTransProbMatrix) ;
-  ComputeKeys(_tree.at(numTips-1), solutionDictionary) ; // We start obtaining keys at the root.
+  ComputeKeys(_tree.at(_numTips), solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
-  cout << "Between: \n" ;
-  betweenTransProbMatrix.print() ;
-  cout << "Within: \n" ;
-  withinTransProbMatrix.print() ;
+  
   // By default all nodes are considered between clusters.
   for (auto & i : _tree)
   {
@@ -44,7 +41,6 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & 
   {
     if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
       BindMatrixChildren(_tree.at(i - 1), withinTransProbMatrix, true) ;
-      cout << "Done! (Should be 2 of me) \n" ;
     }
   }
 }
@@ -96,43 +92,20 @@ SEXP AugTree::BuildEdgeMatrix()
 
 void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary)
 {
-  if (vertex->CanSolve()) // If a vertex can be solved, then its children have patterns assigned to them.
-  {
-    vertex->DeriveKey(solutionDictionary) ;
-    vertex->ToggleSolved() ;
-  }
-  else // Vertex cannot be a tip, else, CanSolve would have returned true.
+  if (!vertex->CanFindKey()) // If a vertex can be solved, then its children have patterns assigned to them.
   {
     for (auto & i : vertex->GetChildren())
     {
       ComputeKeys(i, solutionDictionary) ;
     }
   }
-  // The nodes had been marked as solved only so that we could get a pattern indicator for each. They are not really solved and so, must be marked as such.
-  // Note that, as it should, ToggleSolved() does nothing for InputNodes.
-  for (auto & i : _tree)
-  {
-    i->ToggleSolved() ;
-  }
+  vertex->DeriveKey(solutionDictionary) ;
 }
 
 void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary) {
   PatternLookup(solutionDictionary, _tree.at(_numTips)) ;
-  if (!(_tree.at(_numTips - 1)->IsSolved()))
-  {
-    if (!_tree.at(_numTips - 1)->CanSolve())
-    {
-      for (auto & i : _tree.at(_numTips - 1)->GetChildren())
-      {
-        TrySolve(i, solutionDictionary) ;
-      }
-    }
-    else
-    {
-      _tree.at(_numTips - 1)->ComputeSolution(solutionDictionary) ;
-    }
-  }
-  _likelihood = dot(_tree.at(_numTips - 1)->GetSolution(), _limProbs) ;
+  TrySolve(_tree.at(_numTips), solutionDictionary) ;
+  _likelihood = dot(_tree.at(_numTips)->GetSolution(), _limProbs) ;
 }
 
 void AugTree::InitializeFromDictionary()
@@ -140,7 +113,7 @@ void AugTree::InitializeFromDictionary()
   //TO_DO
 }
 
-void AugTree::InitializeTips(const std::vector<uvec> & alignmentBinOneLocus)
+void AugTree::InitializeTips(const std::vector<vec> & alignmentBinOneLocus)
 {
   std::vector<TreeNode *>::iterator treeIter = _tree.begin() ;
   for (auto & i : alignmentBinOneLocus)
@@ -173,17 +146,14 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
 {
   if (!(vertex->IsSolved())) // Could be solved because of the pattern lookup.
   {
-    if (vertex->CanSolve())
-    {
-      vertex->ComputeSolution(solutionDictionary) ;
-    }
-    else
+    if (!vertex->CanSolve())
     {
       for (auto & i : vertex->GetChildren())
       {
         TrySolve(i, solutionDictionary) ;
       }
     }
+    vertex->ComputeSolution(solutionDictionary) ;
   }
 }
 
@@ -204,7 +174,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
     uint rateCategIndex = 0 ;
     for (auto j : zip(withinTransProbsMats, betweenTransProbsMats))
     {
-      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<vec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
       _forest.push_back(LocusRateAugTree) ;
       rateCategIndex++ ;
     }
@@ -222,9 +192,7 @@ void Forest::ComputeLoglik()
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
   std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (AugTree * myTree) {return myTree->GetLikelihood() ;}) ;
-  // cout << "Log-liks per locus and rate: \n" ;
-  // likAcrossRatesLoci.print() ;
-  // cout << "\n" ;
+  likAcrossRatesLoci.print() ;
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
     rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;

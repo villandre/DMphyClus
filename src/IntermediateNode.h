@@ -9,18 +9,19 @@ public:
 
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
+  bool CanFindKey() ;
   void AddChild(TreeNode * child) {_children.push_back(child) ;};
   void RemoveChild(TreeNode *) ;
   void SetSolution(Col<double> & solution) { _solution = solution ;};
   void ComputeSolution(solutionDictionaryType &) ;
   void InvalidateSolution() ;
   void ToggleSolved() {_isSolved = !_isSolved ;};
-  void SetInput(const uvec &) { assert(false) ;};
+  void SetInput(const vec &) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
   void DeriveKey(solutionDictionaryType &) ;
   Col<double> GetSolution() {return _solution ;} ;
 
-  IntermediateNode(): _isSolved(false)  {_parent = NULL ; _children.reserve(2) ;};
+  IntermediateNode(): _isSolved(false) {_parent = NULL ;  _keyDefined = false ;};
   
 protected:
 

@@ -23,6 +23,18 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
+bool IntermediateNode::CanFindKey()
+{
+  std::vector<bool> childKeyDefined(_children.size()) ;
+  childKeyDefined.reserve(_children.size()) ;
+  for (auto & i : _children)
+  {
+    childKeyDefined.push_back(i->IsKeyDefined()) ; 
+  }
+  return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
+}
+
+
 void IntermediateNode::RemoveChild(TreeNode* child)
 {
   auto childPos = find(_children.begin(), _children.end(), child);
@@ -34,7 +46,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   Col<double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
   for(auto & child : _children)
   {
-    mySolution = mySolution % child->GetTransMatrix()*child->GetSolution() ;
+    mySolution = mySolution % (child->GetTransMatrix()*child->GetSolution()) ;
   }
   _solution = mySolution ;
   solutionDictionary[_dictionaryKey] = mySolution ;
@@ -42,7 +54,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
 {
-  std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())) ;
+  std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())+2) ; // The hash key is computed from the rate category and the within/between status, hence +2.
   std::vector<std::size_t> hashKeys ;
   hashKeys.reserve(permutations.size()) ;
   std::transform(_children.begin(), _children.end(), permutations.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
@@ -63,4 +75,5 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   if (!foundSolution) {
     _dictionaryKey = hashKeys.at(0) ;
   }
+  _keyDefined = true ;
 }
