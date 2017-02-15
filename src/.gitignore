@@ -2,3 +2,6 @@ clusterFunArmadillo.o
 RcppExports.o
 DMphyClus.so
 RcppExports.cpp
+AugTree.o
+InputNode.o
+IntermediateNode.o
