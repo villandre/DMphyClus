@@ -29,7 +29,7 @@ public:
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual Col<double> GetSolution() = 0;
-   
+
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
@@ -37,9 +37,11 @@ public:
   uint GetId() {return _id ;} ;
   void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinCluster = withinCluster ;} ;
   mat GetTransMatrix() {return _transProbMatrix ;} ;
-
+  
+  virtual ~TreeNode() { };
+  
   protected:
-    
+
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
   mat _transProbMatrix ; // This matrix is associated with the supporting branch.

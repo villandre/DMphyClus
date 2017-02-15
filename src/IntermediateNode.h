@@ -20,8 +20,8 @@ public:
   void DeriveKey(solutionDictionaryType &) ;
   Col<double> GetSolution() {return _solution ;} ;
 
-  IntermediateNode(): _isSolved(false)  {_parent = NULL ;};
-
+  IntermediateNode(): _isSolved(false)  {_parent = NULL ; _children.reserve(2) ;};
+  
 protected:
 
    bool _isSolved ;

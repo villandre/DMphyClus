@@ -79,14 +79,14 @@ std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equiv
 
 // [[Rcpp::export]]
 
-SEXP getConvertedAlignment(int numOpenMP, SEXP & equivVector, CharacterMatrix & alignmentAlphaMat)
+SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaMat)
 {
   std::vector<std::vector<uvec>> alignmentBin ;
-  alignmentBin.reserve(alignmentAlphaMat.ncol()) ;
+  alignmentBin.resize(alignmentAlphaMat.ncol()) ;
   std::vector<std::string> equivVectorAlpha = as<std::vector<std::string>>(equivVector) ;
   std::unordered_map<std::string, uvec> siteMap = defineMap(equivVectorAlpha) ;
 
-  for (uint i = 0; i < alignmentBin.size(); i++) // Could probably be done more elegantly, i.e. with C++11 syntax...
+  for (uint i = 0; i < alignmentAlphaMat.ncol(); i++) // Could probably be done more elegantly, i.e. with C++11 syntax...
   {
     alignmentBin.at(i).reserve(alignmentAlphaMat.nrow()) ;
     for (uint j = 0; j < alignmentAlphaMat.nrow(); j++) 

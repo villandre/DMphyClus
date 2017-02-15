@@ -5,6 +5,13 @@
 using namespace arma ;
 using namespace Rcpp ; // Tandy Warnow
 
+template <typename T>
+void deallocate_container(T& c)
+{
+  for (typename T::iterator i = c.begin(); i != c.end(); ++i)
+    delete *i; 
+}
+
 class AugTree
 {
 protected:
@@ -36,6 +43,7 @@ public:
   mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
+  ~AugTree() {deallocate_container(_tree) ;};
 };
 
 class Forest

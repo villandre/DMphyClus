@@ -48,29 +48,27 @@
     currentValue$paraValues$logIntMatListIndex <- ceiling(length(logIntTransMatAll)/2)
     currentValue$paraValues$logExtMatListIndex <- ceiling(length(logExtTransMatAll)/2)
     currentValue$paraValues$clusInd <- startingValues$clusInd[startingValues$phylogeny$tip.label]
-    
+
     ## Remove the following lines if code works ##
     ## It'll work if 64-bit long doubles have a larger range ##
     limProbs <- exp(logLimProbs)
     withinTransMatAll <- lapply(logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], FUN = exp)
-    betweenTransMatAll <- lapply(logInttTransMatAll[[currentValue$paraValues$logExtMatListIndex]], FUN = exp)
+    betweenTransMatAll <- lapply(logIntTransMatAll[[currentValue$paraValues$logExtMatListIndex]], FUN = exp)
     ####
-    
+
     if (max(currentValue$paraValues$clusInd) == 1) {
-      currentValue$paraValues$clusterNodeIndices <- Ntip(startingValues$phylogeny)
+      currentValue$paraValues$clusterNodeIndices <- ape::Ntip(startingValues$phylogeny)
       names(currentValue$paraValues$clusterNodeIndices) <- "1"
     } else {
-      currentValue$paraValues$clusterNodeIndices <- sapply(seq_along(currentValue$paraValues$clusInd), FUN = function(clusterIndex) {
+      currentValue$paraValues$clusterNodeIndices <- sapply(1:max(currentValue$paraValues$clusInd), FUN = function(clusterIndex) {
         seqsInCluster <- names(currentValue$paraValues$clusInd)[currentValue$paraValues$clusInd == clusterIndex]
         if (length(seqsInCluster) > 1) {
-          return(getMRCA(currentValue$paraValues$phylogeny, names(currentValue$paraValues$clusInd)))
+          return(ape::getMRCA(currentValue$paraValues$phylogeny, seqsInCluster))
         }
         match(seqsInCluster, currentValue$paraValues$tip.label)
       })
-      names(currentValue$paraValues$clusterNodeIndices) <- as.character(seq_along(currentValue$paraValues$clusInd))
     }
-    browser() ;
-    currentValue$logLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny, limProbsVec = limProbs, withinTransMatList = withinTransMatAll, betweenTransMatList = betweenTransMatAll, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices)
+    currentValue$logLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll, betweenTransMatList = betweenTransMatAll, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny))
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
     currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
@@ -314,7 +312,7 @@
   } else{
     numGammaCat <- length(logExtTransMatAll[[1]])
   }
-  
+
   currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, logExtTransMatAll = logExtTransMatAll, logIntTransMatAll = logIntTransMatAll, logLimProbs = logLimProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
 
   cat("Launching chain... \n \n")

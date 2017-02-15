@@ -64,25 +64,24 @@ void AugTree::BuildTree(umat & edgeMatrix)
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
   for (uint i = 0; i < _numTips; i++) {
-    InputNode newNode{} ; 
-    _tree.push_back(&newNode) ;
+    _tree.push_back(new InputNode{}) ; 
   } ;
 
   // We add the internal nodes
   for (uint i = 0 ; i < edgeMatrix.n_rows - _numTips + 1; i++) {
-    IntermediateNode myNode{} ;
-    _tree.at(i) = &myNode ;
+    _tree.push_back(new IntermediateNode{}) ; 
   } ;
   // We set the IDs (to facilitate exporting the phylogeny to R).
   for (uint i = 0 ; i < _tree.size(); i++) {
     _tree.at(i)->SetId(i+1) ; // R want edge labels that start at 1.
   } ;
-
+  _tree.at(0)->AddChild(_tree.at(1)) ;
   // The vertices are all disjoint, the next loop defines their relationships
-  for (umat::iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end(); iter = iter + 2)
+  // The iterator follows columns.
+  for (umat::iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
   {
-    _tree.at(*iter)->AddChild(_tree.at(*(iter+1))) ;
-    _tree.at(*(iter+1))->SetParent(_tree.at(*iter)) ;
+    _tree.at(*iter)->AddChild(_tree.at(*(iter+edgeMatrix.n_rows))) ;
+    _tree.at(*(iter+edgeMatrix.n_rows))->SetParent(_tree.at(*iter)) ;
   }
 }
 
@@ -170,7 +169,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
 void AugTree::TrySolve(TreeNode * vertex)
 {
   if (!(vertex->IsSolved())) // Could be solved because of the pattern lookup.
-  { 
+  {
     if (vertex->CanSolve())
     {
       vertex->ComputeSolution() ;
