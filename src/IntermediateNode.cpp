@@ -29,7 +29,7 @@ void IntermediateNode::RemoveChild(TreeNode* child)
   _children.erase(childPos) ;
 }
 
-void IntermediateNode::ComputeSolution()
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary)
 {
   Col<double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
   for(auto & child : _children)
@@ -37,6 +37,7 @@ void IntermediateNode::ComputeSolution()
     mySolution = mySolution % child->GetTransMatrix()*child->GetSolution() ;
   }
   _solution = mySolution ;
+  solutionDictionary[_dictionaryKey] = mySolution ;
 }
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)

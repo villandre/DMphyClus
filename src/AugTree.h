@@ -33,7 +33,7 @@ protected:
 
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
-  void TrySolve(TreeNode *)  ;
+  void TrySolve(TreeNode *, solutionDictionaryType &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &) ;
   SEXP BuildEdgeMatrix() ;
@@ -49,7 +49,7 @@ public:
 class Forest
 {
 protected:
-  std::vector<AugTree> _forest ;
+  std::vector<AugTree *> _forest ;
   double _loglik ;
   nodePatternDictionaryType _nodePatternDictionary ;
   solutionDictionaryType _solutionDictionary ;
@@ -58,6 +58,8 @@ protected:
 
 public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, solutionDictionaryType &) ;
+  ~Forest() {deallocate_container(_forest) ;}
+  
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
   void NNmovePropagate() ;

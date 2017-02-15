@@ -12,7 +12,7 @@ public:
   void AddChild(TreeNode * child) {_children.push_back(child) ;};
   void RemoveChild(TreeNode *) ;
   void SetSolution(Col<double> & solution) { _solution = solution ;};
-  void ComputeSolution() ;
+  void ComputeSolution(solutionDictionaryType &) ;
   void InvalidateSolution() ;
   void ToggleSolved() {_isSolved = !_isSolved ;};
   void SetInput(const uvec &) { assert(false) ;};

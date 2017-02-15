@@ -22,7 +22,7 @@ public:
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
   virtual void SetSolution(Col<double> &) = 0 ;
-  virtual void ComputeSolution() = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void ToggleSolved() = 0;
   virtual void SetInput(const uvec &) = 0 ;

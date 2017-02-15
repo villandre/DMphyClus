@@ -64,18 +64,19 @@ void AugTree::BuildTree(umat & edgeMatrix)
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
   for (uint i = 0; i < _numTips; i++) {
-    _tree.push_back(new InputNode{}) ; 
+    InputNode * newNode = new InputNode{};
+    _tree.push_back(newNode) ; 
   } ;
 
   // We add the internal nodes
   for (uint i = 0 ; i < edgeMatrix.n_rows - _numTips + 1; i++) {
-    _tree.push_back(new IntermediateNode{}) ; 
+    IntermediateNode * newNode = new IntermediateNode{};
+    _tree.push_back(newNode) ; 
   } ;
   // We set the IDs (to facilitate exporting the phylogeny to R).
   for (uint i = 0 ; i < _tree.size(); i++) {
     _tree.at(i)->SetId(i+1) ; // R want edge labels that start at 1.
   } ;
-  _tree.at(0)->AddChild(_tree.at(1)) ;
   // The vertices are all disjoint, the next loop defines their relationships
   // The iterator follows columns.
   for (umat::iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
@@ -114,19 +115,19 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
 }
 
 void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary) {
-  PatternLookup(solutionDictionary, _tree.at(_numTips - 1)) ;
+  PatternLookup(solutionDictionary, _tree.at(_numTips)) ;
   if (!(_tree.at(_numTips - 1)->IsSolved()))
   {
     if (!_tree.at(_numTips - 1)->CanSolve())
     {
       for (auto & i : _tree.at(_numTips - 1)->GetChildren())
       {
-        TrySolve(i) ;
+        TrySolve(i, solutionDictionary) ;
       }
     }
     else
     {
-      _tree.at(_numTips - 1)->ComputeSolution() ;
+      _tree.at(_numTips - 1)->ComputeSolution(solutionDictionary) ;
     }
   }
   _likelihood = dot(_tree.at(_numTips - 1)->GetSolution(), _limProbs) ;
@@ -148,7 +149,7 @@ void AugTree::InitializeTips(const std::vector<uvec> & alignmentBinOneLocus)
 }
 
 void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) {
-  if (!currentNode->IsSolved())
+  if (!currentNode->IsSolved() && !solutionDictionary.empty())
   { // If the node is already solved, no need to update it with a stored pattern.
 
     if (solutionDictionary.count(currentNode->GetDictionaryKey()) == 0)
@@ -166,19 +167,19 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
   }
 }
 
-void AugTree::TrySolve(TreeNode * vertex)
+void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDictionary)
 {
   if (!(vertex->IsSolved())) // Could be solved because of the pattern lookup.
   {
     if (vertex->CanSolve())
     {
-      vertex->ComputeSolution() ;
+      vertex->ComputeSolution(solutionDictionary) ;
     }
     else
     {
       for (auto & i : vertex->GetChildren())
       {
-        TrySolve(i) ;
+        TrySolve(i, solutionDictionary) ;
       }
     }
   }
@@ -201,7 +202,8 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
     uint rateCategIndex = 0 ;
     for (auto j : zip(withinTransProbsMats, betweenTransProbsMats))
     {
-      _forest.push_back(AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary)) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      _forest.push_back(LocusRateAugTree) ;
       rateCategIndex++ ;
     }
   } // In the forest, elements 0,..., numRateCats - 1 are for locus 1, elements numRateCats,..., 2*numRateCats - 1 are for locus 2, and so on.
@@ -209,15 +211,15 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
 
 void Forest::ComputeLoglik()
 {
-  #pragma omp parallel for
-  for (std::vector<AugTree>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
+  //#pragma omp parallel for
+  for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
-    forestIter->SolveRoot(_solutionDictionary) ;
+    (*forestIter)->SolveRoot(_solutionDictionary) ;
   }
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
-  std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (const AugTree & myTree) {return myTree.GetLikelihood() ;}) ;
+  std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (AugTree * myTree) {return myTree->GetLikelihood() ;}) ;
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
     rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;
