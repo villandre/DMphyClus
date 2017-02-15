@@ -30,19 +30,21 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat &
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
-
+  cout << "Between: \n" ;
+  betweenTransProbMatrix.print() ;
+  cout << "Within: \n" ;
+  withinTransProbMatrix.print() ;
   // By default all nodes are considered between clusters.
   for (auto & i : _tree)
   {
     i->SetTransProbMatrix(betweenTransProbMatrix, _rateCateg, false) ;
   }
+  
   for (auto & i : clusterMRCAs)
   {
     if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
-      for (auto & j : _tree.at(i-1)->GetChildren()) // The -1 accounts for the difference between R and C++ in terms of indices.
-      {
-        BindMatrixChildren(j, withinTransProbMatrix, true) ;
-      }
+      BindMatrixChildren(_tree.at(i - 1), withinTransProbMatrix, true) ;
+      cout << "Done! (Should be 2 of me) \n" ;
     }
   }
 }
@@ -220,6 +222,9 @@ void Forest::ComputeLoglik()
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
   std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (AugTree * myTree) {return myTree->GetLikelihood() ;}) ;
+  // cout << "Log-liks per locus and rate: \n" ;
+  // likAcrossRatesLoci.print() ;
+  // cout << "\n" ;
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
     rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;

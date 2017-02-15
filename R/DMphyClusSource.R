@@ -53,7 +53,7 @@
     ## It'll work if 64-bit long doubles have a larger range ##
     limProbs <- exp(logLimProbs)
     withinTransMatAll <- lapply(logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], FUN = exp)
-    betweenTransMatAll <- lapply(logIntTransMatAll[[currentValue$paraValues$logExtMatListIndex]], FUN = exp)
+    betweenTransMatAll <- lapply(logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], FUN = exp)
     ####
 
     if (max(currentValue$paraValues$clusInd) == 1) {

@@ -103,7 +103,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         })
         cat("Done! \n \n")
     } else{
-        allExtMatList <- betweenClusTransMatList
+        allExtMatList <- withinClusTransMatList
     }
     if (missing(poisRateNumClus)) {
         warning("No value for poisRateNumClus has been specified. Using the number of clusters in startingValues$clusInd... \n")
