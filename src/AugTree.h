@@ -28,7 +28,7 @@ protected:
   void InitializeFromDictionary() ;
   void InitializeTips(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
-  void BindMatrixChildren(TreeNode *, const mat &, const bool) ;
+  void BindMatrix(TreeNode *, const mat &, const bool) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
 
 public:
@@ -43,6 +43,7 @@ public:
   mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
+  std::vector<TreeNode *> GetTree() {return _tree ;} ;
   ~AugTree() {deallocate_container(_tree) ;};
 };
 

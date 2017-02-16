@@ -40,19 +40,20 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & 
   for (auto & i : clusterMRCAs)
   {
     if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
-      BindMatrixChildren(_tree.at(i - 1), withinTransProbMatrix, true) ;
+      for (auto & j : _tree.at(i-1)->GetChildren()) {
+        BindMatrix(j, withinTransProbMatrix, true) ; 
+      }  
     }
   }
-  
 }
 
-void AugTree::BindMatrixChildren(TreeNode * vertex, const mat & transProbMatrix, const bool withinCluster)
+void AugTree::BindMatrix(TreeNode * vertex, const mat & transProbMatrix, const bool withinCluster)
 {
   vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, withinCluster) ;
   if (!(vertex->GetChildren()[0] == NULL)) { // A null pointer indicates that we've reached an input node.
     for (auto & i : vertex->GetChildren())
     {
-      BindMatrixChildren(i, transProbMatrix, withinCluster) ;
+      BindMatrix(i, transProbMatrix, withinCluster) ;
     }
   }
 }
@@ -198,6 +199,11 @@ void Forest::ComputeLoglik()
   {
     rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;
   }
+  _forest.at(4349)->GetTree().at(6)->GetSolution().print("Solution at node 7:") ;
+  _forest.at(4349)->GetTree().at(6)->GetChildren().at(0)->GetSolution().print("Child 0 solution:") ;
+  _forest.at(4349)->GetTree().at(6)->GetChildren().at(0)->GetTransMatrix().print("Child 0 transMatrix:") ;
+  _forest.at(4349)->GetTree().at(6)->GetChildren().at(1)->GetSolution().print("Child 1 solution:") ;
+  _forest.at(4349)->GetTree().at(6)->GetChildren().at(1)->GetTransMatrix().print("Child 1 transMatrix:") ;
   _loglik = sum(rateAveragedLogLiks) ;
 }
 
