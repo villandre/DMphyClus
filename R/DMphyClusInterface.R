@@ -86,24 +86,24 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
             Qmatrix <- Qmatrix[,names(limProbs)]
         } else{}
         cat("Estimating transition probability matrices for branches in the supporting phylogeny... ")
-        allIntMatList <- lapply(meanBetweenBranchVec, FUN = function(x) {
+        allBetweenMatList <- lapply(meanBetweenBranchVec, FUN = function(x) {
             lNormMu <- log(x) - 0.3 ## 0.3 is HARD-CODED!
             lNormSigma <- sqrt((log(x)-lNormMu)*2)
             outputTransMatList(QmatScaled = Qmatrix, numGammaCat = 3, gammaShape = discGammaPar, numReplicates = numSamplesForTransMat, distRanFun = rlnorm, meanlog = lNormMu, sdlog = lNormSigma)
         })
         cat("Done! \n \n")
     } else{
-        allIntMatList <- betweenClusTransMatList
+        allBetweenMatList <- betweenClusTransMatList
     }
     if (missing(withinClusTransMatList)) {
         cat("Estimating transition probability matrices for branches in the within-cluster phylogenies... ")
-        allExtMatList <- lapply(meanWithinBranchVec, FUN = function(x) {
+        allWithinMatList <- lapply(meanWithinBranchVec, FUN = function(x) {
             rateValue <- 1/x
             outputTransMatList(QmatScaled = Qmatrix, numGammaCat = 3, gammaShape = discGammaPar, numReplicates = numSamplesForTransMat, distRanFun = rexp, rate = rateValue)
         })
         cat("Done! \n \n")
     } else{
-        allExtMatList <- withinClusTransMatList
+        allWithinMatList <- withinClusTransMatList
     }
     if (missing(poisRateNumClus)) {
         warning("No value for poisRateNumClus has been specified. Using the number of clusters in startingValues$clusInd... \n")
@@ -117,19 +117,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
     })
     seqNames <- rownames(alignment)
 
-    logAllExtMatList <- lapply(allExtMatList, FUN = function(x) {
-      lapply(x, FUN = function(y) {
-        log(y)
-      })
-    })
-
-    logAllIntMatList <- lapply(allIntMatList, FUN = function(x) {
-      lapply(x, FUN = function(y) {
-        log(y)
-      })
-    })
-
-    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, logLimProbs = log(limProbs), numMovesNNIint = numMovesNNIbetween, numMovesNNIext = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, logExtTransMatAll = logAllExtMatList, logIntTransMatAll = logAllIntMatList, DNAdataBin = convertedData)
+    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, withinTransMatAll = allWithinMatList, betweenTransMatAll = allBetweenMatList, DNAdataBin = convertedData)
 
     chainResult <- do.call(".DMphyClusCore", args = argsForDMcore)
 
