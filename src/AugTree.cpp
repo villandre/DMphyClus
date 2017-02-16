@@ -26,7 +26,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat &
   BuildTree(edgeMatrixCopy) ;
   InitializeTips(alignmentBinOneLocus) ;
   AssociateTransProbMatrices(clusterMRCAs, withinTransProbMatrix, betweenTransProbMatrix) ;
-  ComputeKeys(_tree.at(_numTips), solutionDictionary) ; // We start obtaining keys at the root.
+  // ComputeKeys(_tree.at(_numTips), solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
@@ -43,6 +43,7 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & 
       BindMatrixChildren(_tree.at(i - 1), withinTransProbMatrix, true) ;
     }
   }
+  
 }
 
 void AugTree::BindMatrixChildren(TreeNode * vertex, const mat & transProbMatrix, const bool withinCluster)
@@ -103,7 +104,7 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
 }
 
 void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary) {
-  PatternLookup(solutionDictionary, _tree.at(_numTips)) ;
+  //PatternLookup(solutionDictionary, _tree.at(_numTips)) ;
   TrySolve(_tree.at(_numTips), solutionDictionary) ;
   _likelihood = dot(_tree.at(_numTips)->GetSolution(), _limProbs) ;
 }
@@ -192,7 +193,7 @@ void Forest::ComputeLoglik()
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
   std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (AugTree * myTree) {return myTree->GetLikelihood() ;}) ;
-  likAcrossRatesLoci.print() ;
+  //likAcrossRatesLoci.print() ;
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
     rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;
