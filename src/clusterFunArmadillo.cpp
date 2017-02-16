@@ -37,7 +37,6 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, int numTips)
 {
-  cout << "Lower limit for long doubles: " << std::numeric_limits<long double>::lowest() << " \n" ;
   omp_set_num_threads(numOpenMP) ;
   solutionDictionaryType solutionDictionary ;
   Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, solutionDictionary);

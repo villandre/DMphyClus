@@ -194,16 +194,11 @@ void Forest::ComputeLoglik()
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
   std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (AugTree * myTree) {return myTree->GetLikelihood() ;}) ;
-  //likAcrossRatesLoci.print() ;
+  
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
-    rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(i, i + _numRateCats - 1))) ;
+    rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1))) ;
   }
-  _forest.at(4349)->GetTree().at(6)->GetSolution().print("Solution at node 7:") ;
-  _forest.at(4349)->GetTree().at(6)->GetChildren().at(0)->GetSolution().print("Child 0 solution:") ;
-  _forest.at(4349)->GetTree().at(6)->GetChildren().at(0)->GetTransMatrix().print("Child 0 transMatrix:") ;
-  _forest.at(4349)->GetTree().at(6)->GetChildren().at(1)->GetSolution().print("Child 1 solution:") ;
-  _forest.at(4349)->GetTree().at(6)->GetChildren().at(1)->GetTransMatrix().print("Child 1 transMatrix:") ;
   _loglik = sum(rateAveragedLogLiks) ;
 }
 
