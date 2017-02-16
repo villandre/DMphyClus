@@ -11,7 +11,7 @@ public:
   void SetSolution(Col<double> & inputVec) {assert(false) ;};
   void ComputeSolution(solutionDictionaryType & dictionary) {assert(false) ;}; //Solution is known, this should not get called.
   void ToggleSolved() {};
-  void SetInput(const vec & inputVec) { _input = inputVec ;} ;
+  void SetInput(const uvec & inputVec) { _input = inputVec ;} ;
   std::vector<TreeNode *> GetChildren() {return std::vector<TreeNode *>{NULL} ;}; // An input node returns a null pointer when it is asked to provide the address of a child.
   void DeriveKey(solutionDictionaryType &) ;
   Col<double> GetSolution() {return conv_to<Col<double>>::from(_input) ;} ;
@@ -20,5 +20,5 @@ public:
 
 protected:
   void InvalidateSolution() {assert(false) ;};
-  vec _input ;
+  uvec _input ;
 };

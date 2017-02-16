@@ -16,7 +16,7 @@ public:
   void ComputeSolution(solutionDictionaryType &) ;
   void InvalidateSolution() ;
   void ToggleSolved() {_isSolved = !_isSolved ;};
-  void SetInput(const vec &) { assert(false) ;};
+  void SetInput(const uvec &) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
   void DeriveKey(solutionDictionaryType &) ;
   Col<double> GetSolution() {return _solution ;} ;

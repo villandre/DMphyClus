@@ -26,7 +26,7 @@ public:
   virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void ToggleSolved() = 0;
-  virtual void SetInput(const vec &) = 0 ;
+  virtual void SetInput(const uvec &) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual Col<double> GetSolution() = 0;

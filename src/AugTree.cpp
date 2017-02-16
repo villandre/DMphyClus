@@ -16,7 +16,7 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 }
 
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<vec> & alignmentBinOneLocus, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<uvec> & alignmentBinOneLocus, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
 {
   _numTips = numTips ;
   _limProbs = limProbs ;
@@ -114,12 +114,12 @@ void AugTree::InitializeFromDictionary()
   //TO_DO
 }
 
-void AugTree::InitializeTips(const std::vector<vec> & alignmentBinOneLocus)
+void AugTree::InitializeTips(const std::vector<uvec> & alignmentBinOneLocus)
 {
   std::vector<TreeNode *>::iterator treeIter = _tree.begin() ;
   for (auto & i : alignmentBinOneLocus)
   {
-    (*treeIter)->SetInput(i) ;
+    (*treeIter)->SetInput(i) ; 
     treeIter++ ;
   }
 }
@@ -175,7 +175,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
     uint rateCategIndex = 0 ;
     for (auto j : zip(withinTransProbsMats, betweenTransProbsMats))
     {
-      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<vec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
       _forest.push_back(LocusRateAugTree) ;
       rateCategIndex++ ;
     }
