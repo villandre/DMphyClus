@@ -394,7 +394,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       { 
         stop("Tips in newBigPhylo don't have the same ordering as in the original phylogeny! (.updateClusterPhylos)\n")
       }
-      newClusterMRCAs <- Ntip(newBigPhylo)
+      newClusterMRCAs <- Ntip(newBigPhylo) + 1
       if (length(currentValue$paraValues$clusterNodeIndices) > 1)
       {
         newClusterMRCAs <- sapply(currentValue$paraValues$clusterNodeIndices, FUN = function(x) {
