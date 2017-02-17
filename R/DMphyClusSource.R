@@ -9,8 +9,8 @@
     } else{}
 
     currentValue <- .updateClusterPhylos(currentValue = currentValue, limProbs = limProbs, betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], numMovesNNI = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, clusPhyloUpdateProp = clusPhyloUpdateProp) ## This step updates the cluster-specific phylogenies. It is the slowest step.
-    lapply(1:numSplitMergeMoves, FUN = function(x) { ##
-        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, logLimProbs = logLimProbs, clusTransMatList = logExtTransMatAll[[currentValue$paraValues$logExtMatListIndex]], intTransMatList = logIntTransMatAll[[currentValue$paraValues$logIntMatListIndex]], numLikThreads = numLikThreads, singletonMatrices = singletonMatrices, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin)
+    lapply(1:numSplitMergeMoves, FUN = function(x) { ## Should this be made into a recursive function call?
+        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin)
     })
 
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
@@ -75,118 +75,51 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue
 }
 
-.performSplit <- function(currentValue, numSplits, clusLabel, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
+.performSplit <- function(currentValue, numSplits, clusNumber, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
 
-    originalPhylo <- currentValue$paraValues$clusterPhylos[[clusLabel]]
-    newClusLabel <- as.character(max(currentValue$paraValues$clusInd)+1)
-    graftedTree <- ape::rtree(2)
-    graftedTree$edge.length <- NULL
-    graftedTree$tip.label <- c(clusLabel, newClusLabel)
-    if (length(currentValue$paraValues$clusterPhylos) > 1) {
-        newInternalTree <- suppressWarnings(ape::bind.tree(x = ape::reorder.phylo(currentValue$paraValues$internalPhylo), y = graftedTree, where = match(clusLabel, currentValue$paraValues$internalPhylo$tip.label))) ## Breaking up a cluster results in the internal phylogeny changing too, since it must now integrate the part of the cluster phylogeny that used to link the two new clusters. The ordering of the labels in the size 2 phylogeny supporting the clusters doesn't matter: it is symmetrical.
-    } else {
-        newInternalTree <- graftedTree
+  currentPhylo <- currentValue$paraValues$phylogeny ## This is merely an alias. It won't be modified, so it won't be copied.
+  
+  newClusNodes <- phangorn::Children(currentPhylo, currentValue$paraValues$clusterNodeIndices[[clusNumber]]) 
+  newClusMRCAs <- currentValue$paraValues$clusterNodeIndices
+  newClusMRCAs[clusNumber] <- newClusNodes[1]
+  newClusMRCAs <- c(newClusMRCAs, tail(newClusNodes, n = -1))
+  
+  newLogLik <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentPhylo), clusterMRCAs = newClusMRCAs)$logLik
+  
+  shortRecursive <- function(cMRCAs, cNumbers, clusInd, index = 1) {
+    seqLabelsToChange <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, cMRCAs[index])[[1]]]
+    clusInd[seqLabelsToChange] <- cNumbers[index]
+    if (index <= length(cMRCAs)) {
+      clusInd <- shortRecursive(cMRCAs, cNumbers, clusInd, index = index+1)
     }
-    DNAdataMultiBinByClusCopy <- currentValue$DNAdataMultiBinByClus
-    rootChildren <- phangorn::Children(originalPhylo, ape::Ntip(originalPhylo)+1)
-    splitDNAbyClus <- lapply(rootChildren, FUN = function(childNode) {
-        if (childNode <= ape::Ntip(originalPhylo)) {
-            return(list(tree = NA, clusMatrix = singletonMatrices[[originalPhylo$tip.label[childNode]]]))
-        } else{
-            newSubTree <- ape::extract.clade(phy = originalPhylo, node = childNode)
-            alignmentBin <- .dataBinSubset(DNAdataBin = DNAdataBin, keepSeqNamesOrNums = newSubTree$tip.label)
-            newSitePatterns <- getSitePatterns(alignmentBin)
-            if (!identical(colnames(alignmentBin[[1]]), newSubTree$tip.label)) {
-                stop("Look at names... \n")
-            } else{}
-            return(list(tree = newSubTree, clusMatrix = .logLikCpp(edgeMat = newSubTree$edge, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, numOpenMP = numLikThreads, alignmentBin = newSitePatterns$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = newSitePatterns$sitePatterns), sitePatterns = newSitePatterns))
-        }
-    })
-    DNAdataMultiBinByClusCopy[graftedTree$tip.label] <- lapply(splitDNAbyClus, FUN = function(x) x$clusMatrix)
-    newClusterPhylo <- lapply(splitDNAbyClus, FUN = function(x) x$tree)
-    newSitePatterns <- lapply(splitDNAbyClus, FUN = function(x) x$sitePatterns)
-    newClusPhylosLabel <- graftedTree$tip.label
-
-    DNAdataMultiBinByClusCopy <- DNAdataMultiBinByClusCopy[newInternalTree$tip.label]
-
-    if (!identical(names(DNAdataMultiBinByClusCopy), newInternalTree$tip.label)) {
-        stop("Look at element names! \n")
-    } else{}
-    
-    newClusterMRCAs <- 11111111 ### Begin here.
-    newLogLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentValue$paraValues$phylogeny), clusterMRCAs = newClusterMRCAs)$logLik
-    newClusInd <- currentValue$paraValues$clusInd
-    if (!(class(splitDNAbyClus[[2]]$tree) == "phylo"))  {
-        labelsToAmend <- originalPhylo$tip.label[rootChildren[[2]]]
-    } else{
-        labelsToAmend <- splitDNAbyClus[[2]]$tree$tip.label
-    }
-    newClusInd[labelsToAmend] <- max(currentValue$paraValues$clusInd) + 1 ## Sequences in the cluster supported by remainingTree are assigned a label equal to max(clusInd) + 1, while those supported by newClusTree keep the label of the cluster that was split.
-    newCounts <- table(newClusInd)
-    newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
-
-    tipAncestorsNew <- phangorn::Ancestors(newInternalTree, node = 1:ape::Ntip(newInternalTree), type = "parent")
-    names(tipAncestorsNew) <- newInternalTree$tip.label
-    ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
-    ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
-    numPairsNew <- length(ancestorsGroupsPairsNew)
-    transKernRatio <- numSplits/numPairsNew
-    list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel, sitePatterns = newSitePatterns)
+    clusInd
+  }
+  newClusInd <- shortRecursive(newClusNodes, c(clusNumber, (length(currentValue$paraValues$clusterNodeIndices)+1):length(newClusMRCAs)), currentValue$paraValues$clusInd) ## I wonder if this is more efficient than apply + <<-...
+  newCounts <- table(newClusInd)
+  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
+  
+  tipAncestorsNew <- phangorn::Ancestors(currentPhylo, node = newClusMRCAs, type = "parent")
+  ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
+  ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
+  numPairsNew <- length(ancestorsGroupsPairsNew)
+  transKernRatio <- numSplits/numPairsNew
+  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
-.performMerge <- function(currentValue, ancestorsGroupsPairs, pairToSelect, DNAdataBin, logLimProbs, clusTransMatList, intTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
-
-    numPairs <- length(ancestorsGroupsPairs)
-    clustersInPair <- names(ancestorsGroupsPairs[[pairToSelect]])
-    hostTree <- ape::rtree(2, tip.label = c(0,0))
-    hostTree$edge.length <- 0
-    if (class(currentValue$paraValues$clusterPhylos[[clustersInPair[[1]]]]) == "phylo") {
-        hostTree <- suppressWarnings(ape::bind.tree(x = hostTree, y = ape::reorder.phylo(currentValue$paraValues$clusterPhylos[[clustersInPair[[1]]]]), where = 1))
-        hostChildren <- phangorn::Children(hostTree, ape::Ntip(hostTree)+1)
-        whereToBind <- hostChildren[hostChildren < ape::Ntip(hostTree)]
-    } else{
-        hostTree$tip.label[1] <- names(currentValue$paraValues$clusInd)[match(as.numeric(clustersInPair[[1]]), currentValue$paraValues$clusInd)]
-        whereToBind <- 2
-    }
-
-    if (class(currentValue$paraValues$clusterPhylos[[clustersInPair[[2]]]]) == "phylo") {
-        newClusterPhylo <- suppressWarnings(ape::bind.tree(x = hostTree, y = ape::reorder.phylo(currentValue$paraValues$clusterPhylos[[clustersInPair[[2]]]]), where = whereToBind))
-    } else{
-        hostTree$tip.label[whereToBind] <- names(currentValue$paraValues$clusInd)[match(as.numeric(clustersInPair[[2]]), currentValue$paraValues$clusInd)]
-        newClusterPhylo <- hostTree
-    }
-    newTipLabel <- as.character(max(currentValue$paraValues$clusInd)+1)
-    currentValue$paraValues$internalPhylo$node.label[[tipAncestors[[clustersInPair[[1]]]]-ape::Ntip(currentValue$paraValues$internalPhylo)]] <- newTipLabel ## The new cluster will be given the label of a totally new cluster.
-    newInternalTree <- suppressWarnings(ape::drop.tip(currentValue$paraValues$internalPhylo, tip = clustersInPair, trim.internal = FALSE)) ## The node label should become a tip label. There will be a gap in the nodes. We suppress warnings, because the algorithm can handle the case where all tips are dropped.
-    mergeDataBin <- .dataBinSubset(DNAdataBin = DNAdataBin, keepSeqNamesOrNums = newClusterPhylo$tip.label)
-    newSitePatterns <- getSitePatterns(mergeDataBin)
-    DNAdataMultiBinByClusCopy <- currentValue$DNAdataMultiBinByClus[-match(clustersInPair, names(currentValue$DNAdataMultiBinByClus))]
-    clusTransMatSelectIndex <- min(length(clusTransMatList), ape::Ntip(newClusterPhylo))
-    if (!identical(newClusterPhylo$tip.label, colnames(mergeDataBin[[1]]))) {
-        stop("Look at colnames! \n")
-    } else{}
-    DNAdataMultiBinByClusCopy[[newTipLabel]] <- .logLikCpp(edgeMat = newClusterPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, numOpenMP = numLikThreads, alignmentBin = newSitePatterns$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = TRUE, sitePatterns = newSitePatterns$sitePatterns) ## This is automatically added to the end of the list, which means the ordering of the list should not be affected.
-
-    newClusPhylosLabel <- newTipLabel
-
-    if (!is.null(newInternalTree)) {
-      if (!identical(newInternalTree$tip.label, names(DNAdataMultiBinByClusCopy))) {
-        stop("Look at ordering of DNAdataMultiBinByClusCopy! \n")
-      } else{}
-      newLogLik <- .logLikCpp(edgeMat = newInternalTree$edge, logLimProbsVec = logLimProbs, logTransMatList = intTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataMultiBinByClusCopy, internalFlag = TRUE, returnRootMat = FALSE)
-    } else { ## If the internal tree is NULL, it means we only have one cluster!
-      if (!identical(colnames(mergeDataBin[[1]]), newClusterPhylo$tip.label)) {
-        stop("Error in .performMerge: orders of columns in mergeDataBin should match that of the tip labels in newClusterPhylo!\n")
-      } else{}
-      newLogLik <- .logLikCpp(edgeMat = newClusterPhylo$edge, logLimProbsVec = logLimProbs, logTransMatList = clusTransMatList, numOpenMP = numLikThreads, alignmentBin = newSitePatterns$uniqueDNAdataBin, internalFlag = FALSE, returnRootMat = FALSE, sitePatterns = newSitePatterns$sitePatterns) ## Should make sure that the order in mergeDataBin matches that in newClusterPhylo...
-    }
-    newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% as.numeric(clustersInPair)), as.numeric(newTipLabel)) ## There's a gap in the cluster labels.
-    newCounts <- table(newClusInd)
-    newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
-    transKernRatio <- numPairs/sum(newCounts>1)
-    newClusterPhylo <- list(newClusterPhylo)
-    newSitePatterns <- list(newSitePatterns)
-    list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterPhylos = newClusterPhylo, internalPhylo = newInternalTree, DNAdataMultiBinByClus = DNAdataMultiBinByClusCopy, newClusPhylosLabel = newClusPhylosLabel, sitePatterns = newSitePatterns)
+.performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numPairs) {
+    
+  currentClusMRCAs <- currentValue$paraValues$clusterNodeIndices
+  currentPhylo <- currentValue$paraValues$phylogeny
+  
+  newMRCA <- phangorn::mrca.phylo(currentPhylo, clusMRCAsToMerge)
+  clusToMergeNumbers <- match(clusMRCAsToMerge, currentClusMRCAs)
+  newClusMRCAs <- unique(replace(currentClusMRCAs, clusToMergeNumbers, newMRCA)) # No two clusters can have the same MRCA.
+  newLogLik <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = newClusMRCAs, numTips = ape::Ntip(currentPhylo))$logLik
+  newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
+  newCounts <- table(newClusInd)
+  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
+  transKernRatio <- numPairs/sum(newCounts>1)
+  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
 .splitJoinClusterMove <- function(currentValue, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
@@ -194,50 +127,59 @@ reorderTips <- function(phylogeny, newTipOrder)
     if (length(currentValue$paraValues$clusterNodeIndices) > 1) 
     {
       tipAncestors <- phangorn::Ancestors(currentValue$paraValues$phylogeny, node = currentValue$paraValues$clusterNodeIndices, type = "parent")
-      names(tipAncestors) <- as.character(seq_along(currentValue$paraValues$clusterNodeIndices))
-      ancestorsGroups <- split(tipAncestors, f = tipAncestors)
+      ancestorsGroups <- split(currentValue$paraValues$clusterNodeIndices, f = tipAncestors)
       ancestorsGroupsPairs <- ancestorsGroups[vapply(ancestorsGroups, FUN = function(x) {length(x) > 1}, FUN.VALUE = logical(1))]
       numPairs <- length(ancestorsGroupsPairs)
-    } else {
+    } 
+    else 
+    {
       numPairs <- 0
     }
-    clustersToSplit <- names(currentValue$clusterCounts)[currentValue$clusterCounts > 1]
+    clustersToSplit <- names(currentValue$clusterCounts)[currentValue$clusterCounts > 1] 
 
-    if ((numPairs > 0) & (length(clustersToSplit) > 0)) {
-        splitMove <- runif(1)<0.5
-    } else if (numPairs > 0) {
-        splitMove <- FALSE
-    } else if (length(clustersToSplit) > 0) {
-        splitMove <- TRUE
-    } else {
-        return(currentValue) ## No move is possible in this setting, so the algorithm simply omits this step.
+    if ((numPairs > 0) & (length(clustersToSplit) > 0)) 
+    {
+      splitMove <- runif(1)<0.5
     }
-
-    if (splitMove) {
-        clusLabel <- sample(clustersToSplit, size = 1)
-        splitMergeResult <- .performSplit(currentValue = currentValue, numSplits = length(clustersToSplit), clusLabel = clusLabel, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
-    } else {
-        pairToSelect <- sample.int(n = numPairs, size = 1)
-        clustersInPair <- names(ancestorsGroupsPairs[[pairToSelect]])
-        splitMergeResult <- .performMerge(currentValue = currentValue, ancestorsGroupsPairs = ancestorsGroupsPairs, pairToSelect = pairToSelect, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+    else if (numPairs > 0)
+    {
+      splitMove <- FALSE
+    } 
+    else if (length(clustersToSplit) > 0)
+    {
+      splitMove <- TRUE
+    } 
+    else
+    {
+      return(currentValue) ## No move is possible in this setting, so the algorithm simply omits this step.
     }
-
+    
+    if (splitMove) 
+    {
+      clusNumber <- sample(as.numeric(clustersToSplit), size = 1)
+      splitMergeResult <- .performSplit(currentValue = currentValue, numSplits = length(clustersToSplit), clusNumber = clusNumber, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+    } 
+    else
+    {
+      pairToSelect <- sample.int(n = numPairs, size = 1)
+      splitMergeResult <- .performMerge(currentValue = currentValue, clusMRCAsToMerge = ancestorsGroupsPairs[[pairToSelect]], DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, numPairs = numPairs)
+    }
     MHratio <- splitMergeResult$transKernRatio*exp(splitMergeResult$logPostProb - currentValue$logPostProb)
-
+    
     testUnif <- runif(1)
-    if (testUnif < MHratio) {
-        currentValue$logLik <- splitMergeResult$logLik
-        currentValue$logPostProb <- splitMergeResult$logPostProb
-        currentValue$paraValues$clusInd <- splitMergeResult$clusInd
-        currentValue$clusterCounts <- splitMergeResult$counts
-        currentValue$paraValues$phylogeny <- splitMergeResult$phylogeny
-
-        if (!splitMove) {
-            
-            names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
-            currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
-        } else {}
-    } else{}
+    if (testUnif < MHratio)
+    {
+      currentValue$logLik <- splitMergeResult$logLik
+      currentValue$logPostProb <- splitMergeResult$logPostProb
+      currentValue$paraValues$clusInd <- splitMergeResult$clusInd
+      currentValue$clusterCounts <- splitMergeResult$counts
+      currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
+      if (!splitMove)
+      {
+        names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
+        currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
+      }
+    }
     currentValue
 }
 
