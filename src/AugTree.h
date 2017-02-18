@@ -45,6 +45,7 @@ public:
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
   std::vector<TreeNode *> GetTree() {return _tree ;} ;
+  void UnrootTree() ;
   ~AugTree() {deallocate_container(_tree) ;};
 };
 

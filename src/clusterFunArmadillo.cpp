@@ -95,3 +95,15 @@ SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaM
   }
   return wrap(alignmentBin) ;
 }
+
+// [[Rcpp::export]]
+
+// If clusToModIndex takes value 0, we amend the supporting phylogeny.
+// 
+SEXP NNImoveAndLogLik(IntegerMatrix & edge, IntegerVector & clusterMRCAs, List alignmentBinNodes, uint clusToModIndex)
+{
+  if (clusToModIndex > 0)
+  {
+    
+  }
+}

@@ -154,6 +154,11 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
   }
 }
 
+void AugTree::UnrootTree()
+{
+  _tree.at(_numTips)->GetChildren() ;
+}
+
 Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const List & alignmentBin, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, solutionDictionaryType & solutionDictionary)
 {
   _numLoci = alignmentBin.size() ;
