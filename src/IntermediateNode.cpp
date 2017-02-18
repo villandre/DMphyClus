@@ -49,7 +49,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution % (child->GetTransMatrix()*child->GetSolution()) ;
   }
   _solution = mySolution ;
-  solutionDictionary[_dictionaryKey] = mySolution ;
+  //solutionDictionary[_dictionaryKey] = mySolution ;
 }
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
@@ -58,8 +58,8 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   std::vector<std::size_t> hashKeys ;
   hashKeys.reserve(permutations.size()) ;
   std::transform(_children.begin(), _children.end(), permutations.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
-  permutations.at(_children.size()) = _rateCategory ;
-  permutations.at(_children.size() + 1) = (std::size_t) _withinCluster ;
+  permutations[_children.size()] = _rateCategory ;
+  permutations[_children.size() + 1] = (std::size_t) _withinCluster ;
   std::sort(permutations.begin(), permutations.end()-2); // The children keys should be re-ordered, not the rate category index and within-cluster indicator.
   do {
     hashKeys.push_back(boost::hash_range(permutations.begin(), permutations.end())) ;
@@ -73,7 +73,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
     }
   }
   if (!foundSolution) {
-    _dictionaryKey = hashKeys.at(0) ;
+    _dictionaryKey = hashKeys[0] ;
   }
   _keyDefined = true ;
 }

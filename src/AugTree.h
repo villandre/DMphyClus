@@ -30,6 +30,7 @@ protected:
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
+  void InitializeNodesAndTips(const std::vector<std::vector<uvec>> &) ; // Each element in the outer vector is for a different category. 
 
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;

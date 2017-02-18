@@ -326,7 +326,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     if (!all(newPhylo$tip.label == currentValue$paraValues$phylogeny$tip.label)) {
       stop("Tips in newPhylo don't have the same ordering as in the original phylogeny! (.updateSupportingPhylo)\n")
     }
-    updatedLogLik <- logLikCpp(edgeMat = newPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = Ntip(newPhylo))$logLik ## Note that all edges belong to the same rate category, hence extTransMatList and intTransMatList taking the same value.
+    updatedLogLik <- logLikCpp(edgeMat = newPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(newPhylo))$logLik ## Note that all edges belong to the same rate category, hence extTransMatList and intTransMatList taking the same value.
     MHratio <- exp(updatedLogLik - currentLogLik) ## Prior doesn't change...
     if (runif(1) < MHratio) {
         
@@ -378,13 +378,13 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       {
         return(NULL) # NNI moves cannot be performed for phylogenies with 1 or two tips.
       } 
-      else if (length(nodeDescendants) == Ntip(originalPhylo))
+      else if (length(nodeDescendants) == ape::Ntip(originalPhylo))
       {
         newBigPhylo <- phangorn::rNNI(originalPhylo, moves = numMovesNNI)
       } 
       else
       {
-        clusterPhylo <- extract.clade(originalPhylo, node = clusterMRCA)
+        clusterPhylo <- ape::extract.clade(originalPhylo, node = clusterMRCA)
         newClusPhylo <- phangorn::rNNI(clusterPhylo, moves = numMovesNNI)
         splitPhylo <- ape::drop.tip(currentValue$paraValues$phylogeny, tip = nodeDescendants, trim.internal = FALSE, subtree = TRUE)
         newBigPhylo <- ape::bind.tree(x = splitPhylo, y = newClusPhylo, where = grep(x = splitPhylo$tip.label, pattern = "_tips]"))
@@ -394,7 +394,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       { 
         stop("Tips in newBigPhylo don't have the same ordering as in the original phylogeny! (.updateClusterPhylos)\n")
       }
-      newClusterMRCAs <- Ntip(newBigPhylo) + 1
+      newClusterMRCAs <- ape::Ntip(newBigPhylo) + 1
       if (length(currentValue$paraValues$clusterNodeIndices) > 1)
       {
         newClusterMRCAs <- sapply(currentValue$paraValues$clusterNodeIndices, FUN = function(x) {
@@ -403,7 +403,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
           ape::getMRCA(phy = newBigPhylo, tip = descendantNames)
         }) ## A change in the ordering of tips in one cluster-tree may change the cluster MRCA indices for the other cluster trees.
       }
-      newLogLik <- logLikCpp(edgeMat = newBigPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, alignmentBin = DNAdataBin, numOpenMP = numLikThreads, numTips = Ntip(newBigPhylo), clusterMRCAs = newClusterMRCAs)$logLik
+      newLogLik <- logLikCpp(edgeMat = newBigPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, alignmentBin = DNAdataBin, numOpenMP = numLikThreads, numTips = ape::Ntip(newBigPhylo), clusterMRCAs = newClusterMRCAs)$logLik
       MHratio <- exp(newLogLik - currentValue$logLik)
       
       if (runif(1) < MHratio) 

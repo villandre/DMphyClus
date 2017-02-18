@@ -26,7 +26,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat &
   BuildTree(edgeMatrixCopy) ;
   InitializeTips(alignmentBinOneLocus) ;
   AssociateTransProbMatrices(clusterMRCAs, withinTransProbMatrix, betweenTransProbMatrix) ;
-  // ComputeKeys(_tree.at(_numTips), solutionDictionary) ; // We start obtaining keys at the root.
+  //ComputeKeys(_tree[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
@@ -40,7 +40,7 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & 
   for (auto & i : clusterMRCAs)
   {
     if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
-      for (auto & j : _tree.at(i-1)->GetChildren()) {
+      for (auto & j : _tree[i-1]->GetChildren()) {
         BindMatrix(j, withinTransProbMatrix, true) ; 
       }  
     }
@@ -75,14 +75,14 @@ void AugTree::BuildTree(umat & edgeMatrix)
   } ;
   // We set the IDs (to facilitate exporting the phylogeny to R).
   for (uint i = 0 ; i < _tree.size(); i++) {
-    _tree.at(i)->SetId(i+1) ; // R want edge labels that start at 1.
+    _tree[i]->SetId(i+1) ; // R want edge labels that start at 1.
   } ;
   // The vertices are all disjoint, the next loop defines their relationships
   // The iterator follows columns.
   for (umat::iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
   {
-    _tree.at(*iter)->AddChild(_tree.at(*(iter+edgeMatrix.n_rows))) ;
-    _tree.at(*(iter+edgeMatrix.n_rows))->SetParent(_tree.at(*iter)) ;
+    _tree[*iter]->AddChild(_tree[*(iter+edgeMatrix.n_rows)]) ;
+    _tree[*(iter+edgeMatrix.n_rows)]->SetParent(_tree[*iter]) ;
   }
 }
 
@@ -105,14 +105,9 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
 }
 
 void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary) {
-  //PatternLookup(solutionDictionary, _tree.at(_numTips)) ;
-  TrySolve(_tree.at(_numTips), solutionDictionary) ;
-  _likelihood = dot(_tree.at(_numTips)->GetSolution(), _limProbs) ;
-}
-
-void AugTree::InitializeFromDictionary()
-{
-  //TO_DO
+  //PatternLookup(solutionDictionary, _tree[_numTips]) ;
+  TrySolve(_tree[_numTips], solutionDictionary) ;
+  _likelihood = dot(_tree[_numTips]->GetSolution(), _limProbs) ;
 }
 
 void AugTree::InitializeTips(const std::vector<uvec> & alignmentBinOneLocus)
@@ -185,7 +180,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
 
 void Forest::ComputeLoglik()
 {
-  //#pragma omp parallel for
+  #pragma omp parallel for
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
     (*forestIter)->SolveRoot(_solutionDictionary) ;
@@ -197,7 +192,7 @@ void Forest::ComputeLoglik()
   
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
-    rateAveragedLogLiks.at(i) = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1))) ;
+    rateAveragedLogLiks[i] = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1))) ;
   }
   _loglik = sum(rateAveragedLogLiks) ;
 }
