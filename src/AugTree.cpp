@@ -57,6 +57,7 @@ void AugTree::BindMatrix(TreeNode * vertex, const mat & transProbMatrix, const b
     }
   }
 }
+
 void AugTree::BuildTree(umat & edgeMatrix)
 {
   _tree.reserve(edgeMatrix.n_rows + 1) ;
@@ -84,12 +85,6 @@ void AugTree::BuildTree(umat & edgeMatrix)
     _tree[*iter]->AddChild(_tree[*(iter+edgeMatrix.n_rows)]) ;
     _tree[*(iter+edgeMatrix.n_rows)]->SetParent(_tree[*iter]) ;
   }
-}
-
-SEXP AugTree::BuildEdgeMatrix()
-{
-  //TO_DO
-  return wrap(0) ;
 }
 
 void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary)
@@ -165,16 +160,6 @@ uint littleCycle(uint myInt, uint cycleLength)
   return myInt % cycleLength ;
 }
 
-std::vector<vec> AugTree::GetSolutionsFromTree() 
-{
-  std::vector<vec> solutionsVec(_tree.size()) ;
-  std::transform(_tree.begin(), _tree.end(), solutionsVec.begin(), [] (TreeNode * myNode)
-  {
-    return myNode->GetSolution() ;
-  }) ;
-  return solutionsVec ;
-}
-
 Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const List & alignmentBin, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
 {
   _numLoci = numLoci ;
@@ -229,17 +214,28 @@ void Forest::ComputeLoglik()
   _loglik = sum(rateAveragedLogLiks) ;
 }
 
-std::vector<std::vector<vec>> Forest::GetSolutionsFromForest()
-{
-  std::vector<std::vector<vec>> solutionsVec(_forest.size()) ;
-  std::transform(_forest.begin(), _forest.end(), solutionsVec.begin(), [] (AugTree * aTree) 
-    {
-      return aTree->GetSolutionsFromTree() ;
-    }) ;
-  return solutionsVec ;
-}
-
 void Forest::NNmovePropagate()
 {
  //TO_DO
+}
+
+void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs, uvec & clusterMRCAs)
+{
+  uint rateCategIndex = 0 ;
+  for (auto & tree : _forest)
+  {
+    tree->BindMatrixBetween(tree->GetTree().at(tree->GetNumTips()), newBetweenTransProbs, false) ; 
+  }
+}
+
+void AugTree::BindMatrixBetween(TreeNode * vertex, const mat & transProbMatrix, const bool withinCluster)
+{
+  vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, withinCluster) ;
+  
+  if (!(vertex->GetChildren()[0]->GetWithinParentBranch())) { // We're changing between-cluster transition probabilities only.
+    for (auto & i : vertex->GetChildren()) 
+    {
+      BindMatrixBetween(i, transProbMatrix, withinCluster) ;
+    }
+  }
 }

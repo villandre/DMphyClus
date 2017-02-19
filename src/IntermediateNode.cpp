@@ -60,7 +60,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   hashKeys.reserve(permutations.size()) ;
   std::transform(_children.begin(), _children.end(), permutations.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
   permutations[_children.size()] = _rateCategory ;
-  permutations[_children.size() + 1] = (std::size_t) _withinCluster ;
+  permutations[_children.size() + 1] = (std::size_t) _withinParentBranch ;
   std::sort(permutations.begin(), permutations.end()-2); // The children keys should be re-ordered, not the rate category index and within-cluster indicator.
   do {
     hashKeys.push_back(boost::hash_range(permutations.begin(), permutations.end())) ;

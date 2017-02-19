@@ -127,9 +127,17 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List newSupportingTransProbs) 
+SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List & newSupportingTransProbs, IntegerVector & clusterMRCAs) 
 {
-  // TO_DO
+  if (!(ForestPointer == NULL)) 
+  {
+    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+    Phylogenies->AmendBetweenTransProbs(as<std::vector<mat>>(newSupportingTransProbs), clusterMRCAs) ;
+    
+    Phylogenies->ComputeLoglik() ;
+  } else {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
 }
 
 // [[Rcpp::export]]

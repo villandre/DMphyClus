@@ -36,16 +36,19 @@ public:
   void TrySolve(TreeNode *, solutionDictionaryType &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &) ;
-  SEXP BuildEdgeMatrix() ;
   void ComputeKeys(TreeNode *, solutionDictionaryType &) ;
-  double GetLikelihood() const {return _likelihood ;} ;
-  mat GetWithinTransProbMatrix() const {return _withinTransProbMatrix ;} ;
-  mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
+  void UnrootTree() ;
+  void BindMatrixBetween(TreeNode *, const mat &, const bool) ;
+  
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
+  
   std::vector<TreeNode *> GetTree() {return _tree ;} ;
-  void UnrootTree() ;
-  std::vector<vec> GetSolutionsFromTree() ;
+  mat GetWithinTransProbMatrix() const {return _withinTransProbMatrix ;} ;
+  mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
+  double GetLikelihood() const {return _likelihood ;} ;
+  uint GetNumTips() {return _numTips ;} ;
+  
   ~AugTree() {deallocate_container(_tree) ;};
 };
 
@@ -63,9 +66,9 @@ public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
   ~Forest() {deallocate_container(_forest) ;}
   
-  std::vector<std::vector<vec>> GetSolutionsFromForest() ;
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
   std::vector<AugTree *> GetForest() {return _forest ;} ;
   void NNmovePropagate() ;
+  void AmendBetweenTransProbs(std::vector<mat> &, uvec &) ;
 };

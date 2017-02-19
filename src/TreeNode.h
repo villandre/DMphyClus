@@ -36,9 +36,10 @@ public:
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
   void SetId(uint vertexId) {_id = vertexId ;} ;
   uint GetId() {return _id ;} ;
-  void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinCluster = withinCluster ;} ;
+  void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinParentBranch = withinCluster ;} ;
   mat GetTransMatrix() {return _transProbMatrix ;} ;
-  bool IsKeyDefined() {return _keyDefined ;}
+  bool IsKeyDefined() {return _keyDefined ;} ;
+  bool GetWithinParentBranch() {return _withinParentBranch ;} ;
   
   virtual ~TreeNode() { };
   
@@ -48,7 +49,7 @@ public:
   TreeNode * _parent ;
   mat _transProbMatrix ; // This matrix is associated with the supporting branch.
   std::size_t _rateCategory ; // transProbMatrix gives that indication too, but it's easier to have it mentioned explicitly.
-  bool _withinCluster ; // Like before, used to hash the pattern, will be converted to std::size_t.
+  bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   std::size_t _dictionaryKey ;
   bool _keyDefined ;
 };
