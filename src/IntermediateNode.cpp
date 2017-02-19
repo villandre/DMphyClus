@@ -49,6 +49,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution % (child->GetTransMatrix()*child->GetSolution()) ;
   }
   _solution = mySolution ;
+  ToggleSolved() ;
   //solutionDictionary[_dictionaryKey] = mySolution ;
 }
 

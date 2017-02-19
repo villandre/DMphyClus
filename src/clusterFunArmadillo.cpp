@@ -35,14 +35,35 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, int numTips)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, SEXP pointerToForest)
 {
+  
   omp_set_num_threads(numOpenMP) ;
-  solutionDictionaryType solutionDictionary ;
-  Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, solutionDictionary);
-  Phylogenies.ComputeLoglik() ;
-  return List::create(Named("logLik") = Phylogenies.GetLoglik(),
-                      Named("intermediateNodes") = wrap(0)) ;
+  if (!(pointerToForest == NULL)) // This syntax is really bad. Change once testing is complete!!!!
+  {
+    XPtr<Forest> Phylogenies(pointerToForest) ;
+    Phylogenies->ComputeLoglik() ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+                        Named("ForestPointer") = Phylogenies) ;
+  } 
+  else
+  {
+    solutionDictionaryType solutionDictionary ;
+    Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+    Phylogenies.ComputeLoglik() ;
+    XPtr<Forest> p(&Phylogenies, true) ;
+    return List::create(Named("logLik") = Phylogenies.GetLoglik(),
+                        Named("ForestPointer") = p) ;
+  }
+  
+  // std::vector<std::vector<vec>>* mySolutions = new std::vector<std::vector<vec>> ;
+  // for (auto & aTree : Phylogenies.GetForest()) 
+  // {
+  //   mySolutions->push_back(aTree->GetSolutionsFromTree()) ;
+  // }
+  // 
+  // Rcpp::XPtr<std::vector<std::vector<vec>>> p(mySolutions, true) ;
+  //Rcpp::XPtr<Forest> p(&Phylogenies, true) ; 
 }
 
 std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
@@ -98,12 +119,43 @@ SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaM
 
 // [[Rcpp::export]]
 
-// If clusToModIndex takes value 0, we amend the supporting phylogeny.
-// 
-SEXP NNImoveAndLogLik(IntegerMatrix & edge, IntegerVector & clusterMRCAs, List alignmentBinNodes, uint clusToModIndex)
+SEXP getNULLextPointer()
 {
-  if (clusToModIndex > 0)
-  {
-    
-  }
+  Rcpp::XPtr<int> p(NULL, true) ;
+  return p ;
+}
+
+// [[Rcpp::export]]
+
+SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List newSupportingTransProbs) 
+{
+  // TO_DO
+}
+
+// [[Rcpp::export]]
+
+SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newSupportingTransProbs) 
+{
+  // TO_DO
+}
+
+// [[Rcpp::export]]
+
+SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI) 
+{
+  // TO_DO
+}
+
+// [[Rcpp::export]]
+
+SEXP betweenClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI) 
+{
+  // TO_DO
+}
+
+// [[Rcpp::export]]
+
+SEXP clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector clusMRCAs) 
+{
+  // TO_DO
 }

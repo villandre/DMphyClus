@@ -26,12 +26,11 @@ protected:
   void BuildTree(umat &) ;
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
-  void InitializeTips(const std::vector<uvec> &) ;
+  void InitializeVertices(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
-  void InitializeNodesAndTips(const std::vector<std::vector<uvec>> &) ; // Each element in the outer vector is for a different category. 
-
+  
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
   void TrySolve(TreeNode *, solutionDictionaryType &)  ;
@@ -46,6 +45,7 @@ public:
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
   std::vector<TreeNode *> GetTree() {return _tree ;} ;
   void UnrootTree() ;
+  std::vector<vec> GetSolutionsFromTree() ;
   ~AugTree() {deallocate_container(_tree) ;};
 };
 
@@ -60,10 +60,12 @@ protected:
   uint _numRateCats ;
 
 public:
-  Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, solutionDictionaryType &) ;
+  Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
   ~Forest() {deallocate_container(_forest) ;}
   
+  std::vector<std::vector<vec>> GetSolutionsFromForest() ;
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
+  std::vector<AugTree *> GetForest() {return _forest ;} ;
   void NNmovePropagate() ;
 };

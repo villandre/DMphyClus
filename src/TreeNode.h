@@ -22,14 +22,14 @@ public:
   virtual bool CanFindKey() = 0;
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
-  virtual void SetSolution(Col<double> &) = 0 ;
+  virtual void SetSolution(vec &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void ToggleSolved() = 0;
   virtual void SetInput(const uvec &) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
-  virtual Col<double> GetSolution() = 0;
+  virtual vec GetSolution() = 0;
 
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;
