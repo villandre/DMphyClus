@@ -11,7 +11,7 @@ public:
   bool CanSolve() ;
   bool CanFindKey() ;
   void AddChild(TreeNode * child) {_children.push_back(child) ;};
-  void RemoveChild(TreeNode *) ;
+  void RemoveChildren() {_children.clear() ;} ;
   void SetSolution(vec & solution) { _solution = solution ;};
   void ComputeSolution(solutionDictionaryType &) ;
   void InvalidateSolution() ;

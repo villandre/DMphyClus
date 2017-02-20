@@ -127,24 +127,41 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List & newSupportingTransProbs, IntegerVector & clusterMRCAs) 
+SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs) 
 {
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
-    Phylogenies->AmendBetweenTransProbs(as<std::vector<mat>>(newSupportingTransProbs), clusterMRCAs) ;
-    
+    std::vector<mat> newBetweenTransProbsRecast = as<std::vector<mat>>(newBetweenTransProbs) ;
+    Phylogenies->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
     Phylogenies->ComputeLoglik() ;
-  } else {
+    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+                        Named("ForestPointer") = ForestPointer) ;
+  } 
+  else 
+  {
     throw ::Rcpp::exception("pointer is null." ) ;
   }
 }
 
 // [[Rcpp::export]]
 
-SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newSupportingTransProbs) 
+SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs) 
 {
-  // TO_DO
+  if (!(ForestPointer == NULL)) 
+  {
+    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+    std::vector<mat> newWithinTransProbsRecast = as<std::vector<mat>>(newWithinTransProbs) ;
+    uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
+    Phylogenies->AmendWithinTransProbs(newWithinTransProbsRecast, clusterMRCAsRecast) ;
+    Phylogenies->ComputeLoglik() ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+                        Named("ForestPointer") = ForestPointer) ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
 }
 
 // [[Rcpp::export]]
@@ -156,14 +173,37 @@ SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI)
 
 // [[Rcpp::export]]
 
-SEXP betweenClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI) 
+SEXP betweenClusNNIlogLik(SEXP ForestPointer) 
 {
   // TO_DO
 }
 
 // [[Rcpp::export]]
 
-SEXP clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector clusMRCAs) 
+SEXP clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector clusMRCAsToSplitOrMerge, List withinTransProbsMats, List betweenTransProbsMats) 
 {
-  // TO_DO
+  XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+  if (!(ForestPointer == NULL)) 
+  {
+    uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
+    
+    if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
+    {
+      std::vector<mat> betweenTransProbsMatsRecast = as<std::vector<mat>>(betweenTransProbsMats) ;
+      Phylogenies->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0), betweenTransProbsMatsRecast) ;
+    }
+    else
+    {
+      std::vector<mat> withinTransProbsMatsRecast = as<std::vector<mat>>(withinTransProbsMats) ;
+      Phylogenies->HandleMerge(clusMRCAsToSplitOrMergeRecast, withinTransProbsMatsRecast) ;
+    }
+    Phylogenies->ComputeLoglik() ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+                        Named("ForestPointer") = ForestPointer) ;
+  }
+  else
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
+  
 }

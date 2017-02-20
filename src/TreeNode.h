@@ -21,7 +21,7 @@ public:
   virtual bool CanSolve() = 0;
   virtual bool CanFindKey() = 0;
   virtual void AddChild(TreeNode *) = 0 ;
-  virtual void RemoveChild(TreeNode *) = 0 ;
+  virtual void RemoveChildren() = 0 ;
   virtual void SetSolution(vec &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
   virtual void InvalidateSolution() = 0;

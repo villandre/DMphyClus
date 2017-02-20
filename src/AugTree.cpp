@@ -155,6 +155,31 @@ void AugTree::UnrootTree()
   _tree.at(_numTips)->GetChildren() ;
 }
 
+void AugTree::BindMatrixBetween(TreeNode * vertex, const mat & transProbMatrix)
+{
+  vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, false) ;
+  vertex->ToggleSolved() ;
+  
+  if (!(vertex->GetChildren()[0]->GetWithinParentBranch())) { // We're changing between-cluster transition probabilities only.
+    for (auto & i : vertex->GetChildren()) 
+    {
+      BindMatrixBetween(i, transProbMatrix) ;
+    }
+  }
+  else
+  {
+    vertex->ToggleSolved() ; // Not very clear... What happens here is that _solved is being set back to true for nodes supporting clusters. This is logical, since their solution is not assumed to have changed due to the change in the between-cluster transition probabilities.
+  }
+}
+
+void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
+{
+  for (auto & i : _tree)
+  {
+    i->ToggleSolved() ;
+  }
+}
+
 uint littleCycle(uint myInt, uint cycleLength) 
 {
   return myInt % cycleLength ;
@@ -219,23 +244,58 @@ void Forest::NNmovePropagate()
  //TO_DO
 }
 
-void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs, uvec & clusterMRCAs)
+void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs)
 {
   uint rateCategIndex = 0 ;
   for (auto & tree : _forest)
   {
-    tree->BindMatrixBetween(tree->GetTree().at(tree->GetNumTips()), newBetweenTransProbs, false) ; 
+    tree->BindMatrixBetween(tree->GetTree().at(tree->GetNumTips()), newBetweenTransProbs.at(rateCategIndex)) ;
+    rateCategIndex = littleCycle(rateCategIndex+1, newBetweenTransProbs.size()) ;
   }
 }
 
-void AugTree::BindMatrixBetween(TreeNode * vertex, const mat & transProbMatrix, const bool withinCluster)
+
+void Forest::AmendWithinTransProbs(std::vector<mat> & withinTransProbs, uvec & clusterMRCAs) 
 {
-  vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, withinCluster) ;
-  
-  if (!(vertex->GetChildren()[0]->GetWithinParentBranch())) { // We're changing between-cluster transition probabilities only.
-    for (auto & i : vertex->GetChildren()) 
+  uint rateCategIndex = 0 ;
+  for (auto &augtree : _forest)
+  {
+    for (auto & mrca : clusterMRCAs)
     {
-      BindMatrixBetween(i, transProbMatrix, withinCluster) ;
+      if (mrca <= augtree->GetNumTips())
+      {
+        augtree->BindMatrix(augtree->GetTree().at(mrca - 1), withinTransProbs.at(rateCategIndex), true) ;
+      }
+    } 
+    augtree->InvalidateAll() ;
+    rateCategIndex = littleCycle(rateCategIndex, withinTransProbs.size()) ;
+  }
+}
+
+void Forest::HandleSplit(uint clusMRCAtoSplit, std::vector<mat> & betweenTransProbsMats)
+{
+  uint rateCateg = 0 ;
+  for (auto & augtree : _forest)
+  {
+    augtree->GetTree().at(clusMRCAtoSplit - 1)->InvalidateSolution() ;
+    for (auto & childNode : augtree->GetTree().at(clusMRCAtoSplit - 1)->GetChildren())
+    {
+      childNode->SetTransProbMatrix(betweenTransProbsMats.at(rateCateg), rateCateg, false) ;
     }
+    rateCateg = littleCycle(rateCateg + 1, betweenTransProbsMats.size()) ;
+  }
+}
+
+void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTransProbsMats)
+{
+  uint rateCateg = 0 ;
+  for (auto & augtree : _forest)
+  {
+    augtree->GetTree().at(clusMRCAstoMerge.at(0) - 1)->GetParent()->InvalidateSolution() ; // Elements of clusMRCAsToMerge should all have the same parent to allow a merge to occur.
+    for (auto & oldClusterMRCA : clusMRCAstoMerge)
+    {
+      augtree->GetTree().at(oldClusterMRCA)->SetTransProbMatrix(withinTransProbsMats.at(rateCateg), rateCateg, true) ;
+    }
+    rateCateg = littleCycle(rateCateg + 1, withinTransProbsMats.size()) ;
   }
 }

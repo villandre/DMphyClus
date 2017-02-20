@@ -7,7 +7,7 @@ public:
   bool CanSolve() {return true ;} ;
   bool CanFindKey() {return true ;};
   void AddChild(TreeNode * child) {assert(false) ;};
-  void RemoveChild(TreeNode* child) {assert(false) ;};
+  void RemoveChildren() {};
   void SetSolution(vec & inputVec) {assert(false) ;};
   void ComputeSolution(solutionDictionaryType & dictionary) {assert(false) ;}; //Solution is known, this should not get called.
   void ToggleSolved() {};

@@ -28,7 +28,6 @@ protected:
   void InitializeFromDictionary() ;
   void InitializeVertices(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
-  void BindMatrix(TreeNode *, const mat &, const bool) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   
 public:
@@ -38,7 +37,9 @@ public:
   void SolveRoot(solutionDictionaryType &) ;
   void ComputeKeys(TreeNode *, solutionDictionaryType &) ;
   void UnrootTree() ;
-  void BindMatrixBetween(TreeNode *, const mat &, const bool) ;
+  void BindMatrixBetween(TreeNode *, const mat &) ;
+  void InvalidateAll() ;
+  void BindMatrix(TreeNode *, const mat &, const bool) ;
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
@@ -70,5 +71,8 @@ public:
   double GetLoglik() {return _loglik ;} ;
   std::vector<AugTree *> GetForest() {return _forest ;} ;
   void NNmovePropagate() ;
-  void AmendBetweenTransProbs(std::vector<mat> &, uvec &) ;
+  void AmendBetweenTransProbs(std::vector<mat> &) ;
+  void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
+  void HandleSplit(uint, std::vector<mat> &) ;
+  void HandleMerge(uvec &, std::vector<mat> &) ;
 };

@@ -34,13 +34,6 @@ bool IntermediateNode::CanFindKey()
   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
 }
 
-
-void IntermediateNode::RemoveChild(TreeNode* child)
-{
-  auto childPos = find(_children.begin(), _children.end(), child);
-  _children.erase(childPos) ;
-}
-
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary)
 {
   Col<double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
