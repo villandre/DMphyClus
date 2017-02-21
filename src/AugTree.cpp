@@ -181,27 +181,32 @@ void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
   }
 }
 
-std::vector<uint> AugTree::GetNNIvertices(TreeNode * originVertex)
+std::vector<uint> AugTree::GetNNIvertices(TreeNode * originVertex, bool includeWithin)
 {
   // We look at grandchildren. If the vertex has at least one grandchild, a NNI move from this vertex is possible.
   std::vector<uint> NNIvertices ;
-  GetNNIverticesInternal(originVertex, NNIvertices) ;
+  GetNNIverticesInternal(originVertex, NNIvertices, includeWithin) ;
   return NNIvertices ;
 }
 
-void AugTree::GetNNIverticesInternal(TreeNode * currentVertex, std::vector<uint> & NNIvertices) 
+void AugTree::GetNNIverticesInternal(TreeNode * currentVertex, std::vector<uint> & NNIvertices, bool includeWithin) 
 {
   bool grandChildrenIndex = false ;
+  
   for (auto & i : currentVertex->GetChildren())
   {
     grandChildrenIndex = grandChildrenIndex || (i->GetChildren().at(0) != NULL) ;
+    if (!includeWithin)
+    {
+      grandChildrenIndex = grandChildrenIndex & i->GetChildren().at(0)->GetWithinParentBranch() ;
+    }
   }
   if (grandChildrenIndex)
   {
     NNIvertices.push_back(currentVertex->GetId()) ;
     for (auto & i : currentVertex->GetChildren())
     {
-      GetNNIverticesInternal(i, NNIvertices) ;
+      GetNNIverticesInternal(i, NNIvertices, includeWithin) ;
     }
   }
 }
@@ -219,7 +224,29 @@ void AugTree::RearrangeTreeNNI(uint vertexId1, uint vertexId2)
   
   _vertexVector.at(vertexId1)->GetParent()->InvalidateSolution() ;
   _vertexVector.at(vertexId2)->GetParent()->InvalidateSolution() ;
-  
+}
+
+umat AugTree::BuildEdgeMatrix()
+{
+  umat edgeMatrix(_vertexVector.size() - 1, 2) ;
+  AddEdgeRecursion(edgeMatrix, 0, _vertexVector.at(_numTips)) ;
+  return edgeMatrix ;
+}
+
+void AugTree::AddEdgeRecursion(umat & matToUpdate, uint lineNum, TreeNode * currentVertex)
+{
+  if (currentVertex->GetParent() != NULL)
+  {
+    matToUpdate.at(lineNum, 0) = currentVertex->GetParent()->GetId() ;
+    matToUpdate.at(lineNum, 1) = currentVertex->GetId() ;
+  }
+  if (currentVertex->GetChildren().at(0) != NULL) 
+  {
+    for (auto & i : currentVertex->GetChildren())
+    {
+      AddEdgeRecursion(matToUpdate, lineNum + 1, i) ;
+    }
+  }
 }
 
 Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const List & alignmentBin, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
@@ -234,7 +261,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
   uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
   Col<double> limProbsRecast = as<Col<double>>(limProbs) ;
   bool nodesInitializedBool = as<std::vector<uvec>>(alignmentBin[0]).size() > numTips ;
-  _randomNumGenerator = gsl_rng_alloc() ; // This is the random number generator. It's initialized when the Forest is built, and the seed is 0 by default.
+  _randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ; // This is the random number generator. It's initialized when the Forest is built, and the seed is 0 by default.
     
   for (auto & i : alignmentBin) // Iterating on loci...
   {

@@ -190,7 +190,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue
 }
 
-.updateTransMatrix <- function(currentValue, allTransMatList, transMatsNoChange, samplingRadius = 2, betweenBool, limProbs, numLikThreads, DNAdataBin) {
+.updateTransMatrix <- function(currentValue, allTransMatList, transMatsNoChange, samplingRadius = 2, betweenBool, limProbs, numLikThreads, DNAdataBin, forestPointer = NULL) {
   if (betweenBool) {
     basicIndex <- currentValue$paraValues$betweenMatListIndex
   } else{
@@ -205,9 +205,16 @@ reorderTips <- function(phylogeny, newTipOrder)
     betweenTransMatList <- transMatsNoChange
     withinTransMatList <- allTransMatList[[newIndex]]
   }
-  if (betweenBool)
+  if (is.null(forestPointer))
   {
     newLogLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin))
+  }
+  else
+  {
+    if (betweenBool)
+    {
+      newLogLik <- newBetweenTransProbsLogLik(ForestPointer = forestPointer, newBetweenTransProbs = betweenTransMatList)$logLik
+    }
   }
  
   MHratio <- exp(newLogLik$logLik - currentValue$logLik)

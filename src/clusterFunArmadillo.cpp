@@ -37,35 +37,16 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, SEXP pointerToForest)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci)
 {
-  
   omp_set_num_threads(numOpenMP) ;
-  if (!(pointerToForest == NULL)) // This syntax is really bad. Change once testing is complete!!!!
-  {
-    XPtr<Forest> Phylogenies(pointerToForest) ;
-    Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = Phylogenies) ;
-  } 
-  else
-  {
-    solutionDictionaryType solutionDictionary ;
-    Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
-    Phylogenies.ComputeLoglik() ;
-    XPtr<Forest> p(&Phylogenies, true) ;
-    return List::create(Named("logLik") = Phylogenies.GetLoglik(),
-                        Named("ForestPointer") = p) ;
-  }
   
-  // std::vector<std::vector<vec>>* mySolutions = new std::vector<std::vector<vec>> ;
-  // for (auto & aTree : Phylogenies.GetForest()) 
-  // {
-  //   mySolutions->push_back(aTree->GetSolutionsFromTree()) ;
-  // }
-  // 
-  // Rcpp::XPtr<std::vector<std::vector<vec>>> p(mySolutions, true) ;
-  //Rcpp::XPtr<Forest> p(&Phylogenies, true) ; 
+  solutionDictionaryType solutionDictionary ;
+  Forest Phylogenies(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+  Phylogenies.ComputeLoglik() ;
+  XPtr<Forest> p(&Phylogenies, true) ;
+  return List::create(Named("logLik") = Phylogenies.GetLoglik(),
+                      Named("ForestPointer") = p) ;
 }
 
 std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
@@ -177,7 +158,7 @@ SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI)
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     
-    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
+    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1), true) ;
     unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
     vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
     
@@ -186,8 +167,9 @@ SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI)
       i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
     Phylogenies->ComputeLoglik() ;
+    umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ;
     return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = ForestPointer, Named("edge") = 0) ;
+                        Named("ForestPointer") = ForestPointer, Named("edge") = newEdge) ;
   } 
   else 
   {
@@ -199,7 +181,31 @@ SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI)
 
 SEXP betweenClusNNIlogLik(SEXP ForestPointer) 
 {
-  // TO_DO
+  if (!(ForestPointer == NULL)) 
+  {
+    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+    AugTree * augTreePoint = Phylogenies->GetForest().at(0) ;
+    std::vector<uint> vertexIndexForNNI ;
+    std::vector<uint> vertexIndexVec ;
+    uint numTips = augTreePoint->GetNumTips() ;
+    
+    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(numTips), false) ;
+    unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
+    vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
+    
+    for (auto & i : Phylogenies->GetForest())
+    {
+      i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+    }
+    Phylogenies->ComputeLoglik() ;
+    umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+                        Named("ForestPointer") = ForestPointer, Named("edge") = newEdge) ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
 }
 
 // [[Rcpp::export]]

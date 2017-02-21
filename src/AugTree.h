@@ -1,7 +1,7 @@
 #include "TreeNode.h"
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range.hpp>
-#include <gsl_rng.h>
+#include <gsl/gsl_rng.h>
 
 using namespace arma ;
 using namespace Rcpp ; // Tandy Warnow
@@ -30,7 +30,8 @@ protected:
   void InitializeVertices(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
-  void GetNNIverticesInternal(TreeNode *, std::vector<uint> &) ;
+  void GetNNIverticesInternal(TreeNode *, std::vector<uint> &, bool) ;
+  void AddEdgeRecursion(umat &, uint, TreeNode *) ;
   
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
@@ -42,6 +43,7 @@ public:
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
   void BindMatrix(TreeNode *, const mat &, const bool) ;
+  umat BuildEdgeMatrix() ;
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
@@ -51,7 +53,7 @@ public:
   mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
   double GetLikelihood() const {return _likelihood ;} ;
   uint GetNumTips() {return _numTips ;} ;
-  std::vector<uint> GetNNIvertices(TreeNode *) ;
+  std::vector<uint> GetNNIvertices(TreeNode *, bool) ;
   void RearrangeTreeNNI(uint, uint) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
@@ -79,5 +81,5 @@ public:
   void AmendBetweenTransProbs(std::vector<mat> &) ;
   void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
   void HandleSplit(uint, std::vector<mat> &) ;
-  void HandleMerge(uvec &, std::vector<mat> &) ;
+  void HandleMerge(uvec &, std::vector<mat> &) ; 
 };
