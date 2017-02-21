@@ -1,6 +1,7 @@
 #include "TreeNode.h"
 #include <boost/iterator/zip_iterator.hpp>
 #include <boost/range.hpp>
+#include <gsl_rng.h>
 
 using namespace arma ;
 using namespace Rcpp ; // Tandy Warnow
@@ -15,7 +16,7 @@ void deallocate_container(T& c)
 class AugTree
 {
 protected:
-  std::vector<TreeNode *> _tree ;
+  std::vector<TreeNode *> _vertexVector ;
   mat _withinTransProbMatrix ;
   mat _betweenTransProbMatrix ;
   Col<double> _limProbs ;
@@ -29,6 +30,7 @@ protected:
   void InitializeVertices(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
+  void GetNNIverticesInternal(TreeNode *, std::vector<uint> &) ;
   
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
@@ -41,16 +43,18 @@ public:
   void InvalidateAll() ;
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   
-  void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs;} ;
+  void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
   
-  std::vector<TreeNode *> GetTree() {return _tree ;} ;
+  std::vector<TreeNode *> GetVertexVector() {return _vertexVector ;} ;
   mat GetWithinTransProbMatrix() const {return _withinTransProbMatrix ;} ;
   mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
   double GetLikelihood() const {return _likelihood ;} ;
   uint GetNumTips() {return _numTips ;} ;
+  std::vector<uint> GetNNIvertices(TreeNode *) ;
+  void RearrangeTreeNNI(uint, uint) ;
   
-  ~AugTree() {deallocate_container(_tree) ;};
+  ~AugTree() {deallocate_container(_vertexVector) ;};
 };
 
 class Forest
@@ -62,6 +66,7 @@ protected:
   solutionDictionaryType _solutionDictionary ;
   uint _numLoci ;
   uint _numRateCats ;
+  gsl_rng * _randomNumGenerator ;
 
 public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
@@ -69,8 +74,8 @@ public:
   
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
+  gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;} ;
   std::vector<AugTree *> GetForest() {return _forest ;} ;
-  void NNmovePropagate() ;
   void AmendBetweenTransProbs(std::vector<mat> &) ;
   void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
   void HandleSplit(uint, std::vector<mat> &) ;

@@ -6,7 +6,9 @@
 #include <string>
 #include <algorithm>
 #include "AugTree.h"
+#include "helper.h"
 #include <limits>
+#include <gsl_rng.h>
 
 
 // [[Rcpp::plugins(openmp)]]
@@ -168,7 +170,29 @@ SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
 
 SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI) 
 {
-  // TO_DO
+  if (!(ForestPointer == NULL)) 
+  {
+    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+    AugTree * augTreePoint = Phylogenies->GetForest().at(0) ;
+    std::vector<uint> vertexIndexForNNI ;
+    std::vector<uint> vertexIndexVec ;
+    
+    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
+    unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
+    vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
+    
+    for (auto & i : Phylogenies->GetForest())
+    {
+      i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+    }
+    Phylogenies->ComputeLoglik() ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+                        Named("ForestPointer") = ForestPointer, Named("edge") = 0) ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
 }
 
 // [[Rcpp::export]]

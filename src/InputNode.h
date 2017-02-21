@@ -8,6 +8,7 @@ public:
   bool CanFindKey() {return true ;};
   void AddChild(TreeNode * child) {assert(false) ;};
   void RemoveChildren() {};
+  void RemoveChild(TreeNode *) {assert(false) ;} ;
   void SetSolution(vec & inputVec) {assert(false) ;};
   void ComputeSolution(solutionDictionaryType & dictionary) {assert(false) ;}; //Solution is known, this should not get called.
   void ToggleSolved() {};
@@ -15,6 +16,7 @@ public:
   std::vector<TreeNode *> GetChildren() {return std::vector<TreeNode *>{NULL} ;}; // An input node returns a null pointer when it is asked to provide the address of a child.
   void DeriveKey(solutionDictionaryType &) ;
   vec GetSolution() {return conv_to<vec>::from(_input) ;} ;
+  std::vector<uint> GetTwoVerticesForNNI() {assert(false) ;} ;
 
   InputNode() {_parent = NULL ; _keyDefined = false ;};
 

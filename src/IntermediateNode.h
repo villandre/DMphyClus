@@ -12,6 +12,7 @@ public:
   bool CanFindKey() ;
   void AddChild(TreeNode * child) {_children.push_back(child) ;};
   void RemoveChildren() {_children.clear() ;} ;
+  void RemoveChild(TreeNode *) ;
   void SetSolution(vec & solution) { _solution = solution ;};
   void ComputeSolution(solutionDictionaryType &) ;
   void InvalidateSolution() ;
@@ -20,6 +21,7 @@ public:
   std::vector<TreeNode *> GetChildren() {return _children;};
   void DeriveKey(solutionDictionaryType &) ;
   vec GetSolution() {return _solution ;} ;
+  std::vector<uint> GetTwoVerticesForNNI() ;
 
   IntermediateNode(): _isSolved(false) {_parent = NULL ;  _keyDefined = false ;};
   

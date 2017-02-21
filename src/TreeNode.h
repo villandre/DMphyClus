@@ -22,6 +22,7 @@ public:
   virtual bool CanFindKey() = 0;
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChildren() = 0 ;
+  virtual void RemoveChild(TreeNode *) = 0 ;
   virtual void SetSolution(vec &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
   virtual void InvalidateSolution() = 0;
@@ -30,6 +31,7 @@ public:
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual vec GetSolution() = 0;
+  virtual std::vector<uint> GetTwoVerticesForNNI() ;
 
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;
