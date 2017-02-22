@@ -81,24 +81,6 @@ void IntermediateNode::RemoveChild(TreeNode * childToRemove)
   }
   else 
   {
-    std::delete(ChildIterPos) ;
-  }
-}
-
-std::vector<uint> IntermediateNode::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator) {
-  std::vector<uint> grandChildrenVec ;
-  unsigned long int selectedChildIndex ;
-  
-  for (auto & i : GetChildren()) // This only works for bifurcating trees... For multifurcating trees, the two branches for NNI must also be selected.
-  {
-    if (i->GetChildren().at(0) == NULL)
-    {
-      grandChildrenVec.push_back(i->GetId()) ;
-    }
-    else
-    {
-      selectedChildIndex = gsl_rng_uniform_int(randomNumberGenerator, i->GetChildren().size() + 1) ; //This function returns a random discrete number between 0 and n-1, hence the '+ 1'.
-      grandChildrenVec.push_back(i->GetChildren().at(selectedChildIndex)) ;  
-    }
+    _children.erase(ChildIterPos) ;
   }
 }

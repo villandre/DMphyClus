@@ -39,11 +39,11 @@ public:
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &) ;
   void ComputeKeys(TreeNode *, solutionDictionaryType &) ;
-  void UnrootTree() ;
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   umat BuildEdgeMatrix() ;
+  std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *) ;
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;

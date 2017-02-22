@@ -72,8 +72,7 @@ reorderTips <- function(phylogeny, newTipOrder)
         match(seqsInCluster, currentValue$paraValues$tip.label)
       })
     }
-    nullExternalPointer <- getNULLextPointer()
-    logLikAndPointer <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin), pointerToForest = nullExternalPointer)
+    logLikAndPointer <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin))
     currentValue$logLik <- logLikAndPointer$logLik
     currentValue$extPointer <- logLikAndPointer$ForestPointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
@@ -95,7 +94,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList)
+    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads)
   }
   
   shortRecursive <- function(cMRCAs, cNumbers, clusInd, index = 1) {
@@ -132,7 +131,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList)$logLik
+    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads)$logLik
   }
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
@@ -225,11 +224,11 @@ reorderTips <- function(phylogeny, newTipOrder)
   {
     if (betweenBool)
     {
-      newLogLik <- newBetweenTransProbsLogLik(ForestPointer = forestPointer, newBetweenTransProbs = betweenTransMatList)$logLik
+      newLogLik <- newBetweenTransProbsLogLik(ForestPointer = forestPointer, newBetweenTransProbs = betweenTransMatList, numOpenMP = numLikThreads)
     }
     else
     {
-      newLogLik <- newWithinTransProbsLogLik(ForestPointer = forestPointer, newWithinTransProbs = betweenTransMatList, clusterMRCAs = currentValue$clusterNodeIndices)
+      newLogLik <- newWithinTransProbsLogLik(ForestPointer = forestPointer, newWithinTransProbs = betweenTransMatList, clusterMRCAs = currentValue$clusterNodeIndices, numOpenMP = numLikThreads)
     }
   }
  
@@ -271,10 +270,12 @@ reorderTips <- function(phylogeny, newTipOrder)
     paraVec <- currentValue$paraValues
     c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
   })
+  rm(currentValue) # This should remove the pointer and free up the memory. Perhaps it's not needed though: Once DMphyClusCore finishes running, currentValue should be destroyed.
+  gc()
+  gc()
   setTxtProgressBar(pb = progress, value = 1)
   close(con = progress)
   cat("\n Chain complete. \n\n\n")
-
   longOut
 }
 
@@ -347,9 +348,10 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else 
     {
-      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI)
+      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads)
       updatedLogLik <- updatedPhyloAndLogLik$logLik
-      newPhylo <- updatedPhyloAndLogLik$edge
+      newPhylo <- list(edge = updatedPhyloAndLogLik$edge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
+      class(newPhylo) <- "phylo"
     }
     MHratio <- exp(updatedLogLik - currentLogLik) ## Prior doesn't change...
     if (runif(1) < MHratio) {
@@ -433,6 +435,14 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
           }) ## A change in the ordering of tips in one cluster-tree may change the cluster MRCA indices for the other cluster trees.
         }
         newLogLik <- logLikCpp(edgeMat = newBigPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, alignmentBin = DNAdataBin, numOpenMP = numLikThreads, numTips = ape::Ntip(newBigPhylo), clusterMRCAs = newClusterMRCAs, numLoci = length(DNAdataBin))$logLik
+      }
+      else
+      {
+        newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads)
+        newLogLik <- newLogLikAndPhylo$logLik
+        newEdge <- newLogLik$edge
+        newBigPhylo <- list(edge = newEdge, tip.label = currentPhylo$tip.label, edge.length = NULL, Nnode = ape::Nnode$currentPhylo)
+        class(newBigPhylo) <- "phylo"
       }
       MHratio <- exp(newLogLik - currentValue$logLik)
       

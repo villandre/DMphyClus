@@ -9,3 +9,27 @@ getConvertedAlignment <- function(equivVector, alignmentAlphaMat) {
     .Call('DMphyClus_getConvertedAlignment', PACKAGE = 'DMphyClus', equivVector, alignmentAlphaMat)
 }
 
+getNULLextPointer <- function() {
+    .Call('DMphyClus_getNULLextPointer', PACKAGE = 'DMphyClus')
+}
+
+newBetweenTransProbsLogLik <- function(ForestPointer, newBetweenTransProbs, numOpenMP) {
+    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointer, newBetweenTransProbs, numOpenMP)
+}
+
+newWithinTransProbsLogLik <- function(ForestPointer, newWithinTransProbs, clusterMRCAs, numOpenMP) {
+    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointer, newWithinTransProbs, clusterMRCAs, numOpenMP)
+}
+
+withinClusNNIlogLik <- function(ForestPointer, MRCAofClusForNNI, numMovesNNI, numOpenMP) {
+    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, MRCAofClusForNNI, numMovesNNI, numOpenMP)
+}
+
+betweenClusNNIlogLik <- function(ForestPointer, numMovesNNI, numOpenMP) {
+    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, numMovesNNI, numOpenMP)
+}
+
+clusSplitMergeLogLik <- function(ForestPointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, numOpenMP) {
+    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', ForestPointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, numOpenMP)
+}
+

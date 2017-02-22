@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <RcppArmadillo.h>
 #include <unordered_map>
+#include <gsl/gsl_rng.h>
 
 using namespace arma ;
 
@@ -31,7 +32,6 @@ public:
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual vec GetSolution() = 0;
-  virtual std::vector<uint> GetTwoVerticesForNNI() ;
 
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;

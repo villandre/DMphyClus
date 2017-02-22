@@ -6,9 +6,8 @@
 #include <string>
 #include <algorithm>
 #include "AugTree.h"
-#include "helper.h"
 #include <limits>
-#include <gsl_rng.h>
+#include <gsl/gsl_rng.h>
 
 
 // [[Rcpp::plugins(openmp)]]
@@ -110,8 +109,9 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs) 
+List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs, int numOpenMP) 
 {
+  omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
@@ -128,7 +128,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs)
 
 // [[Rcpp::export]]
 
-List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs) 
+List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs, int numOpenMP) 
 {
   if (!(ForestPointer == NULL)) 
   {
@@ -147,8 +147,9 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
 
 // [[Rcpp::export]]
 
-List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMovesNNI) 
+List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMovesNNI, int numOpenMP) 
 {
+  omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
@@ -160,7 +161,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMove
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
       unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
-      vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
+      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(rootForNNIindex)) ;
       
       for (auto & i : Phylogenies->GetForest())
       {
@@ -180,8 +181,9 @@ List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMove
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI) 
+List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP) 
 {
+  omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
@@ -194,7 +196,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI)
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
       unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
-      vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
+      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(rootForNNIindex)) ;
       
       for (auto & i : Phylogenies->GetForest())
       {
@@ -214,8 +216,9 @@ List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI)
 
 // [[Rcpp::export]]
 
-List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats) 
+List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats, int numOpenMP) 
 {
+  omp_set_num_threads(numOpenMP) ;
   XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
   if (!(ForestPointer == NULL)) 
   {

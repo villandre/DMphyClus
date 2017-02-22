@@ -151,11 +151,6 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
   }
 }
 
-void AugTree::UnrootTree()
-{
-  _vertexVector.at(_numTips)->GetChildren() ;
-}
-
 void AugTree::BindMatrixBetween(TreeNode * vertex, const mat & transProbMatrix)
 {
   vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, false) ;
@@ -358,4 +353,24 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTrans
     }
     rateCateg = littleCycle(rateCateg + 1, withinTransProbsMats.size()) ;
   }
+}
+
+std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, TreeNode * subtreeRoot)
+{
+  std::vector<uint> grandChildrenVec ;
+  unsigned long int selectedChildIndex ;
+  
+  for (auto & i : subtreeRoot->GetChildren()) // This only works for bifurcating trees... For multifurcating trees, the two branches for NNI must also be selected.
+  {
+    if (i->GetChildren().at(0) == NULL)
+    {
+      grandChildrenVec.push_back(i->GetId()) ;
+    }
+    else
+    {
+      selectedChildIndex = gsl_rng_uniform_int(randomNumGenerator, i->GetChildren().size() + 1) ; //This function returns a random discrete number between 0 and n-1, hence the '+ 1'.
+      grandChildrenVec.push_back(i->GetChildren().at(selectedChildIndex)->GetId()) ;
+    }
+  }
+  return grandChildrenVec ;
 }
