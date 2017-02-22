@@ -110,7 +110,7 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs) 
+List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs) 
 {
   if (!(ForestPointer == NULL)) 
   {
@@ -118,8 +118,7 @@ SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs)
     std::vector<mat> newBetweenTransProbsRecast = as<std::vector<mat>>(newBetweenTransProbs) ;
     Phylogenies->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
     Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = ForestPointer) ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik()) ;
   } 
   else 
   {
@@ -129,7 +128,7 @@ SEXP newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs)
 
 // [[Rcpp::export]]
 
-SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs) 
+List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs) 
 {
   if (!(ForestPointer == NULL)) 
   {
@@ -138,8 +137,7 @@ SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
     Phylogenies->AmendWithinTransProbs(newWithinTransProbsRecast, clusterMRCAsRecast) ;
     Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = ForestPointer) ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik()) ;
   } 
   else 
   {
@@ -149,7 +147,7 @@ SEXP newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
 
 // [[Rcpp::export]]
 
-SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI) 
+List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMovesNNI) 
 {
   if (!(ForestPointer == NULL)) 
   {
@@ -159,17 +157,20 @@ SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI)
     std::vector<uint> vertexIndexVec ;
     
     vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1), true) ;
-    unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
-    vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
-    
-    for (auto & i : Phylogenies->GetForest())
+    for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
+      vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
+      
+      for (auto & i : Phylogenies->GetForest())
+      {
+        i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+      }
     }
     Phylogenies->ComputeLoglik() ;
     umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ;
     return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = ForestPointer, Named("edge") = newEdge) ;
+                        Named("edge") = newEdge) ;
   } 
   else 
   {
@@ -179,7 +180,7 @@ SEXP withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI)
 
 // [[Rcpp::export]]
 
-SEXP betweenClusNNIlogLik(SEXP ForestPointer) 
+List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI) 
 {
   if (!(ForestPointer == NULL)) 
   {
@@ -190,17 +191,20 @@ SEXP betweenClusNNIlogLik(SEXP ForestPointer)
     uint numTips = augTreePoint->GetNumTips() ;
     
     vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(numTips), false) ;
-    unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
-    vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
-    
-    for (auto & i : Phylogenies->GetForest())
+    for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
+      vertexIndexVec = augTreePoint->GetVertexVector().at(rootForNNIindex)->GetTwoVerticesForNNI() ;
+      
+      for (auto & i : Phylogenies->GetForest())
+      {
+        i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+      }
     }
     Phylogenies->ComputeLoglik() ;
     umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ;
     return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = ForestPointer, Named("edge") = newEdge) ;
+                       Named("edge") = newEdge) ;
   } 
   else 
   {
@@ -210,7 +214,7 @@ SEXP betweenClusNNIlogLik(SEXP ForestPointer)
 
 // [[Rcpp::export]]
 
-SEXP clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector clusMRCAsToSplitOrMerge, List withinTransProbsMats, List betweenTransProbsMats) 
+List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats) 
 {
   XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
   if (!(ForestPointer == NULL)) 
@@ -228,8 +232,7 @@ SEXP clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector clusMRCAsToSplitOrMe
       Phylogenies->HandleMerge(clusMRCAsToSplitOrMergeRecast, withinTransProbsMatsRecast) ;
     }
     Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
-                        Named("ForestPointer") = ForestPointer) ;
+    return List::create(Named("logLik") = Phylogenies->GetLoglik()) ;
   }
   else
   {
