@@ -155,16 +155,19 @@ void AugTree::BindMatrixBetween(TreeNode * vertex, const mat & transProbMatrix)
 {
   vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, false) ;
   vertex->ToggleSolved() ;
-  
-  if (!(vertex->GetChildren()[0]->GetWithinParentBranch())) { // We're changing between-cluster transition probabilities only.
-    for (auto & i : vertex->GetChildren()) 
-    {
-      BindMatrixBetween(i, transProbMatrix) ;
-    }
-  }
-  else
+  if (!(vertex->GetChildren().at(0) == NULL)) 
   {
-    vertex->ToggleSolved() ; // Not very clear... What happens here is that _solved is being set back to true for nodes supporting clusters. This is logical, since their solution is not assumed to have changed due to the change in the between-cluster transition probabilities.
+    if (!(vertex->GetChildren().at(0)->GetWithinParentBranch())) 
+    { // We're changing between-cluster transition probabilities only.
+      for (auto & i : vertex->GetChildren()) 
+      {
+        BindMatrixBetween(i, transProbMatrix) ;
+      }
+    }
+    else
+    {
+      vertex->ToggleSolved() ; // Not very clear... What happens here is that _solved is being set back to true for nodes supporting clusters. This is logical, since their solution is not assumed to have changed due to the change in the between-cluster transition probabilities.
+    }
   }
 }
 
@@ -180,28 +183,30 @@ std::vector<uint> AugTree::GetNNIvertices(TreeNode * originVertex, bool includeW
 {
   // We look at grandchildren. If the vertex has at least one grandchild, a NNI move from this vertex is possible.
   std::vector<uint> NNIvertices ;
-  GetNNIverticesInternal(originVertex, NNIvertices, includeWithin) ;
+  GetNNIverticesInternal(originVertex, &NNIvertices, includeWithin) ;
   return NNIvertices ;
 }
 
-void AugTree::GetNNIverticesInternal(TreeNode * currentVertex, std::vector<uint> & NNIvertices, bool includeWithin) 
+void AugTree::GetNNIverticesInternal(TreeNode * currentVertex, std::vector<uint> * NNIvertices, bool includeWithin) 
 {
   bool grandChildrenIndex = false ;
-  
-  for (auto & i : currentVertex->GetChildren())
+  if (currentVertex->GetChildren().at(0) != NULL) 
   {
-    grandChildrenIndex = grandChildrenIndex || (i->GetChildren().at(0) != NULL) ;
-    if (!includeWithin)
-    {
-      grandChildrenIndex = grandChildrenIndex & i->GetChildren().at(0)->GetWithinParentBranch() ;
-    }
-  }
-  if (grandChildrenIndex)
-  {
-    NNIvertices.push_back(currentVertex->GetId()) ;
     for (auto & i : currentVertex->GetChildren())
     {
-      GetNNIverticesInternal(i, NNIvertices, includeWithin) ;
+      grandChildrenIndex = grandChildrenIndex || (i->GetChildren().at(0) != NULL) ;
+      if (!includeWithin)
+      {
+        grandChildrenIndex = grandChildrenIndex & i->GetChildren().at(0)->GetWithinParentBranch() ;
+      }
+    }
+    if (grandChildrenIndex)
+    {
+      NNIvertices->push_back(currentVertex->GetId()) ;
+      for (auto & i : currentVertex->GetChildren())
+      {
+        GetNNIverticesInternal(i, NNIvertices, includeWithin) ;
+      }
     }
   }
 }
@@ -255,29 +260,21 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
   Col<double> limProbsRecast = as<Col<double>>(limProbs) ;
-  bool nodesInitializedBool = as<std::vector<uvec>>(alignmentBin[0]).size() > numTips ;
+  
   _randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ; // This is the random number generator. It's initialized when the Forest is built, and the seed is 0 by default.
-    
+
   for (auto & i : alignmentBin) // Iterating on loci...
   {
     uint rateCategIndex = 0 ;
     uint locusRateIndex = 0 ;
-    if (!nodesInitializedBool) 
+    
+    for (auto j : zip(withinTransProbsMats, betweenTransProbsMats))
     {
-      for (auto j : zip(withinTransProbsMats, betweenTransProbsMats))
-      {
-        AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
-        _forest.push_back(LocusRateAugTree) ;
-        rateCategIndex++ ;
-      }
-    } 
-    else
-    {
-      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, withinTransProbsMats[littleCycle(locusRateIndex, _numRateCats)], betweenTransProbsMats[littleCycle(locusRateIndex, _numRateCats)], as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
       _forest.push_back(LocusRateAugTree) ;
-      locusRateIndex++ ;
+      rateCategIndex++ ;
     }
-  } // In the forest, elements 0,..., numRateCats - 1 are for locus 1, elements numRateCats,..., 2*numRateCats - 1 are for locus 2, and so on.
+  }
 }
 
 void Forest::ComputeLoglik()
@@ -287,6 +284,7 @@ void Forest::ComputeLoglik()
   {
     (*forestIter)->SolveRoot(_solutionDictionary) ;
   }
+  
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
@@ -302,13 +300,13 @@ void Forest::ComputeLoglik()
 void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs)
 {
   uint rateCategIndex = 0 ;
+  
   for (auto & tree : _forest)
   {
     tree->BindMatrixBetween(tree->GetVertexVector().at(tree->GetNumTips()), newBetweenTransProbs.at(rateCategIndex)) ;
     rateCategIndex = littleCycle(rateCategIndex+1, newBetweenTransProbs.size()) ;
   }
 }
-
 
 void Forest::AmendWithinTransProbs(std::vector<mat> & withinTransProbs, uvec & clusterMRCAs) 
 {
@@ -368,7 +366,7 @@ std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, Tr
     }
     else
     {
-      selectedChildIndex = gsl_rng_uniform_int(randomNumGenerator, i->GetChildren().size() + 1) ; //This function returns a random discrete number between 0 and n-1, hence the '+ 1'.
+      selectedChildIndex = gsl_rng_uniform_int(randomNumGenerator, i->GetChildren().size()) ;
       grandChildrenVec.push_back(i->GetChildren().at(selectedChildIndex)->GetId()) ;
     }
   }

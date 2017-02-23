@@ -1,8 +1,6 @@
 .performStepPhylo <- function(currentValue, limProbs, shapePriorAlpha, scalePriorAlpha, numGammaCat, betweenTransMatAll, withinTransMatAll, enableJainNeal = FALSE, currentIter, DNAdata, numNeighbours, numMovesNNIbetween = 1, numMovesNNIwithin = 1, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp = 1, alphaMin, numSplitMergeMoves) {
-  nullExternalPointer <- getNULLextPointer()  
+  
   if (max(currentValue$paraValues$clusInd) > 1) {
-      rm(currentValue$extPointer)
-      gc()
       currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = betweenTransMatAll, transMatsNoChange = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], samplingRadius = 2, betweenBool = TRUE, limProbs = limProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
     }
     
@@ -224,11 +222,11 @@ reorderTips <- function(phylogeny, newTipOrder)
   {
     if (betweenBool)
     {
-      newLogLik <- newBetweenTransProbsLogLik(ForestPointer = forestPointer, newBetweenTransProbs = betweenTransMatList, numOpenMP = numLikThreads)
+      newLogLik <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, numOpenMP = numLikThreads)
     }
     else
     {
-      newLogLik <- newWithinTransProbsLogLik(ForestPointer = forestPointer, newWithinTransProbs = betweenTransMatList, clusterMRCAs = currentValue$clusterNodeIndices, numOpenMP = numLikThreads)
+      newLogLik <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numOpenMP = numLikThreads)
     }
   }
  

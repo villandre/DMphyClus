@@ -14,7 +14,7 @@ public:
   void InvalidateSolution() {assert(false) ;};
   void ToggleSolved() {};
   void SetInput(const uvec & inputVec) { _input = inputVec ;} ;
-  std::vector<TreeNode *> GetChildren() {std::vector<TreeNode *> myVec; myVec.at(0) = NULL ; return myVec;}; // An input node returns a null pointer when it is asked to provide the address of a child.
+  std::vector<TreeNode *> GetChildren() {std::vector<TreeNode *> myVec; myVec.push_back(NULL) ; return myVec;}; // An input node returns a null pointer when it is asked to provide the address of a child.
   void DeriveKey(solutionDictionaryType &) ;
   vec GetSolution() {return conv_to<vec>::from(_input) ;} ;
 

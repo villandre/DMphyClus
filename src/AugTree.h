@@ -30,7 +30,7 @@ protected:
   void InitializeVertices(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
-  void GetNNIverticesInternal(TreeNode *, std::vector<uint> &, bool) ;
+  void GetNNIverticesInternal(TreeNode *, std::vector<uint> *, bool) ;
   void AddEdgeRecursion(umat &, uint, TreeNode *) ;
   
 public:
