@@ -25,8 +25,8 @@ withinClusNNIlogLik <- function(ForestPointer, MRCAofClusForNNI, numMovesNNI, nu
     .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, MRCAofClusForNNI, numMovesNNI, numOpenMP)
 }
 
-betweenClusNNIlogLik <- function(ForestPointer, numMovesNNI, numOpenMP) {
-    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, numMovesNNI, numOpenMP)
+betweenClusNNIlogLik <- function(ForestPointer, numMovesNNI, numOpenMP, clusterMRCAs) {
+    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, numMovesNNI, numOpenMP, clusterMRCAs)
 }
 
 clusSplitMergeLogLik <- function(ForestPointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, numOpenMP) {

@@ -179,48 +179,86 @@ void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
   }
 }
 
-std::vector<uint> AugTree::GetNNIvertices(TreeNode * originVertex, bool includeWithin)
+std::vector<uint> AugTree::GetNNIverticesWithin(TreeNode * originVertex)
 {
   // We look at grandchildren. If the vertex has at least one grandchild, a NNI move from this vertex is possible.
   std::vector<uint> NNIvertices ;
-  GetNNIverticesInternal(originVertex, &NNIvertices, includeWithin) ;
-  return NNIvertices ;
+  GetNNIverticesInternalWithin(originVertex, &NNIvertices) ;
+  return NNIvertices ; 
 }
 
-void AugTree::GetNNIverticesInternal(TreeNode * currentVertex, std::vector<uint> * NNIvertices, bool includeWithin) 
+void AugTree::GetNNIverticesInternalWithin(TreeNode * currentVertex, std::vector<uint> * NNIvertices) 
 {
-  bool grandChildrenIndex = false ;
+  bool movePossible = false ;
   if (currentVertex->GetChildren().at(0) != NULL) 
   {
     for (auto & i : currentVertex->GetChildren())
     {
-      grandChildrenIndex = grandChildrenIndex || (i->GetChildren().at(0) != NULL) ;
-      if (!includeWithin)
-      {
-        grandChildrenIndex = grandChildrenIndex & i->GetChildren().at(0)->GetWithinParentBranch() ;
+      movePossible = movePossible || (i->GetChildren().at(0) != NULL) ;
+      
+      if (movePossible)
+      { 
+        break ; // As soon as this is true, logical "or" will not be able to yield false.
       }
     }
-    if (grandChildrenIndex)
+    if (movePossible)
     {
       NNIvertices->push_back(currentVertex->GetId()) ;
       for (auto & i : currentVertex->GetChildren())
       {
-        GetNNIverticesInternal(i, NNIvertices, includeWithin) ;
+        GetNNIverticesInternalWithin(i, NNIvertices) ;
       }
     }
   }
 }
 
+std::vector<uint> AugTree::GetNNIverticesBetween(TreeNode * originVertex, uvec & clusterMRCAs)
+{
+  // We look at grandchildren. If the vertex has at least one grandchild, a NNI move from this vertex is possible.
+  std::vector<uint> NNIvertices ;
+  GetNNIverticesInternalBetween(originVertex, &NNIvertices, clusterMRCAs) ;
+  return NNIvertices ; 
+}
+
+void AugTree::GetNNIverticesInternalBetween(TreeNode * currentVertex, std::vector<uint> * NNIvertices, uvec & clusterMRCAs) 
+{
+  bool movePossible = false ;
+  
+  if ((currentVertex->GetChildren().at(0) != NULL) && (std::find(clusterMRCAs.begin(), clusterMRCAs.end(), currentVertex->GetId()+1) == clusterMRCAs.end())) 
+  {
+    for (auto & i : currentVertex->GetChildren())
+    {
+      movePossible = (movePossible || ((i->GetChildren().at(0) != NULL) && (std::find(clusterMRCAs.begin(), clusterMRCAs.end(), i->GetId()+1) == clusterMRCAs.end()))) ;
+      
+      if (movePossible)
+      { 
+        break ; // As soon as this is true, logical "or" will not be able to yield false.
+      }
+    }
+    if (movePossible)
+    {
+      NNIvertices->push_back(currentVertex->GetId()) ;
+      for (auto & i : currentVertex->GetChildren())
+      {
+        GetNNIverticesInternalBetween(i, NNIvertices, clusterMRCAs) ;
+      }
+    }
+  }
+}
+
+
 void AugTree::RearrangeTreeNNI(uint vertexId1, uint vertexId2) 
 {
-  _vertexVector.at(vertexId1)->SetParent(_vertexVector.at(vertexId2)->GetParent()) ;
-  _vertexVector.at(vertexId2)->SetParent(_vertexVector.at(vertexId1)->GetParent()) ;
-
   _vertexVector.at(vertexId1)->GetParent()->RemoveChild(_vertexVector.at(vertexId1)) ;
   _vertexVector.at(vertexId1)->GetParent()->AddChild(_vertexVector.at(vertexId2)) ;
   
   _vertexVector.at(vertexId2)->GetParent()->RemoveChild(_vertexVector.at(vertexId2)) ;
   _vertexVector.at(vertexId2)->GetParent()->AddChild(_vertexVector.at(vertexId1)) ;
+  
+  TreeNode * oriParent1 = _vertexVector.at(vertexId1)->GetParent() ;
+  TreeNode * oriParent2 = _vertexVector.at(vertexId2)->GetParent() ;
+  _vertexVector.at(vertexId1)->SetParent(oriParent2) ;
+  _vertexVector.at(vertexId2)->SetParent(oriParent1) ;
   
   _vertexVector.at(vertexId1)->GetParent()->InvalidateSolution() ;
   _vertexVector.at(vertexId2)->GetParent()->InvalidateSolution() ;
@@ -228,23 +266,25 @@ void AugTree::RearrangeTreeNNI(uint vertexId1, uint vertexId2)
 
 umat AugTree::BuildEdgeMatrix()
 {
-  umat edgeMatrix(_vertexVector.size() - 1, 2) ;
-  AddEdgeRecursion(edgeMatrix, 0, _vertexVector.at(_numTips)) ;
+  umat edgeMatrix(_vertexVector.size()-1, 2, fill::zeros) ;
+  uint lineNum = 0 ;
+  AddEdgeRecursion(edgeMatrix, lineNum, _vertexVector.at(_numTips)) ;
   return edgeMatrix ;
 }
 
-void AugTree::AddEdgeRecursion(umat & matToUpdate, uint lineNum, TreeNode * currentVertex)
+void AugTree::AddEdgeRecursion(umat & matToUpdate, uint & lineNum, TreeNode * currentVertex)
 {
   if (currentVertex->GetParent() != NULL)
   {
-    matToUpdate.at(lineNum, 0) = currentVertex->GetParent()->GetId() ;
-    matToUpdate.at(lineNum, 1) = currentVertex->GetId() ;
+    matToUpdate.at(lineNum, 0) = currentVertex->GetParent()->GetId()+1 ; // Vertex numbering starts at 1 in R, instead of 0.
+    matToUpdate.at(lineNum, 1) = currentVertex->GetId()+1 ;
+    lineNum = lineNum + 1 ;
   }
   if (currentVertex->GetChildren().at(0) != NULL) 
   {
     for (auto & i : currentVertex->GetChildren())
     {
-      AddEdgeRecursion(matToUpdate, lineNum + 1, i) ;
+      AddEdgeRecursion(matToUpdate, lineNum, i) ;
     }
   }
 }
@@ -328,6 +368,7 @@ void Forest::AmendWithinTransProbs(std::vector<mat> & withinTransProbs, uvec & c
 void Forest::HandleSplit(uint clusMRCAtoSplit, std::vector<mat> & betweenTransProbsMats)
 {
   uint rateCateg = 0 ;
+  
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->InvalidateSolution() ;
@@ -353,14 +394,14 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTrans
   }
 }
 
-std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, TreeNode * subtreeRoot)
+std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, TreeNode * subtreeRoot, uvec & clusterMRCAs)
 {
   std::vector<uint> grandChildrenVec ;
   unsigned long int selectedChildIndex ;
   
   for (auto & i : subtreeRoot->GetChildren()) // This only works for bifurcating trees... For multifurcating trees, the two branches for NNI must also be selected.
   {
-    if (i->GetChildren().at(0) == NULL)
+    if (i->GetChildren().at(0) == NULL || (std::find(clusterMRCAs.begin(), clusterMRCAs.end(), i->GetId() + 1) != clusterMRCAs.end()))
     {
       grandChildrenVec.push_back(i->GetId()) ;
     }

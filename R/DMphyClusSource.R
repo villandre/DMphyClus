@@ -92,7 +92,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads)
+    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads)$logLik
   }
   
   shortRecursive <- function(cMRCAs, cNumbers, clusInd, index = 1) {
@@ -336,7 +336,7 @@ reorderTips <- function(phylogeny, newTipOrder)
 
 ## DNAdataMultiBin is a list of lists of matrices. Outer list has # elements = # rate categories. The next level has # elements = #loci, the inner level is a matrix with # rows = # states and # col. = number of tips.
 .updateBetweenPhylo <- function(currentValue, limProbs, withinTransMatList, betweenTransMatList, numMovesNNI, numLikThreads, DNAdataBin) {
-    if (is.null(currentValue$paraValues$extPointer)) 
+    if (is.null(currentValue$extPointer)) 
     {
       newPhylo <- getNNIbetweenPhylo(phylogeny = currentValue$paraValues$phylogeny, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numMovesNNI = numMovesNNI)
       if (!all(newPhylo$tip.label == currentValue$paraValues$phylogeny$tip.label)) {
@@ -346,12 +346,12 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else 
     {
-      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads)
+      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices)
       updatedLogLik <- updatedPhyloAndLogLik$logLik
       newPhylo <- list(edge = updatedPhyloAndLogLik$edge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
       class(newPhylo) <- "phylo"
     }
-    MHratio <- exp(updatedLogLik - currentLogLik) ## Prior doesn't change...
+    MHratio <- exp(updatedLogLik - currentValue$logLik) ## Prior doesn't change...
     if (runif(1) < MHratio) {
         if (is.null(currentValue$extPointer))
         {
@@ -374,7 +374,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
   phylogeny$node.label[clusterMRCAsNodes - ape::Ntip(phylogeny)] <- as.character(clusterMRCAsNodes)
   internalPhylo <- phylogeny
   clusterPhylos <- lapply(clusterMRCAsNodes, FUN = function(x) {
-    internalPhylo <<- drop.tip(internalPhylo, tip = phylogeny$tip.label[phangorn::Descendants(phylogeny, x)], trim.internal = FALSE)
+    internalPhylo <<- drop.tip(internalPhylo, tip = phylogeny$tip.label[phangorn::Descendants(phylogeny, x)[[1]]], trim.internal = FALSE)
     ape::extract.clade(phylogeny, node = x)
   })
   names(clusterPhylos) <- as.character(clusterMRCAsNodes)
@@ -438,9 +438,10 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       {
         newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads)
         newLogLik <- newLogLikAndPhylo$logLik
-        newEdge <- newLogLik$edge
-        newBigPhylo <- list(edge = newEdge, tip.label = currentPhylo$tip.label, edge.length = NULL, Nnode = ape::Nnode$currentPhylo)
+        newEdge <- newLogLikAndPhylo$edge
+        newBigPhylo <- list(edge = newEdge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
         class(newBigPhylo) <- "phylo"
+        newClusterMRCAs <- currentValue$paraValues$clusterNodeIndices # A NNI move should not change the numbering of the cluster root nodes. 
       }
       MHratio <- exp(newLogLik - currentValue$logLik)
       

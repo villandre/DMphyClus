@@ -158,19 +158,22 @@ List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMove
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     
-    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1), true) ;
+    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIverticesWithin(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
     
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
       unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
-      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex))) ;
+      uvec placeholder(1) ;
+      placeholder.at(0) = -1 ; // Probably a better way to do this than using a placeholder...
+      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
+      
       for (auto & i : Phylogenies->GetForest())
       {
         i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
       }
     }
     Phylogenies->ComputeLoglik() ;
-    umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ;
+    umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
     return List::create(Named("logLik") = Phylogenies->GetLoglik(),
                         Named("edge") = newEdge) ;
   } 
@@ -182,7 +185,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMove
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP) 
+List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP, NumericVector & clusterMRCAs) 
 {
   omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
@@ -192,12 +195,14 @@ List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP)
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     uint numTips = augTreePoint->GetNumTips() ;
+    uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
     
-    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIvertices(augTreePoint->GetVertexVector().at(numTips), false) ;
+    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIverticesBetween(augTreePoint->GetVertexVector().at(numTips), clusterMRCAsRecast) ;
+    
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()+1) ;
-      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(rootForNNIindex)) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), clusterMRCAsRecast) ;
       
       for (auto & i : Phylogenies->GetForest())
       {

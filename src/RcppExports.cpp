@@ -89,15 +89,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // betweenClusNNIlogLik
-List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP);
-RcppExport SEXP DMphyClus_betweenClusNNIlogLik(SEXP ForestPointerSEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP) {
+List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP, NumericVector& clusterMRCAs);
+RcppExport SEXP DMphyClus_betweenClusNNIlogLik(SEXP ForestPointerSEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP, SEXP clusterMRCAsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
     Rcpp::traits::input_parameter< uint >::type numMovesNNI(numMovesNNISEXP);
     Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    rcpp_result_gen = Rcpp::wrap(betweenClusNNIlogLik(ForestPointer, numMovesNNI, numOpenMP));
+    Rcpp::traits::input_parameter< NumericVector& >::type clusterMRCAs(clusterMRCAsSEXP);
+    rcpp_result_gen = Rcpp::wrap(betweenClusNNIlogLik(ForestPointer, numMovesNNI, numOpenMP, clusterMRCAs));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -30,8 +30,9 @@ protected:
   void InitializeVertices(const std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
-  void GetNNIverticesInternal(TreeNode *, std::vector<uint> *, bool) ;
-  void AddEdgeRecursion(umat &, uint, TreeNode *) ;
+  void GetNNIverticesInternalWithin(TreeNode *, std::vector<uint> *) ;
+  void GetNNIverticesInternalBetween(TreeNode *, std::vector<uint> *, uvec &) ;
+  void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
@@ -43,7 +44,7 @@ public:
   void InvalidateAll() ;
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   umat BuildEdgeMatrix() ;
-  std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *) ;
+  std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *, uvec &) ;
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
@@ -53,7 +54,8 @@ public:
   mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
   double GetLikelihood() const {return _likelihood ;} ;
   uint GetNumTips() {return _numTips ;} ;
-  std::vector<uint> GetNNIvertices(TreeNode *, bool) ;
+  std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
+  std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
   void RearrangeTreeNNI(uint, uint) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
