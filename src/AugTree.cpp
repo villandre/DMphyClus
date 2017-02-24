@@ -319,7 +319,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
 
 void Forest::ComputeLoglik()
 {
-  #pragma omp parallel for
+  //#pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
     (*forestIter)->SolveRoot(_solutionDictionary) ;

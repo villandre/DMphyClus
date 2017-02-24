@@ -74,6 +74,7 @@ protected:
 
 public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
+  Forest() ;
   ~Forest() {deallocate_container(_forest) ;}
   
   void ComputeLoglik() ;

@@ -4,7 +4,7 @@
 
 void IntermediateNode::InvalidateSolution()
 {
-  _isSolved = FALSE ;
+  _isSolved = false ;
   _solution = zeros<Col<double>>(_solution.size()) ;
   if (_parent != NULL)
   { // Root has a NULL parent.
@@ -42,7 +42,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution % (child->GetTransMatrix()*child->GetSolution()) ;
   }
   _solution = mySolution ;
-  ToggleSolved() ;
+  _isSolved = true ;
   //solutionDictionary[_dictionaryKey] = mySolution ;
 }
 

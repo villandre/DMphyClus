@@ -190,11 +190,16 @@ reorderTips <- function(phylogeny, newTipOrder)
       currentValue$paraValues$clusInd <- splitMergeResult$clusInd
       currentValue$clusterCounts <- splitMergeResult$counts
       currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
+      copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
       if (!splitMove)
       {
         names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
         currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
       }
+    }
+    else
+    {
+      copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
     }
     currentValue
 }
@@ -239,7 +244,12 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     currentValue$logPostProb <- newLogLik$logLik +  (currentValue$logPostProb - currentValue$logLik)
     currentValue$logLik <- newLogLik$logLik
-  } else{}
+    copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+  } 
+  else
+  {
+    copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
+  }
   currentValue
 }
 
@@ -353,18 +363,22 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     MHratio <- exp(updatedLogLik - currentValue$logLik) ## Prior doesn't change...
     if (runif(1) < MHratio) {
-        if (is.null(currentValue$extPointer))
-        {
-          currentValue$paraValues$clusterNodeIndices <- sapply(currentValue$paraValues$clusterNodeIndices, FUN = function(x) {
-            currentPhylo <- currentValue$paraValues$phylogeny # This does not create a copy unless the RHS is modified.
-            descendantNames <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, node = x)[[1]]]
-            ape::getMRCA(phy = newPhylo, node = descendantNames)
-          })
-        } # The cluster MRCAs should not change under the other scheme.
-        currentValue$logLik <- updatedLogLik
-        currentValue$paraValues$phylogeny <- newPhylo
-        
-    } else{}
+      if (is.null(currentValue$extPointer))
+      {
+        currentValue$paraValues$clusterNodeIndices <- sapply(currentValue$paraValues$clusterNodeIndices, FUN = function(x) {
+          currentPhylo <- currentValue$paraValues$phylogeny # This does not create a copy unless the RHS is modified.
+          descendantNames <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, node = x)[[1]]]
+          ape::getMRCA(phy = newPhylo, node = descendantNames)
+        })
+      } # The cluster MRCAs should not change under the other scheme.
+      currentValue$logLik <- updatedLogLik
+      currentValue$paraValues$phylogeny <- newPhylo
+      copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+    } 
+    else
+    {
+      copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
+    }
     currentValue
 }
 
@@ -450,7 +464,12 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
         currentValue$paraValues$clusterNodeIndices <<- newClusterMRCAs
         currentValue$logPostProb <<- currentValue$logPostProb - currentValue$logLik + newLogLik
         currentValue$logLik <<- newLogLik
-        currentValue$paraValues$phylogeny <<- newBigPhylo 
+        currentValue$paraValues$phylogeny <<- newBigPhylo
+        copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+      }
+      else
+      {
+        copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
       }
       NULL
     }

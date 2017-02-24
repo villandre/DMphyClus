@@ -41,11 +41,18 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   omp_set_num_threads(numOpenMP) ;
   
   solutionDictionaryType solutionDictionary ;
-  Forest * Phylogenies = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
-  Phylogenies->ComputeLoglik() ;
-  XPtr<Forest> p(Phylogenies, true) ;
-  
-  return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+  std::vector<Forest *>* PhyloForestsPoint = new std::vector<Forest *>;
+  PhyloForestsPoint->reserve(2) ;
+  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+  PhylogeniesPoint1->ComputeLoglik() ;
+  PhyloForestsPoint->push_back(PhylogeniesPoint1) ;
+  Forest * PhylogeniesPoint2 = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+  *PhylogeniesPoint2 = *PhylogeniesPoint1 ;
+  PhyloForestsPoint->push_back(PhylogeniesPoint2) ;
+  cout << "First pointer: " << PhyloForestsPoint->at(0) << " Second pointer: " << PhyloForestsPoint->at(1) << "\n" ;
+  XPtr<std::vector<Forest *>> p(PhyloForestsPoint, true) ;
+  cout << "Done! \n" ;
+  return List::create(Named("logLik") = PhylogeniesPoint1->GetLoglik(),
                       Named("ForestPointer") = p) ;
 }
 
@@ -110,16 +117,21 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs, int numOpenMP) 
+List newBetweenTransProbsLogLik(SEXP ForestPointerVec, List & newBetweenTransProbs, int numOpenMP) 
 {
   omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL)) 
+  if (!(ForestPointerVec == NULL)) 
   {
-    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+    XPtr<std::vector<Forest *>> TwoForests(ForestPointerVec) ; // Becomes a regular pointer again.
+    cout << "First pointer: " << TwoForests->at(0) << " Second pointer: " << TwoForests->at(1) << "\n" ;
+    TwoForests->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("Before:") ;
     std::vector<mat> newBetweenTransProbsRecast = as<std::vector<mat>>(newBetweenTransProbs) ;
-    Phylogenies->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
-    Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik()) ;
+    TwoForests->at(1)->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
+    TwoForests->at(1)->ComputeLoglik() ;
+    TwoForests->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("After:") ;
+    TwoForests->at(1)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("After at new loc.:") ;
+    
+    return List::create(Named("logLik") = TwoForests->at(1)->GetLoglik()) ;
   } 
   else 
   {
@@ -129,16 +141,16 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
 
 // [[Rcpp::export]]
 
-List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs, int numOpenMP) 
+List newWithinTransProbsLogLik(SEXP ForestPointerVec, List newWithinTransProbs, IntegerVector clusterMRCAs, int numOpenMP) 
 {
-  if (!(ForestPointer == NULL)) 
+  if (!(ForestPointerVec == NULL)) 
   {
-    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
+    XPtr<std::vector<Forest *>> TwoForests(ForestPointerVec) ; // Becomes a regular pointer again.
     std::vector<mat> newWithinTransProbsRecast = as<std::vector<mat>>(newWithinTransProbs) ;
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
-    Phylogenies->AmendWithinTransProbs(newWithinTransProbsRecast, clusterMRCAsRecast) ;
-    Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik()) ;
+    TwoForests->at(1)->AmendWithinTransProbs(newWithinTransProbsRecast, clusterMRCAsRecast) ;
+    TwoForests->at(1)->ComputeLoglik() ;
+    return List::create(Named("logLik") = TwoForests->at(1)->GetLoglik()) ;
   } 
   else 
   {
@@ -148,33 +160,33 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
 
 // [[Rcpp::export]]
 
-List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMovesNNI, int numOpenMP) 
+List withinClusNNIlogLik(SEXP ForestPointerVec, uint MRCAofClusForNNI, uint numMovesNNI, int numOpenMP) 
 {
   omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL)) 
+  if (!(ForestPointerVec == NULL)) 
   {
-    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
-    AugTree * augTreePoint = Phylogenies->GetForest().at(0) ;
+    XPtr<std::vector<Forest *>> TwoForests(ForestPointerVec) ; // Becomes a regular pointer again.
+    AugTree * augTreePoint = TwoForests->at(1)->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     
-    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIverticesWithin(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
+    vertexIndexForNNI = TwoForests->at(1)->GetForest().at(0)->GetNNIverticesWithin(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
     
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(TwoForests->at(1)->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
       uvec placeholder(1) ;
       placeholder.at(0) = -1 ; // Probably a better way to do this than using a placeholder...
-      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
+      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(TwoForests->at(1)->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
       
-      for (auto & i : Phylogenies->GetForest())
+      for (auto & i : TwoForests->at(1)->GetForest())
       {
         i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
       }
     }
-    Phylogenies->ComputeLoglik() ;
-    umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
-    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+    TwoForests->at(1)->ComputeLoglik() ;
+    umat newEdge = TwoForests->at(1)->GetForest().at(0)->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
+    return List::create(Named("logLik") = TwoForests->at(1)->GetLoglik(),
                         Named("edge") = newEdge) ;
   } 
   else 
@@ -185,33 +197,33 @@ List withinClusNNIlogLik(SEXP ForestPointer, uint MRCAofClusForNNI, uint numMove
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP, NumericVector & clusterMRCAs) 
+List betweenClusNNIlogLik(SEXP ForestPointerVec, uint numMovesNNI, int numOpenMP, NumericVector & clusterMRCAs) 
 {
   omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL)) 
+  if (!(ForestPointerVec == NULL)) 
   {
-    XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
-    AugTree * augTreePoint = Phylogenies->GetForest().at(0) ;
+    XPtr<std::vector<Forest *>> TwoForests(ForestPointerVec) ; // Becomes a regular pointer again.
+    AugTree * augTreePoint = TwoForests->at(1)->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     uint numTips = augTreePoint->GetNumTips() ;
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
     
-    vertexIndexForNNI = Phylogenies->GetForest().at(0)->GetNNIverticesBetween(augTreePoint->GetVertexVector().at(numTips), clusterMRCAsRecast) ;
+    vertexIndexForNNI = TwoForests->at(1)->GetForest().at(0)->GetNNIverticesBetween(augTreePoint->GetVertexVector().at(numTips), clusterMRCAsRecast) ;
     
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      unsigned long int rootForNNIindex = gsl_rng_uniform_int(Phylogenies->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
-      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(Phylogenies->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), clusterMRCAsRecast) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(TwoForests->at(1)->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(TwoForests->at(1)->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), clusterMRCAsRecast) ;
       
-      for (auto & i : Phylogenies->GetForest())
+      for (auto & i : TwoForests->at(1)->GetForest())
       {
         i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
       }
     }
-    Phylogenies->ComputeLoglik() ;
-    umat newEdge = Phylogenies->GetForest().at(0)->BuildEdgeMatrix() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik(),
+    TwoForests->at(1)->ComputeLoglik() ;
+    umat newEdge = TwoForests->at(1)->GetForest().at(0)->BuildEdgeMatrix() ;
+    return List::create(Named("logLik") = TwoForests->at(1)->GetLoglik(),
                        Named("edge") = newEdge) ;
   } 
   else 
@@ -222,30 +234,52 @@ List betweenClusNNIlogLik(SEXP ForestPointer, uint numMovesNNI, int numOpenMP, N
 
 // [[Rcpp::export]]
 
-List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats, int numOpenMP) 
+List clusSplitMergeLogLik(SEXP ForestPointerVec, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats, int numOpenMP) 
 {
   omp_set_num_threads(numOpenMP) ;
-  XPtr<Forest> Phylogenies(ForestPointer) ; // Becomes a regular pointer again.
-  if (!(ForestPointer == NULL)) 
+  if (!(ForestPointerVec == NULL))
   {
+    XPtr<std::vector<Forest *>> TwoForests(ForestPointerVec) ; // Becomes a regular pointer again.
     uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
     
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
     {
       std::vector<mat> betweenTransProbsMatsRecast = as<std::vector<mat>>(betweenTransProbsMats) ;
-      Phylogenies->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0), betweenTransProbsMatsRecast) ;
+      TwoForests->at(1)->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0), betweenTransProbsMatsRecast) ;
     }
     else
     {
       std::vector<mat> withinTransProbsMatsRecast = as<std::vector<mat>>(withinTransProbsMats) ;
-      Phylogenies->HandleMerge(clusMRCAsToSplitOrMergeRecast, withinTransProbsMatsRecast) ;
+      TwoForests->at(1)->HandleMerge(clusMRCAsToSplitOrMergeRecast, withinTransProbsMatsRecast) ;
     }
-    Phylogenies->ComputeLoglik() ;
-    return List::create(Named("logLik") = Phylogenies->GetLoglik()) ;
+    TwoForests->at(1)->ComputeLoglik() ;
+    return List::create(Named("logLik") = TwoForests->at(1)->GetLoglik()) ;
   }
   else
   {
     throw ::Rcpp::exception("pointer is null." ) ;
   }
-  
+}
+
+// [[Rcpp::export]]
+
+void copyForestElements(bool keepOld, SEXP ForestVecPointer)
+{
+  XPtr<std::vector<Forest *>> PhyloForestsPoint(ForestVecPointer) ;
+  if (keepOld)
+  {
+    cout << "Keeping old... \n" ;
+    cout << "Before: \n" ;
+    PhyloForestsPoint->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
+    PhyloForestsPoint->at(1)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
+    //std::copy(PhyloForestsPoint->begin(), PhyloForestsPoint->begin(), PhyloForestsPoint->begin()+1) ;
+    *PhyloForestsPoint->at(1)=*PhyloForestsPoint->at(0) ;
+    cout << "After: \n" ;
+    PhyloForestsPoint->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
+    PhyloForestsPoint->at(1)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
+  }
+  else
+  {
+    *PhyloForestsPoint->at(0)=*PhyloForestsPoint->at(1) ;
+  }
 }
