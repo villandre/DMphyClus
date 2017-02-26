@@ -111,5 +111,5 @@ public:
   void HandleMerge(uvec &, std::vector<mat> &) ;
   void SetLogLik(double logLik) {_loglik = logLik ;} ;
   
-  void InputForestElements(Forest * originForest) ;
+  void InputForestElements(XPtr<Forest> originForest) ;
 };

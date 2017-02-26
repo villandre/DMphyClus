@@ -41,13 +41,21 @@ AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTi
 }
 
 void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) {
-  std::vector<TreeNode *>::iterator sourceVertexIter = sourceAugTree->GetVertexVector().begin() ; 
+  cout << "Creating iterator... \n" ;
+  cout << "Origin size: " << sourceAugTree->GetVertexVector().size() << "\n" ;
+  std::vector<TreeNode *> originVertexVector = sourceAugTree->GetVertexVector() ; // Why must this be redefined?
+  std::vector<TreeNode *>::iterator sourceVertexIter = originVertexVector.begin() ;  
+  cout << "Destination size: " << _vertexVector.size() << "\n" ;
+  cout << "sourceVertexIter: " << *sourceVertexIter << "\n";
   for (auto & i : _vertexVector)
   {
     i->EnterCommonInfo(*sourceVertexIter) ;
+    cout << "Common info entered. Copying solution... \n" ;
     i->EnterSolution(*sourceVertexIter) ;
+    cout << "Solution copied. \n" ;
     sourceVertexIter++ ;
   }
+  cout << "Done! \n" ;
 };
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
@@ -457,11 +465,14 @@ std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, Tr
   return grandChildrenVec ;
 }
 
-void Forest::InputForestElements(Forest * originForest)
+void Forest::InputForestElements(XPtr<Forest> originForest)
 {
-  std::vector<AugTree *>::iterator originAugTreeIter = originForest->GetForest().begin() ;
-  for (auto & i : _forest)
-  {
+  cout << "Size of the vertex vector: " << originForest->GetForest().at(0)->GetVertexVector().size() << "\n" ;
+  std::vector<AugTree *> originForestRecast = originForest->GetForest() ;
+  auto originAugTreeIter = originForestRecast.begin() ;
+  cout << "Trying iterator: " << (*originAugTreeIter)->GetVertexVector().size() << "\n" ;
+  for (auto & i : _forest)  {
+    
     i->CopyAugTreeNonPointer(*originAugTreeIter) ;
     originAugTreeIter++ ;
   }
