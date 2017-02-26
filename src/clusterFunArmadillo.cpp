@@ -38,20 +38,12 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci)
 {
-  omp_set_num_threads(numOpenMP) ;
+  omp_set_num_threads(numOpenMP) ; 
   
   solutionDictionaryType solutionDictionary ;
-  std::vector<Forest *>* PhyloForestsPoint = new std::vector<Forest *>;
-  PhyloForestsPoint->reserve(2) ;
   Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
   PhylogeniesPoint1->ComputeLoglik() ;
-  PhyloForestsPoint->push_back(PhylogeniesPoint1) ;
-  Forest * PhylogeniesPoint2 = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
-  *PhylogeniesPoint2 = *PhylogeniesPoint1 ;
-  PhyloForestsPoint->push_back(PhylogeniesPoint2) ;
-  cout << "First pointer: " << PhyloForestsPoint->at(0) << " Second pointer: " << PhyloForestsPoint->at(1) << "\n" ;
-  XPtr<std::vector<Forest *>> p(PhyloForestsPoint, true) ;
-  cout << "Done! \n" ;
+  XPtr<Forest> p(PhylogeniesPoint1, true) ;
   return List::create(Named("logLik") = PhylogeniesPoint1->GetLoglik(),
                       Named("ForestPointer") = p) ;
 }
@@ -117,21 +109,20 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-List newBetweenTransProbsLogLik(SEXP ForestPointerVec, List & newBetweenTransProbs, int numOpenMP) 
+List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs, IntegerMatrix & edgeMat, int numOpenMP) 
 {
   omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointerVec == NULL)) 
+  if (!(ForestPointer == NULL)) 
   {
-    XPtr<std::vector<Forest *>> TwoForests(ForestPointerVec) ; // Becomes a regular pointer again.
-    cout << "First pointer: " << TwoForests->at(0) << " Second pointer: " << TwoForests->at(1) << "\n" ;
-    TwoForests->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("Before:") ;
+    XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
     std::vector<mat> newBetweenTransProbsRecast = as<std::vector<mat>>(newBetweenTransProbs) ;
-    TwoForests->at(1)->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
-    TwoForests->at(1)->ComputeLoglik() ;
-    TwoForests->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("After:") ;
-    TwoForests->at(1)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("After at new loc.:") ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
+    newForest->InputForestElements(oriForest) ;
+    newForest->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
+    newForest->ComputeLoglik() ;
+    XPtr<Forest> p(newForest, true) ;
     
-    return List::create(Named("logLik") = TwoForests->at(1)->GetLoglik()) ;
+    return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
   } 
   else 
   {
@@ -272,14 +263,14 @@ void copyForestElements(bool keepOld, SEXP ForestVecPointer)
     cout << "Before: \n" ;
     PhyloForestsPoint->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
     PhyloForestsPoint->at(1)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
-    //std::copy(PhyloForestsPoint->begin(), PhyloForestsPoint->begin(), PhyloForestsPoint->begin()+1) ;
-    *PhyloForestsPoint->at(1)=*PhyloForestsPoint->at(0) ;
+    //std::copy_n(PhyloForestsPoint->begin(), 1, PhyloForestsPoint->begin()+1) ;
+    PhyloForestsPoint->at(0)->ForestDeepCopy(PhyloForestsPoint->at(1)) ; 
     cout << "After: \n" ;
     PhyloForestsPoint->at(0)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
     PhyloForestsPoint->at(1)->GetForest().at(0)->GetVertexVector().at(6)->GetTransMatrix().print("TransMatrix:") ;
   }
   else
   {
-    *PhyloForestsPoint->at(0)=*PhyloForestsPoint->at(1) ;
+    PhyloForestsPoint->at(1)->ForestDeepCopy(PhyloForestsPoint->at(0)) ; 
   }
 }

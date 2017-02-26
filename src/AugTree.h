@@ -36,6 +36,8 @@ protected:
   
 public:
   AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
+  AugTree(const umat &, const vec &, const uint, const uint) ;
+  
   void TrySolve(TreeNode *, solutionDictionaryType &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &) ;
@@ -45,6 +47,8 @@ public:
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   umat BuildEdgeMatrix() ;
   std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *, uvec &) ;
+  AugTree * clone() ;
+  void CopyAugTreeNonPointer(AugTree *) ;
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
@@ -56,9 +60,17 @@ public:
   uint GetNumTips() {return _numTips ;} ;
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
+  vec GetLimProbs() { return _limProbs ;} ;
+  
   void RearrangeTreeNNI(uint, uint) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
+  // AugTree( const AugTree& other ):_limProbs(other._limProbs), _likelihood(other._likelihood), _numTips(other._numTips), _rateCateg(other._rateCateg)
+  // {
+  //   _withinTransProbMatrix = other._withinTransProbMatrix ;
+  //   _betweenTransProbMatrix = other._betweenTransProbMatrix ;
+  //   std::transform(other._vertexVector.begin(), other._vertexVector.end(), std::back_inserter(_vertexVector), std::mem_fn(&TreeNode::clone)) ;
+  // }; // A copy constructor... The default copy constructor will copy the addresses in _vertexVector, rather than allocating a new vector and copying the elements pointed to by _vertexVector...
 };
 
 class Forest
@@ -66,7 +78,7 @@ class Forest
 protected:
   std::vector<AugTree *> _forest ;
   double _loglik ;
-  nodePatternDictionaryType _nodePatternDictionary ;
+  //nodePatternDictionaryType _nodePatternDictionary ;
   solutionDictionaryType _solutionDictionary ;
   uint _numLoci ;
   uint _numRateCats ;
@@ -75,14 +87,30 @@ protected:
 public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
   Forest() ;
+  Forest(const IntegerMatrix &, const vec &, uint, uint, uint, gsl_rng *, solutionDictionaryType) ;
+  
   ~Forest() {deallocate_container(_forest) ;}
+  // Forest( const Forest& other ):_loglik(other._loglik), _numLoci(other._numLoci), _numRateCats(other._numRateCats)
+  // {
+  //   std::transform(other._forest.begin(), other._forest.end(), std::back_inserter(_forest), std::mem_fn(&AugTree::clone)) ;
+  // }; // A copy constructor... The default copy constructor will copy the addresses in _vertexVector, rather than allocating a new vector and copying the elements pointed to by _vertexVector...
+  // 
+  // I did not explicitly specify a copy constructor, because the default one will call the copy constructor on all members, including the one I defined for AugTree, which produces deep copies of _vertexVector.
+  //void ForestDeepCopy(Forest *) ;
   
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
   gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;} ;
   std::vector<AugTree *> GetForest() {return _forest ;} ;
+  uint GetNumRateCats() {return _numRateCats ;} ;
+  uint GetNumLoci() {return _numLoci ;}
+  solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
+  
   void AmendBetweenTransProbs(std::vector<mat> &) ;
   void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
   void HandleSplit(uint, std::vector<mat> &) ;
-  void HandleMerge(uvec &, std::vector<mat> &) ; 
+  void HandleMerge(uvec &, std::vector<mat> &) ;
+  void SetLogLik(double logLik) {_loglik = logLik ;} ;
+  
+  Forest::InputForestElements(Forest * originForest)
 };

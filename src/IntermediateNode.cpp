@@ -60,7 +60,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   } while ( std::next_permutation(permutations.begin(),permutations.end() - 2) );
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
-    if (solutionDictionary.find(hashKey) != solutionDictionary.end()) {
+    if (solutionDictionary->find(hashKey) != solutionDictionary->end()) {
       _dictionaryKey = hashKey ;
       foundSolution = true ;
       break ;

@@ -30,6 +30,26 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat &
   //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
+AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
+{
+  _numTips = numTips ;
+  _rateCateg = rateCategIndex ;
+  _limProbs = limProbs ;
+  umat edgeMatrixCopy(edgeMatrix) ;
+  edgeMatrixCopy = edgeMatrixCopy - 1 ;
+  BuildTree(edgeMatrixCopy) ;
+}
+
+void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) {
+  std::vector<TreeNode *>::iterator sourceVertexIter = sourceAugTree->GetVertexVector().begin() ; 
+  for (auto & i : _vertexVector)
+  {
+    i->EnterCommonInfo(*sourceVertexIter) ;
+    i->EnterSolution(*sourceVertexIter) ;
+    sourceVertexIter++ ;
+  }
+};
+
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
   
   // By default all nodes are considered between clusters.
@@ -118,10 +138,10 @@ void AugTree::InitializeVertices(const std::vector<uvec> & alignmentBinOneLocusO
 }
 
 void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) {
-  if (!currentNode->IsSolved() && !solutionDictionary.empty())
+  if (!currentNode->IsSolved() && !solutionDictionary->empty())
   { // If the node is already solved, no need to update it with a stored pattern.
 
-    if (solutionDictionary.count(currentNode->GetDictionaryKey()) == 0)
+    if (solutionDictionary->count(currentNode->GetDictionaryKey()) == 0)
     {
       for (auto & i : currentNode->GetChildren())
       {
@@ -130,7 +150,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
     }
     else
     {
-      currentNode->SetSolution(solutionDictionary[currentNode->GetDictionaryKey()]) ;
+      currentNode->SetSolution((*solutionDictionary)[currentNode->GetDictionaryKey()]) ;
       currentNode->ToggleSolved() ;
     }
   }
@@ -289,6 +309,11 @@ void AugTree::AddEdgeRecursion(umat & matToUpdate, uint & lineNum, TreeNode * cu
   }
 }
 
+AugTree * AugTree::clone()
+{
+  return new AugTree(*this) ;
+}
+
 Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const List & alignmentBin, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
 {
   _numLoci = numLoci ;
@@ -316,6 +341,29 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
     }
   }
 }
+
+Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numRateCats, uint numLoci, uint numTips, gsl_rng * ranNumGenerator, solutionDictionaryType solutionDictionary)
+{
+  _numRateCats = numRateCats ;
+  _numLoci = numLoci ;
+  _randomNumGenerator = ranNumGenerator ;
+  _forest.reserve(numLoci*numRateCats) ;
+  umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
+  _solutionDictionary = solutionDictionary ;
+  
+  for (uint i = 0; i < numLoci; i++) // Iterating on loci...
+  {
+    uint rateCategIndex = 0 ;
+    
+    for (uint j = 0 ; j < numRateCats ; j++)
+    {
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, limProbs, numTips, j) ;
+      _forest.push_back(LocusRateAugTree) ; 
+      rateCategIndex++ ;
+    }
+  }
+}
+
 
 void Forest::ComputeLoglik()
 {
@@ -394,6 +442,33 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTrans
   }
 }
 
+
+// The random number generator pointer never changes and is therefore not copied.
+// We assume that destinationForest is already pointing to the random number generator.
+// Same for solutionDictionary.
+void Forest::ForestDeepCopy(Forest * destinationForest) 
+{
+  // First we copy non-pointer members that can change.
+  // _numRateCats, _numLoci do not change
+  destinationForest->SetLogLik(_loglik) ;
+  
+  // Elements in _forest are pointers, the pointed elements should be copied, not 
+  // the pointers themselves. Confusingly, the pointed elements also contain 
+  // a vector of pointers, that should not be copied, but whose pointed values
+  // should.
+  std::vector<AugTree *>::iterator destForestIter = destinationForest->GetForest().begin() ;
+  for (auto & augTreeIterOrigin : _forest)
+  {
+    std::vector<TreeNode *>::iterator destForestNodesIter = (*destForestIter)->GetVertexVector().begin() ;
+    for (auto & vertexIterOrigin : augTreeIterOrigin->GetVertexVector())
+    {
+      *(*destForestNodesIter) = *vertexIterOrigin ;
+      destForestNodesIter++ ;
+    }
+    destForestIter++ ;
+  }
+};
+
 std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, TreeNode * subtreeRoot, uvec & clusterMRCAs)
 {
   std::vector<uint> grandChildrenVec ;
@@ -412,4 +487,14 @@ std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, Tr
     }
   }
   return grandChildrenVec ;
+}
+
+void Forest::InputForestElements(Forest * originForest)
+{
+  std::vector<AugTree *>::iterator originAugTreeIter = originForest->GetForest().begin() ;
+  for (auto & i : _forest)
+  {
+    i->CopyAugTreeNonPointer(*originAugTreeIter) ;
+    originAugTreeIter++ ;
+  }
 }
