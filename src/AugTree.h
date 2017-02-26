@@ -47,7 +47,6 @@ public:
   void BindMatrix(TreeNode *, const mat &, const bool) ;
   umat BuildEdgeMatrix() ;
   std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *, uvec &) ;
-  AugTree * clone() ;
   void CopyAugTreeNonPointer(AugTree *) ;
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
@@ -112,5 +111,5 @@ public:
   void HandleMerge(uvec &, std::vector<mat> &) ;
   void SetLogLik(double logLik) {_loglik = logLik ;} ;
   
-  Forest::InputForestElements(Forest * originForest)
+  void InputForestElements(Forest * originForest) ;
 };

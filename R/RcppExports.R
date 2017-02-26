@@ -13,27 +13,27 @@ getNULLextPointer <- function() {
     .Call('DMphyClus_getNULLextPointer', PACKAGE = 'DMphyClus')
 }
 
-newBetweenTransProbsLogLik <- function(ForestPointerVec, newBetweenTransProbs, numOpenMP) {
-    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointerVec, newBetweenTransProbs, numOpenMP)
+newBetweenTransProbsLogLik <- function(ForestPointer, newBetweenTransProbs, edgeMat, numOpenMP) {
+    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointer, newBetweenTransProbs, edgeMat, numOpenMP)
 }
 
-newWithinTransProbsLogLik <- function(ForestPointerVec, newWithinTransProbs, clusterMRCAs, numOpenMP) {
-    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointerVec, newWithinTransProbs, clusterMRCAs, numOpenMP)
+newWithinTransProbsLogLik <- function(ForestPointer, newWithinTransProbs, clusterMRCAs, edgeMat, numOpenMP) {
+    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointer, newWithinTransProbs, clusterMRCAs, edgeMat, numOpenMP)
 }
 
-withinClusNNIlogLik <- function(ForestPointerVec, MRCAofClusForNNI, numMovesNNI, numOpenMP) {
-    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointerVec, MRCAofClusForNNI, numMovesNNI, numOpenMP)
+withinClusNNIlogLik <- function(ForestPointer, edgeMat, MRCAofClusForNNI, numMovesNNI, numOpenMP) {
+    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, edgeMat, MRCAofClusForNNI, numMovesNNI, numOpenMP)
 }
 
-betweenClusNNIlogLik <- function(ForestPointerVec, numMovesNNI, numOpenMP, clusterMRCAs) {
-    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointerVec, numMovesNNI, numOpenMP, clusterMRCAs)
+betweenClusNNIlogLik <- function(ForestPointer, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP) {
+    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP)
 }
 
-clusSplitMergeLogLik <- function(ForestPointerVec, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, numOpenMP) {
-    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', ForestPointerVec, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, numOpenMP)
+clusSplitMergeLogLik <- function(ForestPointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, edgeMat, numOpenMP) {
+    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', ForestPointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, edgeMat, numOpenMP)
 }
 
-copyForestElements <- function(keepOld, ForestVecPointer) {
-    invisible(.Call('DMphyClus_copyForestElements', PACKAGE = 'DMphyClus', keepOld, ForestVecPointer))
+finalDeallocate <- function(ForestPointer) {
+    invisible(.Call('DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', ForestPointer))
 }
 

@@ -92,7 +92,8 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads)$logLik
+    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+    newLogLik <- newLogLikAndPoint$logLik
   }
   
   shortRecursive <- function(cMRCAs, cNumbers, clusInd, index = 1) {
@@ -112,7 +113,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
   numPairsNew <- length(ancestorsGroupsPairsNew)
   transKernRatio <- numSplits/numPairsNew
-  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
+  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs, updatedPointer = newLogLikAndPoint$solutionPointer)
 }
 
 .performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numPairs) {
@@ -129,13 +130,14 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLik <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads)$logLik
+    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+    newLogLik <- newLogLikAndPoint$logLik
   }
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
   newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
   transKernRatio <- numPairs/sum(newCounts>1)
-  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
+  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs, updatedPointer = newLogLikAndPoint$solutionPointer)
 }
 
 .splitJoinClusterMove <- function(currentValue, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
@@ -190,7 +192,7 @@ reorderTips <- function(phylogeny, newTipOrder)
       currentValue$paraValues$clusInd <- splitMergeResult$clusInd
       currentValue$clusterCounts <- splitMergeResult$counts
       currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
-      copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+      currentValue$extPointer <- splitMergeResult$updatedPointer ;
       if (!splitMove)
       {
         names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
@@ -199,7 +201,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else
     {
-      copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
+      rm(splitMergeResult) # Not sure if this needs to be called explicitly... The goal is to deallocate the memory pointed by the external pointer splitMergeResult$updatedPointer. Perhaps once splitMergeResult goes out of scope, the memory is automatically deallocated.
     }
     currentValue
 }
@@ -227,11 +229,13 @@ reorderTips <- function(phylogeny, newTipOrder)
   {
     if (betweenBool)
     {
-      newLogLik <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, numOpenMP = numLikThreads)
+      newLogLikAndPoint <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads)
+      newLogLik <- newLogLikAndPoint$logLik
     }
     else
     {
-      newLogLik <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numOpenMP = numLikThreads)
+      newLogLikAndPoint <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads)
+      newLogLik <- newLogLikAndPoint$logLik
     }
   }
  
@@ -244,11 +248,11 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     currentValue$logPostProb <- newLogLik$logLik +  (currentValue$logPostProb - currentValue$logLik)
     currentValue$logLik <- newLogLik$logLik
-    copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+    currentValue$extPointer <- newLogLikAndPoint$updatedPointer
   } 
   else
   {
-    copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
+    rm(newLogLikAndPoint) # Not sure this is essential... Valgrind should solve this.
   }
   currentValue
 }
@@ -284,6 +288,8 @@ reorderTips <- function(phylogeny, newTipOrder)
   setTxtProgressBar(pb = progress, value = 1)
   close(con = progress)
   cat("\n Chain complete. \n\n\n")
+  finalDeallocate(currentValue$extPointer)
+  rm(currentValue) # Probably not needed... Once the function is done running, currentValue should go out of scope, and the destructor for Forest should get called.
   longOut
 }
 

@@ -21,7 +21,6 @@ public:
   std::vector<TreeNode *> GetChildren() {return _children;};
   void DeriveKey(solutionDictionaryType &) ;
   vec GetSolution() {return _solution ;} ;
-  TreeNode * clone() {return new IntermediateNode ;} ;
   void EnterSolution(TreeNode * originVertex)
   {
     _solution = originVertex->GetSolution() ;

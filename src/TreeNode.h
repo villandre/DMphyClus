@@ -32,8 +32,7 @@ public:
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual vec GetSolution() = 0;
-  virtual TreeNode * clone() = 0;
-  virtual void EnterSolution(TreeNode *) ;
+  virtual void EnterSolution(TreeNode *) = 0;
   
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;

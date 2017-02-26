@@ -309,11 +309,6 @@ void AugTree::AddEdgeRecursion(umat & matToUpdate, uint & lineNum, TreeNode * cu
   }
 }
 
-AugTree * AugTree::clone()
-{
-  return new AugTree(*this) ;
-}
-
 Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const List & alignmentBin, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
 {
   _numLoci = numLoci ;
@@ -441,33 +436,6 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTrans
     rateCateg = littleCycle(rateCateg + 1, withinTransProbsMats.size()) ;
   }
 }
-
-
-// The random number generator pointer never changes and is therefore not copied.
-// We assume that destinationForest is already pointing to the random number generator.
-// Same for solutionDictionary.
-void Forest::ForestDeepCopy(Forest * destinationForest) 
-{
-  // First we copy non-pointer members that can change.
-  // _numRateCats, _numLoci do not change
-  destinationForest->SetLogLik(_loglik) ;
-  
-  // Elements in _forest are pointers, the pointed elements should be copied, not 
-  // the pointers themselves. Confusingly, the pointed elements also contain 
-  // a vector of pointers, that should not be copied, but whose pointed values
-  // should.
-  std::vector<AugTree *>::iterator destForestIter = destinationForest->GetForest().begin() ;
-  for (auto & augTreeIterOrigin : _forest)
-  {
-    std::vector<TreeNode *>::iterator destForestNodesIter = (*destForestIter)->GetVertexVector().begin() ;
-    for (auto & vertexIterOrigin : augTreeIterOrigin->GetVertexVector())
-    {
-      *(*destForestNodesIter) = *vertexIterOrigin ;
-      destForestNodesIter++ ;
-    }
-    destForestIter++ ;
-  }
-};
 
 std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, TreeNode * subtreeRoot, uvec & clusterMRCAs)
 {

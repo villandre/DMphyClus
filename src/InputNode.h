@@ -17,7 +17,6 @@ public:
   std::vector<TreeNode *> GetChildren() {std::vector<TreeNode *> myVec; myVec.push_back(NULL) ; return myVec;}; // An input node returns a null pointer when it is asked to provide the address of a child.
   void DeriveKey(solutionDictionaryType &) ;
   vec GetSolution() {return conv_to<vec>::from(_input) ;} ;
-  TreeNode * clone() { return new InputNode ;} ;
   void EnterSolution(TreeNode * originVertex) 
   {
     _input = conv_to<uvec>::from(originVertex->GetSolution()) ;
