@@ -215,23 +215,36 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
         .checkArgumentsLogLikFromClusInd()
     } else{}
 
-    dataBin <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), numOpenMP = numLikThreads)
+    dataBin <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
     alignmentBin <- lapply(dataBin, FUN = function(x) {
-        colnames(x) <- rownames(alignment)
+        names(x) <- rownames(alignment)
         x
     })
     # We make sure all clusters represent clades...
-    cladeTest <- sapply(unique(clusInd), function(x) 
+    cladeMRCAsAndTest <- lapply(unique(clusInd), function(x) 
     {
-      myMRCA <- ape:getMRCA(phylogeby, names(clusInd)[clusInd == x])
-      cladeFromMRCA <- Descendants(phylogeny, myMRCA)
-      setequal(phylogeny$tip.label[cladeFromMRCA],  names(clusInd)[clusInd == x])
+      seqsInClus <- names(clusInd)[clusInd == x]
+      
+      if (length(seqsInClus) > 1) 
+      {
+        myMRCA <- ape::getMRCA(phylogeny, seqsInClus)
+        cladeFromMRCA <- phangorn::Descendants(phylogeny, myMRCA)[[1]]
+        myTest <- setequal(phylogeny$tip.label[cladeFromMRCA],  names(clusInd)[clusInd == x])
+      }
+      else
+      {
+        myMRCA <- match(seqsInClus, names(clusInd))
+        myTest <- TRUE
+      }
+      list(test = myTest, clusMRCA = myMRCA)
     })
-    if (!all(cladeTest))
+    if (!all(sapply(cladeMRCAsAndTest, function(x) x$test)))
     {
       stop("clusInd does not give clades. Please provide a new vector. \n")
     }
-    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = , limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = dataBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
+    clusMRCAs <- sapply(cladeMRCAsAndTest, function(x) x$clusMRCA)
+   
+    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
     manualDeallocation(logLikAndPointer$ForestPointer) # Automatic garbage collection is disabled, hence the need for this.
     logLikAndPointer$logLik
 }
