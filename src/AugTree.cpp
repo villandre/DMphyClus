@@ -40,22 +40,15 @@ AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTi
   BuildTree(edgeMatrixCopy) ;
 }
 
-void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) {
-  cout << "Creating iterator... \n" ;
-  cout << "Origin size: " << sourceAugTree->GetVertexVector().size() << "\n" ;
-  std::vector<TreeNode *> originVertexVector = sourceAugTree->GetVertexVector() ; // Why must this be redefined?
-  std::vector<TreeNode *>::iterator sourceVertexIter = originVertexVector.begin() ;  
-  cout << "Destination size: " << _vertexVector.size() << "\n" ;
-  cout << "sourceVertexIter: " << *sourceVertexIter << "\n";
+void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) 
+{
+  uint sourceVertexIndex = 0 ; // Defining an iterator on sourceAugTree->GetVertexVector() cannot be done without copying it, which I can't explain for now.
   for (auto & i : _vertexVector)
   {
-    i->EnterCommonInfo(*sourceVertexIter) ;
-    cout << "Common info entered. Copying solution... \n" ;
-    i->EnterSolution(*sourceVertexIter) ;
-    cout << "Solution copied. \n" ;
-    sourceVertexIter++ ;
+    i->EnterCommonInfo(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
+    i->EnterSolution(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
+    sourceVertexIndex++ ;
   }
-  cout << "Done! \n" ;
 };
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
@@ -439,7 +432,7 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTrans
     augtree->GetVertexVector().at(clusMRCAstoMerge.at(0) - 1)->GetParent()->InvalidateSolution() ; // Elements of clusMRCAsToMerge should all have the same parent to allow a merge to occur.
     for (auto & oldClusterMRCA : clusMRCAstoMerge)
     {
-      augtree->GetVertexVector().at(oldClusterMRCA)->SetTransProbMatrix(withinTransProbsMats.at(rateCateg), rateCateg, true) ;
+      augtree->GetVertexVector().at(oldClusterMRCA - 1)->SetTransProbMatrix(withinTransProbsMats.at(rateCateg), rateCateg, true) ;
     }
     rateCateg = littleCycle(rateCateg + 1, withinTransProbsMats.size()) ;
   }
@@ -467,13 +460,10 @@ std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, Tr
 
 void Forest::InputForestElements(XPtr<Forest> originForest)
 {
-  cout << "Size of the vertex vector: " << originForest->GetForest().at(0)->GetVertexVector().size() << "\n" ;
-  std::vector<AugTree *> originForestRecast = originForest->GetForest() ;
-  auto originAugTreeIter = originForestRecast.begin() ;
-  cout << "Trying iterator: " << (*originAugTreeIter)->GetVertexVector().size() << "\n" ;
+  uint originAugTreeIndex = 0 ;
   for (auto & i : _forest)  {
     
-    i->CopyAugTreeNonPointer(*originAugTreeIter) ;
-    originAugTreeIter++ ;
+    i->CopyAugTreeNonPointer(originForest->GetForest().at(originAugTreeIndex)) ;
+    originAugTreeIndex++ ;
   }
 }

@@ -115,7 +115,6 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    cout << "Original forest size: " << oriForest->GetForest().size() << "/n";
     std::vector<mat> newBetweenTransProbsRecast = as<std::vector<mat>>(newBetweenTransProbs) ;
     Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
     newForest->InputForestElements(oriForest) ;
@@ -272,4 +271,13 @@ void finalDeallocate(SEXP ForestPointer) // We need to explicitly deallocate the
 {
   XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
   gsl_rng_free(oriForest->GetRandomNumGenerator()) ;
+}
+
+// [[Rcpp::export]]
+
+void explicitMemFree(SEXP ForestPointer) // Perhaps it should return the NULL pointer...
+{
+  XPtr<Forest> oriForest(ForestPointer) ;
+  Forest * pointerToDelete = oriForest ;
+  delete pointerToDelete ;
 }

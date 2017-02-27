@@ -132,3 +132,13 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// explicitMemFree
+void explicitMemFree(SEXP ForestPointer);
+RcppExport SEXP DMphyClus_explicitMemFree(SEXP ForestPointerSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
+    explicitMemFree(ForestPointer);
+    return R_NilValue;
+END_RCPP
+}

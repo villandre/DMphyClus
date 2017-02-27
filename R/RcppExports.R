@@ -37,3 +37,7 @@ finalDeallocate <- function(ForestPointer) {
     invisible(.Call('DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', ForestPointer))
 }
 
+explicitMemFree <- function(ForestPointer) {
+    invisible(.Call('DMphyClus_explicitMemFree', PACKAGE = 'DMphyClus', ForestPointer))
+}
+

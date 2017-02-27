@@ -16,6 +16,7 @@
     })
 
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
+    gc()
     currentValue
 }
 
@@ -192,7 +193,8 @@ reorderTips <- function(phylogeny, newTipOrder)
       currentValue$paraValues$clusInd <- splitMergeResult$clusInd
       currentValue$clusterCounts <- splitMergeResult$counts
       currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
-      currentValue$extPointer <- splitMergeResult$updatedPointer ;
+      #gc()
+      currentValue$extPointer <- splitMergeResult$updatedPointer
       if (!splitMove)
       {
         names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
@@ -201,7 +203,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else
     {
-      rm(splitMergeResult) # Not sure if this needs to be called explicitly... The goal is to deallocate the memory pointed by the external pointer splitMergeResult$updatedPointer. Perhaps once splitMergeResult goes out of scope, the memory is automatically deallocated.
+      #gc()
     }
     currentValue
 }
@@ -239,20 +241,21 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
   }
  
-  MHratio <- exp(newLogLik$logLik - currentValue$logLik)
+  MHratio <- exp(newLogLik - currentValue$logLik)
   if (runif(1) < MHratio) {
     if (betweenBool) {
       currentValue$paraValues$betweenMatListIndex <- newIndex
     } else{
       currentValue$paraValues$withinMatListIndex <- newIndex
     }
-    currentValue$logPostProb <- newLogLik$logLik +  (currentValue$logPostProb - currentValue$logLik)
-    currentValue$logLik <- newLogLik$logLik
-    currentValue$extPointer <- newLogLikAndPoint$updatedPointer
+    currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
+    currentValue$logLik <- newLogLik
+    #gc()
+    currentValue$extPointer <- newLogLikAndPoint$solutionPointer
   } 
   else
   {
-    rm(newLogLikAndPoint) # Not sure this is essential... Valgrind should solve this.
+    #gc()
   }
   currentValue
 }
@@ -282,9 +285,6 @@ reorderTips <- function(phylogeny, newTipOrder)
     paraVec <- currentValue$paraValues
     c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
   })
-  rm(currentValue) # This should remove the pointer and free up the memory. Perhaps it's not needed though: Once DMphyClusCore finishes running, currentValue should be destroyed.
-  gc()
-  gc()
   setTxtProgressBar(pb = progress, value = 1)
   close(con = progress)
   cat("\n Chain complete. \n\n\n")
@@ -362,7 +362,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else 
     {
-      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices)
+      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge)
       updatedLogLik <- updatedPhyloAndLogLik$logLik
       newPhylo <- list(edge = updatedPhyloAndLogLik$edge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
       class(newPhylo) <- "phylo"
@@ -379,11 +379,12 @@ reorderTips <- function(phylogeny, newTipOrder)
       } # The cluster MRCAs should not change under the other scheme.
       currentValue$logLik <- updatedLogLik
       currentValue$paraValues$phylogeny <- newPhylo
-      copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+      #gc()
+      currentValue$extPointer <- updatedPhyloAndLogLik$solutionPointer
     } 
     else
     {
-      copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
+      #gc()
     }
     currentValue
 }
@@ -456,7 +457,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       }
       else
       {
-        newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads)
+        newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
         newLogLik <- newLogLikAndPhylo$logLik
         newEdge <- newLogLikAndPhylo$edge
         newBigPhylo <- list(edge = newEdge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
@@ -471,11 +472,12 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
         currentValue$logPostProb <<- currentValue$logPostProb - currentValue$logLik + newLogLik
         currentValue$logLik <<- newLogLik
         currentValue$paraValues$phylogeny <<- newBigPhylo
-        copyForestElements(keepOld = FALSE, ForestVecPointer = currentValue$extPointer)
+        #gc()
+        currentValue$extPointer <<- newLogLikAndPhylo$solutionPointer
       }
       else
       {
-        copyForestElements(keepOld = TRUE, ForestVecPointer = currentValue$extPointer)
+        #gc()
       }
       NULL
     }
