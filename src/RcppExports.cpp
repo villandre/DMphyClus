@@ -132,3 +132,13 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// manualDeallocation
+void manualDeallocation(SEXP ForestPointer);
+RcppExport SEXP DMphyClus_manualDeallocation(SEXP ForestPointerSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
+    manualDeallocation(ForestPointer);
+    return R_NilValue;
+END_RCPP
+}

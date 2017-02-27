@@ -16,7 +16,6 @@
     })
 
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
-    gc()
     currentValue
 }
 
@@ -193,7 +192,7 @@ reorderTips <- function(phylogeny, newTipOrder)
       currentValue$paraValues$clusInd <- splitMergeResult$clusInd
       currentValue$clusterCounts <- splitMergeResult$counts
       currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
-      #gc()
+      manualDeallocation(currentValue$extPointer)
       currentValue$extPointer <- splitMergeResult$updatedPointer
       if (!splitMove)
       {
@@ -203,7 +202,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else
     {
-      #gc()
+      manualDeallocation(splitMergeResult$updatedPointer)
     }
     currentValue
 }
@@ -250,12 +249,12 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
     currentValue$logLik <- newLogLik
-    #gc()
+    manualDeallocation(currentValue$extPointer)
     currentValue$extPointer <- newLogLikAndPoint$solutionPointer
   } 
   else
   {
-    #gc()
+    manualDeallocation(newLogLikAndPoint$solutionPointer)
   }
   currentValue
 }
@@ -283,6 +282,10 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
 
     paraVec <- currentValue$paraValues
+    if (x == nIter) # Automatic garbage collection for the pointer is disabled.
+    {
+      manualDeallocation(currentValue$extPointer)
+    }
     c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
   })
   setTxtProgressBar(pb = progress, value = 1)
@@ -379,12 +382,12 @@ reorderTips <- function(phylogeny, newTipOrder)
       } # The cluster MRCAs should not change under the other scheme.
       currentValue$logLik <- updatedLogLik
       currentValue$paraValues$phylogeny <- newPhylo
-      #gc()
+      manualDeallocation(currentValue$extPointer)
       currentValue$extPointer <- updatedPhyloAndLogLik$solutionPointer
     } 
     else
     {
-      #gc()
+      manualDeallocation(updatedPhyloAndLogLik$solutionPointer)
     }
     currentValue
 }
@@ -472,12 +475,12 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
         currentValue$logPostProb <<- currentValue$logPostProb - currentValue$logLik + newLogLik
         currentValue$logLik <<- newLogLik
         currentValue$paraValues$phylogeny <<- newBigPhylo
-        #gc()
+        manualDeallocation(currentValue$extPointer)
         currentValue$extPointer <<- newLogLikAndPhylo$solutionPointer
       }
       else
       {
-        #gc()
+        manualDeallocation(newLogLikAndPhylo$solutionPointer)
       }
       NULL
     }
