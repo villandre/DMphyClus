@@ -34,12 +34,12 @@ bool IntermediateNode::CanFindKey()
   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
 }
 
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM)
 {
-  Col<double> mySolution(_transProbMatrix.n_rows, fill::ones) ;
+  Col<double> mySolution(transProbM.n_rows, fill::ones) ;
   for(auto & child : _children)
   {
-    mySolution = mySolution % (child->GetTransMatrix()*child->GetSolution()) ;
+    mySolution = mySolution % (transProbM*child->GetSolution()) ;
   }
   _solution = mySolution ;
   _isSolved = true ;

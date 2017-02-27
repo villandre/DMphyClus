@@ -115,10 +115,9 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    std::vector<mat> newBetweenTransProbsRecast = as<std::vector<mat>>(newBetweenTransProbs) ;
     Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
     newForest->InputForestElements(oriForest) ;
-    newForest->AmendBetweenTransProbs(newBetweenTransProbsRecast) ;
+    newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ;
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, true) ;
     
@@ -137,11 +136,10 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    std::vector<mat> newWithinTransProbsRecast = as<std::vector<mat>>(newWithinTransProbs) ;
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
     Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
     newForest->InputForestElements(oriForest) ;
-    newForest->AmendWithinTransProbs(newWithinTransProbsRecast, clusterMRCAsRecast) ;
+    newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, true) ;
     return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
@@ -271,13 +269,4 @@ void finalDeallocate(SEXP ForestPointer) // We need to explicitly deallocate the
 {
   XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
   gsl_rng_free(oriForest->GetRandomNumGenerator()) ;
-}
-
-// [[Rcpp::export]]
-
-void explicitMemFree(SEXP ForestPointer) // Perhaps it should return the NULL pointer...
-{
-  XPtr<Forest> oriForest(ForestPointer) ;
-  Forest * pointerToDelete = oriForest ;
-  delete pointerToDelete ;
 }

@@ -28,23 +28,23 @@ protected:
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
   void InitializeVertices(const std::vector<uvec> &) ;
-  void AssociateTransProbMatrices(const uvec &, const mat &, const mat &) ;
+  void AssociateTransProbMatrices(const uvec &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void GetNNIverticesInternalWithin(TreeNode *, std::vector<uint> *) ;
   void GetNNIverticesInternalBetween(TreeNode *, std::vector<uint> *, uvec &) ;
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, const mat &, const mat &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
+  AugTree(const umat &, const uvec &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
   AugTree(const umat &, const vec &, const uint, const uint) ;
   
-  void TrySolve(TreeNode *, solutionDictionaryType &)  ;
+  void TrySolve(TreeNode *, solutionDictionaryType &, const mat &, const mat &)  ;
   void NearestNeighbourSwap() ;
-  void SolveRoot(solutionDictionaryType &) ;
+  void SolveRoot(solutionDictionaryType &, const mat &, const mat &) ;
   void ComputeKeys(TreeNode *, solutionDictionaryType &) ;
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
-  void BindMatrix(TreeNode *, const mat &, const bool) ;
+  void BindMatrix(TreeNode *, const bool) ;
   umat BuildEdgeMatrix() ;
   std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *, uvec &) ;
   void CopyAugTreeNonPointer(AugTree *) ;
@@ -82,6 +82,8 @@ protected:
   uint _numLoci ;
   uint _numRateCats ;
   gsl_rng * _randomNumGenerator ;
+  std::vector<mat> _withinTransProbMatVec ;
+  std::vector<mat> _betweenTransProbMatVec ;
 
 public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
@@ -105,8 +107,10 @@ public:
   uint GetNumLoci() {return _numLoci ;}
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
   
-  void AmendBetweenTransProbs(std::vector<mat> &) ;
-  void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
+  // void AmendBetweenTransProbs(std::vector<mat> &) ;
+  // void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
+  void SetBetweenTransProbs(const std::vector<mat> newBetweenTransProbsVec) {_betweenTransProbMatVec = newBetweenTransProbsVec ;} ;
+  void SetWithinTransProbs(const std::vector<mat> newWithinTransProbsVec) {_withinTransProbMatVec = newWithinTransProbsVec ;} ;
   void HandleSplit(uint, std::vector<mat> &) ;
   void HandleMerge(uvec &, std::vector<mat> &) ;
   void SetLogLik(double logLik) {_loglik = logLik ;} ;

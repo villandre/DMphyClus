@@ -25,7 +25,7 @@ public:
   virtual void RemoveChildren() = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
   virtual void SetSolution(vec &) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &, const mat &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void ToggleSolved() = 0;
   virtual void SetInput(const uvec &) = 0 ;
@@ -55,7 +55,8 @@ public:
     _dictionaryKey = originVertex->GetDictionaryKey() ;
     _keyDefined = originVertex->GetKeyDefined() ;
   }
-  
+  void SetWithinParentBranchAndRateCateg(bool parentBranchWithin, uint rateCategory) {_withinParentBranch = parentBranchWithin ; _rateCategory = rateCategory ;} ;
+  void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;} ;
   virtual ~TreeNode() { };
   
   protected:

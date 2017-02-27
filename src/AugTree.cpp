@@ -17,7 +17,7 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 }
 
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix, const std::vector<uvec> & alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const std::vector<uvec> & alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
 {
   _numTips = numTips ;
   _limProbs = limProbs ;
@@ -26,7 +26,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const mat &
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices(alignmentBinOneLocusOneRate) ;
-  AssociateTransProbMatrices(clusterMRCAs, withinTransProbMatrix, betweenTransProbMatrix) ;
+  AssociateTransProbMatrices(clusterMRCAs) ; 
   //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
@@ -51,31 +51,31 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
   }
 };
 
-void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const mat & withinTransProbMatrix, const mat & betweenTransProbMatrix) {
+void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) {
   
   // By default all nodes are considered between clusters.
   for (auto & i : _vertexVector)
   {
-    i->SetTransProbMatrix(betweenTransProbMatrix, _rateCateg, false) ;
+    i->SetWithinParentBranchAndRateCateg(false, _rateCateg) ;
   }
   
   for (auto & i : clusterMRCAs)
   {
     if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
       for (auto & j : _vertexVector[i-1]->GetChildren()) {
-        BindMatrix(j, withinTransProbMatrix, true) ; 
+        BindMatrix(j, true) ; 
       }  
     }
   }
 }
 
-void AugTree::BindMatrix(TreeNode * vertex, const mat & transProbMatrix, const bool withinCluster)
+void AugTree::BindMatrix(TreeNode * vertex, const bool withinCluster)
 {
-  vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, withinCluster) ;
+  vertex->SetWithinParentBranch(withinCluster) ;
   if (!(vertex->GetChildren()[0] == NULL)) { // A null pointer indicates that we've reached an input node.
     for (auto & i : vertex->GetChildren())
     {
-      BindMatrix(i, transProbMatrix, withinCluster) ;
+      BindMatrix(i, withinCluster) ;
     }
   }
 }
@@ -121,9 +121,9 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
   vertex->DeriveKey(solutionDictionary) ;
 }
 
-void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary) {
+void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat) {
   //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
-  TrySolve(_vertexVector[_numTips], solutionDictionary) ;
+  TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
   _likelihood = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
 }
 
@@ -157,7 +157,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
   }
 }
 
-void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDictionary)
+void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat)
 {
   if (!(vertex->IsSolved())) // Could be solved because of the pattern lookup.
   {
@@ -165,32 +165,39 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
     {
       for (auto & i : vertex->GetChildren())
       {
-        TrySolve(i, solutionDictionary) ;
+        TrySolve(i, solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
       }
     }
-    vertex->ComputeSolution(solutionDictionary) ;
-  }
-}
-
-void AugTree::BindMatrixBetween(TreeNode * vertex, const mat & transProbMatrix)
-{
-  vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, false) ;
-  vertex->ToggleSolved() ;
-  if (!(vertex->GetChildren().at(0) == NULL)) 
-  {
-    if (!(vertex->GetChildren().at(0)->GetWithinParentBranch())) 
-    { // We're changing between-cluster transition probabilities only.
-      for (auto & i : vertex->GetChildren()) 
-      {
-        BindMatrixBetween(i, transProbMatrix) ;
-      }
+    if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
+    {  // This junction is within a cluster.
+      vertex->ComputeSolution(solutionDictionary, withinTransProbMat) ;
     }
     else
     {
-      vertex->ToggleSolved() ; // Not very clear... What happens here is that _solved is being set back to true for nodes supporting clusters. This is logical, since their solution is not assumed to have changed due to the change in the between-cluster transition probabilities.
+      vertex->ComputeSolution(solutionDictionary, betweenTransProbMat) ;
     }
   }
 }
+
+// void AugTree::BindMatrixBetween(TreeNode * vertex)
+// {
+//   vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, false) ;
+//   vertex->ToggleSolved() ;
+//   if (!(vertex->GetChildren().at(0) == NULL)) 
+//   {
+//     if (!(vertex->GetChildren().at(0)->GetWithinParentBranch())) 
+//     { // We're changing between-cluster transition probabilities only.
+//       for (auto & i : vertex->GetChildren()) 
+//       {
+//         BindMatrixBetween(i, transProbMatrix) ;
+//       }
+//     }
+//     else
+//     {
+//       vertex->ToggleSolved() ; // Not very clear... What happens here is that _solved is being set back to true for nodes supporting clusters. This is logical, since their solution is not assumed to have changed due to the change in the between-cluster transition probabilities.
+//     }
+//   }
+// }
 
 void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
 {
@@ -316,8 +323,8 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
   _numRateCats = withinTransProbMatList.size() ;
   _solutionDictionary = solutionDictionary ;
   _forest.reserve(alignmentBin.size()*withinTransProbMatList.size()) ;
-  std::vector<mat> withinTransProbsMats = as<std::vector<mat>>(withinTransProbMatList) ;
-  std::vector<mat> betweenTransProbsMats = as<std::vector<mat>>(betweenTransProbMatList) ;
+  _withinTransProbMatVec = as<std::vector<mat>>(withinTransProbMatList) ;
+  _betweenTransProbMatVec = as<std::vector<mat>>(betweenTransProbMatList) ;
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
   Col<double> limProbsRecast = as<Col<double>>(limProbs) ;
@@ -326,14 +333,12 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
 
   for (auto & i : alignmentBin) // Iterating on loci...
   {
-    uint rateCategIndex = 0 ;
     uint locusRateIndex = 0 ;
     
-    for (auto j : zip(withinTransProbsMats, betweenTransProbsMats))
+    for (uint rateCategIndex = 0 ; rateCategIndex < _numRateCats ; rateCategIndex++)
     {
-      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, j.get<0>(), j.get<1>(), as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
       _forest.push_back(LocusRateAugTree) ;
-      rateCategIndex++ ;
     }
   }
 }
@@ -349,13 +354,10 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
   
   for (uint i = 0; i < numLoci; i++) // Iterating on loci...
   {
-    uint rateCategIndex = 0 ;
-    
     for (uint j = 0 ; j < numRateCats ; j++)
     {
       AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, limProbs, numTips, j) ;
       _forest.push_back(LocusRateAugTree) ; 
-      rateCategIndex++ ;
     }
   }
 }
@@ -363,10 +365,12 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
 
 void Forest::ComputeLoglik()
 {
+  uint rateCategIndex = 0 ;
   //#pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
-    (*forestIter)->SolveRoot(_solutionDictionary) ;
+    (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex)) ;
+    rateCategIndex = littleCycle(rateCategIndex+1, _withinTransProbMatVec.size()) ;
   }
   
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
@@ -381,33 +385,33 @@ void Forest::ComputeLoglik()
   _loglik = sum(rateAveragedLogLiks) ;
 }
 
-void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs)
-{
-  uint rateCategIndex = 0 ;
-  
-  for (auto & tree : _forest)
-  {
-    tree->BindMatrixBetween(tree->GetVertexVector().at(tree->GetNumTips()), newBetweenTransProbs.at(rateCategIndex)) ;
-    rateCategIndex = littleCycle(rateCategIndex+1, newBetweenTransProbs.size()) ;
-  }
-}
+// void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs)
+// {
+//   uint rateCategIndex = 0 ;
+//   
+//   for (auto & tree : _forest)
+//   {
+//     tree->BindMatrixBetween(tree->GetVertexVector().at(tree->GetNumTips()), newBetweenTransProbs.at(rateCategIndex)) ;
+//     rateCategIndex = littleCycle(rateCategIndex+1, newBetweenTransProbs.size()) ;
+//   }
+// }
 
-void Forest::AmendWithinTransProbs(std::vector<mat> & withinTransProbs, uvec & clusterMRCAs) 
-{
-  uint rateCategIndex = 0 ;
-  for (auto &augtree : _forest)
-  {
-    for (auto & mrca : clusterMRCAs)
-    {
-      if (mrca <= augtree->GetNumTips())
-      {
-        augtree->BindMatrix(augtree->GetVertexVector().at(mrca - 1), withinTransProbs.at(rateCategIndex), true) ;
-      }
-    } 
-    augtree->InvalidateAll() ;
-    rateCategIndex = littleCycle(rateCategIndex, withinTransProbs.size()) ;
-  }
-}
+// void Forest::AmendWithinTransProbs(std::vector<mat> & withinTransProbs, uvec & clusterMRCAs) 
+// {
+//   uint rateCategIndex = 0 ;
+//   for (auto &augtree : _forest)
+//   {
+//     for (auto & mrca : clusterMRCAs)
+//     {
+//       if (mrca <= augtree->GetNumTips())
+//       {
+//         augtree->BindMatrix(augtree->GetVertexVector().at(mrca - 1), true) ;
+//       }
+//     } 
+//     augtree->InvalidateAll() ;
+//     rateCategIndex = littleCycle(rateCategIndex, withinTransProbs.size()) ;
+//   }
+// }
 
 void Forest::HandleSplit(uint clusMRCAtoSplit, std::vector<mat> & betweenTransProbsMats)
 {

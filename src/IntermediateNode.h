@@ -14,7 +14,7 @@ public:
   void RemoveChildren() {_children.clear() ;} ;
   void RemoveChild(TreeNode *) ;
   void SetSolution(vec & solution) { _solution = solution ;};
-  void ComputeSolution(solutionDictionaryType &) ;
+  void ComputeSolution(solutionDictionaryType &, const mat &) ;
   void InvalidateSolution() ;
   void ToggleSolved() {_isSolved = !_isSolved ;};
   void SetInput(const uvec &) { assert(false) ;};
