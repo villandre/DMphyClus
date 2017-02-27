@@ -133,6 +133,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
 
 List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs, IntegerMatrix & edgeMat, int numOpenMP) 
 {
+  omp_set_num_threads(numOpenMP) ; 
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.

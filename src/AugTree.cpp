@@ -49,10 +49,10 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
     i->EnterSolution(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
     sourceVertexIndex++ ;
   }
-};
+}
 
-void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) {
-  
+void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
+{
   // By default all nodes are considered between clusters.
   for (auto & i : _vertexVector)
   {
@@ -121,7 +121,8 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
   vertex->DeriveKey(solutionDictionary) ;
 }
 
-void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat) {
+void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat)
+{
   //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
   TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
   _likelihood = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
@@ -138,7 +139,8 @@ void AugTree::InitializeVertices(const std::vector<uvec> & alignmentBinOneLocusO
   }
 }
 
-void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) {
+void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) 
+{
   if (!currentNode->IsSolved() && !solutionDictionary->empty())
   { // If the node is already solved, no need to update it with a stored pattern.
 
@@ -178,26 +180,6 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
     }
   }
 }
-
-// void AugTree::BindMatrixBetween(TreeNode * vertex)
-// {
-//   vertex->SetTransProbMatrix(transProbMatrix, _rateCateg, false) ;
-//   vertex->ToggleSolved() ;
-//   if (!(vertex->GetChildren().at(0) == NULL)) 
-//   {
-//     if (!(vertex->GetChildren().at(0)->GetWithinParentBranch())) 
-//     { // We're changing between-cluster transition probabilities only.
-//       for (auto & i : vertex->GetChildren()) 
-//       {
-//         BindMatrixBetween(i, transProbMatrix) ;
-//       }
-//     }
-//     else
-//     {
-//       vertex->ToggleSolved() ; // Not very clear... What happens here is that _solved is being set back to true for nodes supporting clusters. This is logical, since their solution is not assumed to have changed due to the change in the between-cluster transition probabilities.
-//     }
-//   }
-// }
 
 void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
 {
@@ -366,7 +348,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
 void Forest::ComputeLoglik()
 {
   uint rateCategIndex = 0 ;
-  //#pragma omp parallel for 
+  #pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
     (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex)) ;
@@ -384,34 +366,6 @@ void Forest::ComputeLoglik()
   }
   _loglik = sum(rateAveragedLogLiks) ;
 }
-
-// void Forest::AmendBetweenTransProbs(std::vector<mat> & newBetweenTransProbs)
-// {
-//   uint rateCategIndex = 0 ;
-//   
-//   for (auto & tree : _forest)
-//   {
-//     tree->BindMatrixBetween(tree->GetVertexVector().at(tree->GetNumTips()), newBetweenTransProbs.at(rateCategIndex)) ;
-//     rateCategIndex = littleCycle(rateCategIndex+1, newBetweenTransProbs.size()) ;
-//   }
-// }
-
-// void Forest::AmendWithinTransProbs(std::vector<mat> & withinTransProbs, uvec & clusterMRCAs) 
-// {
-//   uint rateCategIndex = 0 ;
-//   for (auto &augtree : _forest)
-//   {
-//     for (auto & mrca : clusterMRCAs)
-//     {
-//       if (mrca <= augtree->GetNumTips())
-//       {
-//         augtree->BindMatrix(augtree->GetVertexVector().at(mrca - 1), true) ;
-//       }
-//     } 
-//     augtree->InvalidateAll() ;
-//     rateCategIndex = littleCycle(rateCategIndex, withinTransProbs.size()) ;
-//   }
-// }
 
 void Forest::HandleSplit(uint clusMRCAtoSplit)
 {
