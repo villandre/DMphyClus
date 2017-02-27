@@ -413,32 +413,27 @@ void Forest::ComputeLoglik()
 //   }
 // }
 
-void Forest::HandleSplit(uint clusMRCAtoSplit, std::vector<mat> & betweenTransProbsMats)
+void Forest::HandleSplit(uint clusMRCAtoSplit)
 {
-  uint rateCateg = 0 ;
-  
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->InvalidateSolution() ;
     for (auto & childNode : augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->GetChildren())
     {
-      childNode->SetTransProbMatrix(betweenTransProbsMats.at(rateCateg), rateCateg, false) ;
+      childNode->SetWithinParentBranch(false) ;
     }
-    rateCateg = littleCycle(rateCateg + 1, betweenTransProbsMats.size()) ;
   }
 }
 
-void Forest::HandleMerge(uvec & clusMRCAstoMerge, std::vector<mat> & withinTransProbsMats)
+void Forest::HandleMerge(uvec & clusMRCAstoMerge)
 {
-  uint rateCateg = 0 ;
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAstoMerge.at(0) - 1)->GetParent()->InvalidateSolution() ; // Elements of clusMRCAsToMerge should all have the same parent to allow a merge to occur.
     for (auto & oldClusterMRCA : clusMRCAstoMerge)
     {
-      augtree->GetVertexVector().at(oldClusterMRCA - 1)->SetTransProbMatrix(withinTransProbsMats.at(rateCateg), rateCateg, true) ;
+      augtree->GetVertexVector().at(oldClusterMRCA - 1)->SetWithinParentBranch(true) ;
     }
-    rateCateg = littleCycle(rateCateg + 1, withinTransProbsMats.size()) ;
   }
 }
 
@@ -464,6 +459,8 @@ std::vector<uint> AugTree::GetTwoVerticesForNNI(gsl_rng * randomNumGenerator, Tr
 
 void Forest::InputForestElements(XPtr<Forest> originForest)
 {
+  _withinTransProbMatVec = originForest->GetWithinTransProbMatVec() ;
+  _betweenTransProbMatVec = originForest->GetBetweenTransProbMatVec() ;
   uint originAugTreeIndex = 0 ;
   for (auto & i : _forest)  {
     

@@ -106,13 +106,15 @@ public:
   uint GetNumRateCats() {return _numRateCats ;} ;
   uint GetNumLoci() {return _numLoci ;}
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
+  std::vector<mat> GetWithinTransProbMatVec() { return _withinTransProbMatVec ;} ;
+  std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;} ;
   
   // void AmendBetweenTransProbs(std::vector<mat> &) ;
   // void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
   void SetBetweenTransProbs(const std::vector<mat> newBetweenTransProbsVec) {_betweenTransProbMatVec = newBetweenTransProbsVec ;} ;
   void SetWithinTransProbs(const std::vector<mat> newWithinTransProbsVec) {_withinTransProbMatVec = newWithinTransProbsVec ;} ;
-  void HandleSplit(uint, std::vector<mat> &) ;
-  void HandleMerge(uvec &, std::vector<mat> &) ;
+  void HandleSplit(uint) ;
+  void HandleMerge(uvec &) ;
   void SetLogLik(double logLik) {_loglik = logLik ;} ;
   
   void InputForestElements(XPtr<Forest> originForest) ;

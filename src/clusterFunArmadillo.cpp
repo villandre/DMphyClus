@@ -117,7 +117,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
     Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
     newForest->InputForestElements(oriForest) ;
-    newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ;
+    newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, true) ;
     
@@ -246,12 +246,12 @@ List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOr
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
     {
       std::vector<mat> betweenTransProbsMatsRecast = as<std::vector<mat>>(betweenTransProbsMats) ;
-      newForest->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0), betweenTransProbsMatsRecast) ;
+      newForest->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0)) ;
     }
     else
     {
       std::vector<mat> withinTransProbsMatsRecast = as<std::vector<mat>>(withinTransProbsMats) ;
-      newForest->HandleMerge(clusMRCAsToSplitOrMergeRecast, withinTransProbsMatsRecast) ;
+      newForest->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
     }
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, true) ;

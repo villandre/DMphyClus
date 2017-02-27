@@ -39,8 +39,8 @@ public:
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
   void SetId(uint vertexId) {_id = vertexId ;} ;
   uint GetId() {return _id ;} ;
-  void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinParentBranch = withinCluster ;} ;
-  mat GetTransMatrix() {return _transProbMatrix ;} ;
+  //void SetTransProbMatrix(const mat & transProbMatrix, std::size_t rateCategory, bool withinCluster) {_transProbMatrix = transProbMatrix ; _rateCategory = rateCategory ; _withinParentBranch = withinCluster ;} ;
+  //mat GetTransMatrix() {return _transProbMatrix ;} ;
   bool IsKeyDefined() {return _keyDefined ;} ;
   bool GetWithinParentBranch() {return _withinParentBranch ;} ;
   bool GetKeyDefined() {return _keyDefined ;} ;
@@ -49,7 +49,7 @@ public:
   void EnterCommonInfo(TreeNode * originVertex)
   {
     _id = originVertex->GetId() ;
-    _transProbMatrix = originVertex->GetTransMatrix() ;
+    //_transProbMatrix = originVertex->GetTransMatrix() ;
     _rateCategory = originVertex->GetRateCategory() ;
     _withinParentBranch = originVertex->GetWithinParentBranch() ;
     _dictionaryKey = originVertex->GetDictionaryKey() ;
@@ -63,7 +63,7 @@ public:
 
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
-  mat _transProbMatrix ; // This matrix is associated with the supporting branch.
+  //mat _transProbMatrix ; // This matrix is associated with the supporting branch.
   std::size_t _rateCategory ; // transProbMatrix gives that indication too, but it's easier to have it mentioned explicitly. This info is used to hash nodes.
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   std::size_t _dictionaryKey ;
