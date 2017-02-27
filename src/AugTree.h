@@ -48,6 +48,7 @@ public:
   umat BuildEdgeMatrix() ;
   std::vector<uint> GetTwoVerticesForNNI(gsl_rng *, TreeNode *, uvec &) ;
   void CopyAugTreeNonPointer(AugTree *) ;
+  void CheckAndInvalidateBetweenRecursive(TreeNode *) ; 
   
   void SetWithinTransProbMatrix(mat withinTransProbs) {_withinTransProbMatrix = withinTransProbs ;} ;
   void SetBetweenTransProbMatrix(mat betweenTransProbs) {_betweenTransProbMatrix = betweenTransProbs ;} ;
@@ -108,7 +109,9 @@ public:
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
   std::vector<mat> GetWithinTransProbMatVec() { return _withinTransProbMatVec ;} ;
   std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;} ;
-  
+  void InvalidateBetweenSolutions() ;
+  void InvalidateAllSolutions() ;
+    
   // void AmendBetweenTransProbs(std::vector<mat> &) ;
   // void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
   void SetBetweenTransProbs(const std::vector<mat> newBetweenTransProbsVec) {_betweenTransProbMatVec = newBetweenTransProbsVec ;} ;

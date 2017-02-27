@@ -8,12 +8,7 @@
 \source{
 \url{http://mbe.oxfordjournals.org/content/18/6/897.short}
 }
-\usage{
-QmatrixPosada2001
-}
 \description{
 This matrix, from Posada et al. 2001, gives nucleotide substitution rates
 in a standard HIV-1 alignment.
 }
-\keyword{datasets}
-

@@ -38,4 +38,3 @@ produces the log-prior for any cluster assignment index vector. Simulations have
 shown this prior to be informative, and so great care should be taken in selecting
 its parameter.
 }
-

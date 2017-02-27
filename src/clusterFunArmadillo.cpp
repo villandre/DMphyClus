@@ -118,6 +118,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
     Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
     newForest->InputForestElements(oriForest) ;
     newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
+    newForest->InvalidateBetweenSolutions() ;
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, false) ;
     
@@ -141,6 +142,7 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
     Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
     newForest->InputForestElements(oriForest) ;
     newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
+    newForest->InvalidateAllSolutions() ;
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, false) ;
     return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;

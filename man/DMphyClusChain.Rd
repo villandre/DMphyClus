@@ -97,4 +97,3 @@ Qmatrix, numGammaCat, discGammaPar, meanBetweenBranchVec, and meanWithinBranchVe
 INPUT_AN_EXAMPLE()
 }
 }
-

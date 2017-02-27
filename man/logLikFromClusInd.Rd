@@ -28,7 +28,7 @@ logLikFromClusInd(phylogeny, betweenTransMatList, withinTransMatList, clusInd,
 A negative value.
 }
 \description{
-This function gives the log-likelihood for a given alignment, conditional on a phylogeny and a cluster assignment index vector.
+This function gives the log-likelihood for a given alignment, conditional on a phylogeny and a cluster assignment index vector. It's very slow and should only be used for testing purposes.
 }
 \details{
 This function is an alternative to logLikFromSplitPhylo. Just like that function, it relies on compiled C++ code and can cause segmentation faults if the supplied phylo objects are misformed. Basic checks are performed by default. The function will be faster if they are turned off.
@@ -38,4 +38,3 @@ This function is an alternative to logLikFromSplitPhylo. Just like that function
 INPUT_EXAMPLE()
 }
 }
-

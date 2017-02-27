@@ -422,3 +422,35 @@ void Forest::InputForestElements(XPtr<Forest> originForest)
     originAugTreeIndex++ ;
   }
 }
+
+void Forest::InvalidateBetweenSolutions()
+{
+  uint numTips = _forest.at(0)->GetNumTips() ;
+  for (auto & augtree : _forest)
+  {
+    augtree->CheckAndInvalidateBetweenRecursive(augtree->GetVertexVector().at(numTips)) ;
+  }
+}
+
+void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex) 
+{
+  if (currentVertex->GetChildren().at(0) != NULL)
+  {
+    if (!(currentVertex->GetChildren().at(0)->GetWithinParentBranch()))
+    {
+      currentVertex->ToggleSolved() ;
+      for (auto & child : currentVertex->GetChildren())
+      {
+        CheckAndInvalidateBetweenRecursive(child) ;
+      }
+    }
+  }
+}
+
+void Forest::InvalidateAllSolutions()
+{
+  for (auto & augtree : _forest)
+  {
+    augtree->InvalidateAll() ;
+  }
+}

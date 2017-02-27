@@ -156,64 +156,6 @@ clusIndLogPrior <- function(clusInd, alpha, k) {
     lgamma(length(clusInd)+1) - sum(lgamma(countsVec+1)) + .logBigB(alphaVec + countsVec) - .logBigB(alphaVec)
 }
 
-#' Phylogenetic log-likelihood
-#'
-#' This function gives the log-likelihood for a given alignment, conditional on a phylogeny split in between- and within- cluster components. It's very slow and should only be used for testing purposes.
-#'
-#' @param clusterPhylos list of phylo objects or NULL (indicating a singleton) with names matching tip labels in betweenPhylo
-#' @param betweenPhylo phylo object with tip labels matching list names in clusterPhylos
-#' @param betweenTransMatList list of matrices giving transition probabilities in the supporting phylogeny by rate variation category
-#' @param withinTransMatList list of matrices giving transition probabilities in the within-cluster phylogenies by rate variation category
-#' @param clusInd vector of cluster assingment indices (should not contain any gaps)
-#' @param alignment a character matrix with rows corresponding to sequences and columns to sites
-#' @param limProbs a vector giving limiting probabilities for all states in alignment
-#' @param numLikThreads positive integer giving the number of threads used
-#' @param basicChecks boolean indicating whether basic checks should be performed to ensure the call does not result in a segmentation fault
-#'
-#' @details This function relies on compiled C++ code and can cause segmentation faults if the supplied phylo objects are misformed. Basic checks are performed by default. The function will be faster if they are turned off.
-#' @return A negative value.
-#'
-#' @examples
-#' \dontrun{
-#' INPUT_EXAMPLE()
-#' }
-#'
-#' @export
-logLikFromSplitPhylo <- function(clusterPhylos, betweenPhylo, betweenTransMatList, withinTransMatList, clusInd, alignment, limProbs, numLikThreads = 1, basicChecks = TRUE) { ## BROKEN
-    if (basicChecks) {
-        environment(.checkArgumentsLogLikFromSplitPhylo) <- environment()
-        .checkArgumentsLogLikFromSplitPhylo()
-    } else{}
-    logBetweenTransMatList <- lapply(betweenTransMatList, FUN = function(x) {
-      lapply(x, FUN = function(y) {
-        log(y)
-      })
-    })
-
-    logWithinTransMatList <- lapply(withinTransMatList, FUN = function(x) {
-      lapply(x, FUN = function(y) {
-        log(y)
-      })
-    })
-
-    dataBin <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), numOpenMP = numLikThreads)
-    alignmentBin <- lapply(dataBin, FUN = function(x) {
-        colnames(x) <- rownames(alignment)
-        x
-    })
-    alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], logLimProbs = log(limProbs), clusName = x, numLikThreads = numLikThreads, logExtMatList = logWithinTransMatList, DNAdataBin = alignmentBin, clusInd = clusInd)
-    })
-    names(alignmentMultiBinByClus) <- names(clusterPhylos)
-
-    alignmentMultiBin <- redimMultiBinByClus(alignmentMultiBinByClus) ## Danger: the functions don't produce an error if we ask for alignmentMultiBin when it is not defined, because they assume that we mean alignmentMultiBinByClus.
-
-    if (!identical(colnames(alignmentMultiBin[[1]][[1]]), betweenPhylo$tip.label)) {
-        stop("The ordering of the columns in alignmentMultiBin should match that of the tip labels in betweenPhylo! Line 499.\n")
-    } else{}
-
-   .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBin, internalFlag = TRUE, returnRootMat = FALSE)
-}
 
 ## The next function outputs a list of transition rate matrices
 #' Obtaining transition probability matrices
@@ -273,66 +215,25 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
         .checkArgumentsLogLikFromClusInd()
     } else{}
 
-    logBetweenTransMatList <- lapply(betweenTransMatList, FUN = function(x) {
-        log(x)
-    })
-
-    logWithinTransMatList <- lapply(withinTransMatList, FUN = function(x) {        log(x)
-    })
-
     dataBin <- .getConvertedAlignment(alignmentMat = alignment, equivVector = names(limProbs), numOpenMP = numLikThreads)
     alignmentBin <- lapply(dataBin, FUN = function(x) {
         colnames(x) <- rownames(alignment)
         x
     })
-    betweenPhylo <- phylogeny
-    clusLabels <- as.character(1:length(unique(clusInd))) ## Labels can be numeric...
-    outputClusPhySetIntPhy <- function(clusLabel, seqNames) {
-        if (length(seqNames) == 1) {
-            betweenPhylo$tip.label[match(seqNames, betweenPhylo$tip.label)] <<- clusLabel
-            return(NA) ## The cluster is a singleton. The phylogeny for it is degenerate. The cluster root matches the tip corresponding to the sequence.
-        } else{}
-        clusMRCAnode <- ape::getMRCA(betweenPhylo, tip = seqNames)
-        betweenPhylo$node.label[clusMRCAnode - ape::Ntip(betweenPhylo)] <<- clusLabel ## At this step, node supporting clusters are identified. All branches in clusters are given a different branch length prior. The label associates each supporting node with the subphylogenies in clusterPhylos.
-        clusterPhylo <- ape::extract.clade(betweenPhylo, node = clusMRCAnode)
-        ##betweenPhylo <<- ape::reorder(ape::drop.tip(betweenPhylo, seqNames, trim.internal = FALSE)) ## This leaves a tip with the cluster label. The cluster label is a number associating tips in the internal phylogeny with the phylogenies in clusterPhylos.
-        newClusInd <- seq_along(betweenPhylo$tip.label)
-        names(newClusInd) <- betweenPhylo$tip.label
-        newClusInd[seqNames] <- 10^6
-        newClusInd <- .relabel(newClusInd)
-        multiForRemoval <- .introduceMultiPhyloWithDist(phylogeny = betweenPhylo, clusInd = newClusInd)
-        betweenPhylo <<- ape::reorder.phylo(ape::drop.tip(multiForRemoval, seqNames, trim.internal = FALSE))
-        uniquesInClus <- grepl(clusterPhylo$tip.label, pattern = "unique")
-        if (any(uniquesInClus)) {
-            clusterPhylo$tip.label[uniquesInClus] <- substr(clusterPhylo$tip.label[uniquesInClus], start = 1, stop = nchar(clusterPhylo$tip.label[uniquesInClus]) - 6)
-        } else{}
-        clusterPhylo
+    # We make sure all clusters represent clades...
+    cladeTest <- sapply(unique(clusInd), function(x) 
+    {
+      myMRCA <- ape:getMRCA(phylogeby, names(clusInd)[clusInd == x])
+      cladeFromMRCA <- Descendants(phylogeny, myMRCA)
+      setequal(phylogeny$tip.label[cladeFromMRCA],  names(clusInd)[clusInd == x])
+    })
+    if (!all(cladeTest))
+    {
+      stop("clusInd does not give clades. Please provide a new vector. \n")
     }
-    clusterPhylos <- mapply(clusLabels, split(names(clusInd), f = clusInd), FUN = outputClusPhySetIntPhy, SIMPLIFY = FALSE, USE.NAMES = TRUE)
-    clusterPhylos <- clusterPhylos[betweenPhylo$tip.label] ## The order of the elements in clusterPhylos must match that of the tip labels in betweenPhylo.
-    oriNames <- names(clusInd)[!grepl(names(clusInd), pattern = "C")]
-    names(clusInd)[!grepl(names(clusInd), pattern = "C")] <- substr(oriNames, start = 1, stop = nchar(oriNames) - 6) ## This restores the original names for clusInd. We changed them because they were responsible for confusing the function that creates betweenPhylo.
-    sitePatternsByClus <- lapply(clusterPhylos, FUN = function(x) {
-      output <- NULL
-      if (!is.null(x)) {
-        output <- getSitePatterns(lapply(alignmentBin, FUN = function(dataB) dataB[,x$tip.label]))
-      }
-      output
-    })
-    names(sitePatternsByClus) <- names(clusterPhylos)
-    alignmentMultiBinByClus <- lapply(names(clusterPhylos), FUN = function(x) {
-      if (class(clusterPhylos[[x]]) != "phylo") {
-        alignRedim <- sapply(seq_along(alignmentBin), FUN = function(locusIndex) {
-          log(alignmentBin[[locusIndex]][,x]) ## Since all calculations are on the log scale, these matrices must be on the log-scale too.
-        })
-        rep(list(alignRedim), numGammaCat)
-      } else {    
-        .outputDNAdataMultiBin(clusterPhylo = clusterPhylos[[x]], clusName = x, clusInd = clusInd, logExtMatList = logWithinTransMatList, numLikThreads = numLikThreads, logLimProbs = log(limProbs), DNAdataBin = sitePatternsByClus[[x]]$uniqueDNAdataBin, sitePatterns = sitePatternsByClus[[x]]$sitePatterns)
-      }
-    })
-    names(alignmentMultiBinByClus) <- names(clusterPhylos)
-
-   .logLikCpp(edgeMat = betweenPhylo$edge, logLimProbsVec = log(limProbs), logTransMatList = logBetweenTransMatList,  numOpenMP = numLikThreads, alignmentBin = alignmentMultiBinByClus, internalFlag = TRUE, returnRootMat = FALSE) ## Make sure this matches the result from the call to logLikCpp when the full phylogeny is used!
+    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = , limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = dataBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
+    manualDeallocation(logLikAndPointer$ForestPointer) # Automatic garbage collection is disabled, hence the need for this.
+    logLikAndPointer$logLik
 }
 #' @useDynLib DMphyClus
 #' @importFrom Rcpp sourceCpp
@@ -344,11 +245,11 @@ NULL
 #' This matrix, from Posada et al. 2001, gives nucleotide substitution rates
 #' in a standard HIV-1 alignment.
 #'
-#'
+#' @name QmatrixPosada2001
+#' @docType data
 #' @format A matrix with 4 rows and 4 columns.
 #' @source \url{http://mbe.oxfordjournals.org/content/18/6/897.short}
-"QmatrixPosada2001"
-#> [1] "QmatrixPosada2001"
+NULL
 
 #' Between-cluster transition probability matrices
 #'
@@ -360,13 +261,14 @@ NULL
 #' that branch lengths follow the log-normal distribution with means between 0.015
 #' and 0.045 (10 equally spaced mean assumptions).
 #'
+#' @name betweenClusTransProbs
+#' @docType data
 #' @format A list of length 10. Each list element is itself a list, but with
 #' length 3, corresponding to the number of rate variation categories. Each
 #' element of the nested list is a 4x4 matrix giving transition probabilities
 #' between the different nucleotide states.
 #' @source \url{http://mbe.oxfordjournals.org/content/18/6/897.short}
-"betweenClusTransProbs"
-#> [1] "betweenClusTransProbs"
+NULL
 
 #' Within-cluster transition probability matrices
 #'
@@ -378,13 +280,14 @@ NULL
 #' We assumed that branch lengths follow the exponential distribution
 #' with means between 0.0005 and 0.0015 (10 equally spaced mean assumptions).
 #'
+#' @name withinClusTransProbs
+#' @docType data
 #' @format A list of length 10. Each list element is itself a list, but with
 #' length 3, corresponding to the number of rate variation categories. Each
 #' element of the nested list is a 4x4 matrix giving transition probabilities
 #' between the different nucleotide states.
 #' @source \url{http://mbe.oxfordjournals.org/content/18/6/897.short}
-"withinClusTransProbs"
-#> [1] "withinClusTransProbs"
+NULL
 
 #' An alignment of six HIV-1 DNA sequences in DNAbin format
 #'
@@ -393,8 +296,8 @@ NULL
 #' AB485639, AB485640, AB220944, AB220945, AB220946). Three sequences
 #' are subtype B, while the three remaining sequences are CRF-AE. They
 #' contain no missing data or ambiguities. We use them in the vignette.
-#'
+#' @name seqsToCluster
+#' @docType data
 #' @format A DNAbin object.
 #' @source \url{https://www.hiv.lanl.gov/content/sequence/HIV/mainpage.html}
-"seqsToCluster"
-#> [1] "seqsToCluster"
+NULL
