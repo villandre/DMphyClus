@@ -217,7 +217,8 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
 
     dataBin <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
     alignmentBin <- lapply(dataBin, FUN = function(x) {
-        names(x) <- rownames(alignment)
+        x <- x[match(phylogeny$tip.label, rownames(alignment))]
+        names(x) <- phylogeny$tip.label
         x
     })
     # We make sure all clusters represent clades...
@@ -246,7 +247,7 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
    
     logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
     manualDeallocation(logLikAndPointer$ForestPointer) # Automatic garbage collection is disabled, hence the need for this.
-    logLikAndPointer$logLik
+    list(logLik = logLikAndPointer$logLik, rateContribs = logLikAndPointer$rateContribs)
 }
 #' @useDynLib DMphyClus
 #' @importFrom Rcpp sourceCpp

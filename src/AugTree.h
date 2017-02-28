@@ -85,20 +85,13 @@ protected:
   gsl_rng * _randomNumGenerator ;
   std::vector<mat> _withinTransProbMatVec ;
   std::vector<mat> _betweenTransProbMatVec ;
-
+  
 public:
   Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
   Forest() ;
   Forest(const IntegerMatrix &, const vec &, uint, uint, uint, gsl_rng *, solutionDictionaryType) ;
   
   ~Forest() {deallocate_container(_forest) ;}
-  // Forest( const Forest& other ):_loglik(other._loglik), _numLoci(other._numLoci), _numRateCats(other._numRateCats)
-  // {
-  //   std::transform(other._forest.begin(), other._forest.end(), std::back_inserter(_forest), std::mem_fn(&AugTree::clone)) ;
-  // }; // A copy constructor... The default copy constructor will copy the addresses in _vertexVector, rather than allocating a new vector and copying the elements pointed to by _vertexVector...
-  // 
-  // I did not explicitly specify a copy constructor, because the default one will call the copy constructor on all members, including the one I defined for AugTree, which produces deep copies of _vertexVector.
-  //void ForestDeepCopy(Forest *) ;
   
   void ComputeLoglik() ;
   double GetLoglik() {return _loglik ;} ;
