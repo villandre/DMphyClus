@@ -37,8 +37,8 @@ bool IntermediateNode::CanFindKey()
 // I'm using a scaling strategy to avoid computational zeros, where when the maximum value in my solution vector
 // gets too small, I factorize it out and increment _exponentContainer, whose total value is taken into
 // account when computing the likelihood in Forest::ComputeLikelihood.
-// Under this strategy, some elements of the L vector may take value 0, but only when they're much smaller
-// than the maximum, in which case, they won't affect the mean significantly.
+// Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
+// but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double * expContainer)
 {
   Col<double> mySolution(transProbM.n_rows, fill::ones) ;
@@ -47,7 +47,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution % (transProbM*child->GetSolution()) ;
   }
   double myMax = max(mySolution) ;
-  bool status = myMax < 1e-10 ; // To account for computational zeros...
+  bool status = myMax < 1e-250 ; // To account for computational zeros...
   if (status)
   {
     mySolution = mySolution/myMax ;
