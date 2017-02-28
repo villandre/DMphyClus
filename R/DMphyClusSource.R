@@ -72,7 +72,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     logLikAndPointer <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin))
     currentValue$logLik <- logLikAndPointer$logLik
-    currentValue$extPointer <- logLikAndPointer$ForestPointer
+    currentValue$extPointer <- logLikAndPointer$solutionPointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
     currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
@@ -88,13 +88,13 @@ reorderTips <- function(phylogeny, newTipOrder)
   newClusMRCAs[clusNumber] <- newClusNodes[1]
   newClusMRCAs <- c(newClusMRCAs, tail(newClusNodes, n = -1))
   if (is.null(currentValue$extPointer)) {
-    newLogLik <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentPhylo), clusterMRCAs = newClusMRCAs, numLoci = length(DNAdataBin))$logLik
+    newLogLikAndPoint <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentPhylo), clusterMRCAs = newClusMRCAs, numLoci = length(DNAdataBin))
   }
   else
   {
     newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
-    newLogLik <- newLogLikAndPoint$logLik
   }
+  newLogLik <- newLogLikAndPoint$logLik
   
   shortRecursive <- function(cMRCAs, cNumbers, clusInd, index = 1) {
     seqLabelsToChange <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, cMRCAs[index])[[1]]]
@@ -126,13 +126,13 @@ reorderTips <- function(phylogeny, newTipOrder)
   newClusMRCAs <- unique(replace(currentClusMRCAs, clusToMergeNumbers, newMRCA)) # No two clusters can have the same MRCA.
   if (is.null(currentValue$extPointer)) 
   {
-    newLogLik <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = newClusMRCAs, numTips = ape::Ntip(currentPhylo), numLoci = length(DNAdataBin))$logLik
+    newLogLikAndPoint <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = newClusMRCAs, numTips = ape::Ntip(currentPhylo), numLoci = length(DNAdataBin))
   }
   else
   {
     newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
-    newLogLik <- newLogLikAndPoint$logLik
   }
+  newLogLik <- newLogLikAndPoint$logLik
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
   newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.

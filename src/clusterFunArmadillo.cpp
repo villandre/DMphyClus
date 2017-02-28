@@ -45,7 +45,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   PhylogeniesPoint1->ComputeLoglik() ;
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
   return List::create(Named("logLik") = PhylogeniesPoint1->GetLoglik(),
-                      Named("ForestPointer") = p) ;
+                      Named("solutionPointer") = p) ;
 }
 
 std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
