@@ -20,9 +20,10 @@ protected:
   mat _withinTransProbMatrix ;
   mat _betweenTransProbMatrix ;
   Col<double> _limProbs ;
-  double _likelihood ;
+  double _likelihoodProp ; // This is scaled to avoid computational zeros.
   uint _numTips ;
   uint _rateCateg ;
+  double _exponentContainer ;
 
   void BuildTree(umat &) ;
   void SolveOneLevel() ;
@@ -56,11 +57,12 @@ public:
   std::vector<TreeNode *> GetVertexVector() {return _vertexVector ;} ;
   mat GetWithinTransProbMatrix() const {return _withinTransProbMatrix ;} ;
   mat GetBetweenTransProbMatrix() const {return _betweenTransProbMatrix ;} ;
-  double GetLikelihood() const {return _likelihood ;} ;
+  double GetLikelihood() const {return _likelihoodProp ;} ;
   uint GetNumTips() {return _numTips ;} ;
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
   vec GetLimProbs() { return _limProbs ;} ;
+  double GetExponentContainer() { return _exponentContainer ;} ;
   
   void RearrangeTreeNNI(uint, uint) ;
   

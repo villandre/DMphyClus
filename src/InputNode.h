@@ -10,7 +10,7 @@ public:
   void RemoveChildren() {};
   void RemoveChild(TreeNode *) {assert(false) ;} ;
   void SetSolution(vec & inputVec) {assert(false) ;};
-  void ComputeSolution(solutionDictionaryType & dictionary, const mat &) {assert(false) ;}; //Solution is known, this should not get called.
+  void ComputeSolution(solutionDictionaryType & dictionary, const mat &, double *) {assert(false) ;}; //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;};
   void ToggleSolved() {};
   void SetInput(const uvec & inputVec) { _input = inputVec ;} ;

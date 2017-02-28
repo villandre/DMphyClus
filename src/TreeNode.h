@@ -25,7 +25,7 @@ public:
   virtual void RemoveChildren() = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
   virtual void SetSolution(vec &) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &, const mat &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &, const mat &, double *) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void ToggleSolved() = 0;
   virtual void SetInput(const uvec &) = 0 ;

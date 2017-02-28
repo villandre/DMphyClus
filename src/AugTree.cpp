@@ -19,6 +19,7 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 
 AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const std::vector<uvec> & alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
 {
+  _exponentContainer = 0 ;
   _numTips = numTips ;
   _limProbs = limProbs ;
   _rateCateg = rateCategIndex ;
@@ -32,6 +33,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const std::
 
 AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
 {
+  _exponentContainer = 0 ;
   _numTips = numTips ;
   _rateCateg = rateCategIndex ;
   _limProbs = limProbs ;
@@ -42,6 +44,7 @@ AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTi
 
 void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) 
 {
+  _exponentContainer = sourceAugTree->GetExponentContainer() ;
   uint sourceVertexIndex = 0 ; // Defining an iterator on sourceAugTree->GetVertexVector() cannot be done without copying it, which I can't explain for now.
   for (auto & i : _vertexVector)
   {
@@ -125,7 +128,7 @@ void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat &
 {
   //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
   TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
-  _likelihood = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
+  _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
 }
 
 void AugTree::InitializeVertices(const std::vector<uvec> & alignmentBinOneLocusOneRate)
@@ -172,11 +175,11 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster.
-      vertex->ComputeSolution(solutionDictionary, withinTransProbMat) ;
+      vertex->ComputeSolution(solutionDictionary, withinTransProbMat, &_exponentContainer) ;
     }
     else
     {
-      vertex->ComputeSolution(solutionDictionary, betweenTransProbMat) ;
+      vertex->ComputeSolution(solutionDictionary, betweenTransProbMat, &_exponentContainer) ;
     }
   }
 }
@@ -358,11 +361,16 @@ void Forest::ComputeLoglik()
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;
+  Col<double> exponentVec(_forest.size()) ;
+  
   std::transform(_forest.begin(), _forest.end(), likAcrossRatesLoci.begin(), [] (AugTree * myTree) {return myTree->GetLikelihood() ;}) ;
+  std::transform(_forest.begin(), _forest.end(), exponentVec.begin(), [] (AugTree * myTree) {return myTree->GetExponentContainer() ;}) ;
   
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
-    rateAveragedLogLiks[i] = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1))) ;
+    double maxExponent = max(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)) ;
+    exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
+    rateAveragedLogLiks[i] = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
   _loglik = sum(rateAveragedLogLiks) ;
 }
