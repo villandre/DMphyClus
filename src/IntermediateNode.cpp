@@ -5,6 +5,7 @@
 void IntermediateNode::InvalidateSolution()
 {
   _isSolved = false ;
+  _keyDefined = false ; // If a solution is invalidated, it means something changed in lower vertice, which also invalidates the key.
   _solution = zeros<Col<double>>(_solution.size()) ;
   if (_parent != NULL)
   { // Root has a NULL parent.
@@ -47,15 +48,26 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution % (transProbM*child->GetSolution()) ;
   }
   double myMax = max(mySolution) ;
-  bool status = myMax < 1e-250 ; // To account for computational zeros...
+  bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
   if (status)
   {
     mySolution = mySolution/myMax ;
     *expContainer = *expContainer + log(myMax);
   }
+  // if (mySolution.has_nan())
+  // {
+  //   cout << "NaN! \n" ;
+  //   cout << "Id: " << _id << "\n" ;
+  //   cout << "Child 0 id: " << _children.at(0)->GetId() << "\n" ;
+  //   _children.at(0)->GetSolution().print("Child0 solution:") ;
+  //   cout << "Child 1 id: " << _children.at(1)->GetId() << "\n" ;
+  //   _children.at(1)->GetSolution().print("Child0 solution:") ;
+  //   cout << "Key defined? " << _children.at(0)->IsKeyDefined() << ", Solved? " << _children.at(0)->IsSolved() << "\n" ;
+  //   cout << "Key defined? " << _children.at(1)->IsKeyDefined() << ", Solved? " << _children.at(1)->IsSolved() << "\n" ;
+  // }
   _solution = mySolution ;
   _isSolved = true ;
-  //solutionDictionary[_dictionaryKey] = mySolution ;
+  (*solutionDictionary)[_dictionaryKey] = mySolution ;
 }
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)

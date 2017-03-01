@@ -106,9 +106,7 @@ public:
   std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;} ;
   void InvalidateBetweenSolutions() ;
   void InvalidateAllSolutions() ;
-    
-  // void AmendBetweenTransProbs(std::vector<mat> &) ;
-  // void AmendWithinTransProbs(std::vector<mat> &, uvec &) ;
+  
   void SetBetweenTransProbs(const std::vector<mat> newBetweenTransProbsVec) {_betweenTransProbMatVec = newBetweenTransProbsVec ;} ;
   void SetWithinTransProbs(const std::vector<mat> newWithinTransProbsVec) {_withinTransProbMatVec = newWithinTransProbsVec ;} ;
   void HandleSplit(uint) ;

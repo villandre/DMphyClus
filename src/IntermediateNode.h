@@ -16,7 +16,7 @@ public:
   void SetSolution(vec & solution) { _solution = solution ;};
   void ComputeSolution(solutionDictionaryType &, const mat &, double *) ;
   void InvalidateSolution() ;
-  void ToggleSolved() {_isSolved = !_isSolved ;};
+  void SetSolved(bool status) {_isSolved = status ;};
   void SetInput(const uvec &) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
   void DeriveKey(solutionDictionaryType &) ;
@@ -24,7 +24,7 @@ public:
   void EnterSolution(TreeNode * originVertex)
   {
     _solution = originVertex->GetSolution() ;
-    _isSolved = true ;
+    _isSolved = originVertex->IsSolved() ;
   };
 
   IntermediateNode(): _isSolved(false) {_parent = NULL ;  _keyDefined = false ;};

@@ -36,11 +36,11 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List & alignmentBin, uint numTips, uint numLoci)
 {
   omp_set_num_threads(numOpenMP) ; 
   
-  solutionDictionaryType solutionDictionary ;
+  solutionDictionaryType solutionDictionary = new std::unordered_map<std::size_t, Col<double>> ;
   Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
   PhylogeniesPoint1->ComputeLoglik() ;
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
@@ -222,6 +222,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, NumericVector & clusterMRCAs, Inte
         i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
       }
     }
+    
     newForest->ComputeLoglik() ;
     umat newEdge = newForest->GetForest().at(0)->BuildEdgeMatrix() ;
     XPtr<Forest> p(newForest, false) ;
@@ -272,6 +273,7 @@ void finalDeallocate(SEXP ForestPointer) // We need to explicitly deallocate the
 {
   XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
   gsl_rng_free(oriForest->GetRandomNumGenerator()) ;
+  delete oriForest->GetSolutionDictionary() ;
 }
 
 // [[Rcpp::export]]

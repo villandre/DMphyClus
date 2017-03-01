@@ -12,7 +12,7 @@ public:
   void SetSolution(vec & inputVec) {assert(false) ;};
   void ComputeSolution(solutionDictionaryType & dictionary, const mat &, double *) {assert(false) ;}; //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;};
-  void ToggleSolved() {};
+  void SetSolved(bool status) {};
   void SetInput(const uvec & inputVec) { _input = inputVec ;} ;
   std::vector<TreeNode *> GetChildren() {std::vector<TreeNode *> myVec; myVec.push_back(NULL) ; return myVec;}; // An input node returns a null pointer when it is asked to provide the address of a child.
   void DeriveKey(solutionDictionaryType &) ;

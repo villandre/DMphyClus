@@ -28,7 +28,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const std::
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices(alignmentBinOneLocusOneRate) ;
   AssociateTransProbMatrices(clusterMRCAs) ; 
-  //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
+  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
@@ -114,19 +114,23 @@ void AugTree::BuildTree(umat & edgeMatrix)
 
 void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary)
 {
-  if (!vertex->CanFindKey()) // If a vertex can be solved, then its children have patterns assigned to them.
+  if (!vertex->IsKeyDefined())
   {
-    for (auto & i : vertex->GetChildren())
+    if (!vertex->CanFindKey()) // If a vertex can be solved, then its children have patterns assigned to them.
     {
-      ComputeKeys(i, solutionDictionary) ;
+      for (auto & i : vertex->GetChildren())
+      {
+        ComputeKeys(i, solutionDictionary) ;
+      }
     }
+    vertex->DeriveKey(solutionDictionary) ;
   }
-  vertex->DeriveKey(solutionDictionary) ;
 }
 
 void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat)
 {
-  //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
+  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ;
+  PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
   TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
   _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
 }
@@ -137,7 +141,7 @@ void AugTree::InitializeVertices(const std::vector<uvec> & alignmentBinOneLocusO
   for (auto & i : alignmentBinOneLocusOneRate)
   {
     (*treeIter)->SetInput(i) ; 
-    (*treeIter)->ToggleSolved() ;
+    //(*treeIter)->ToggleSolved() ;
     treeIter++ ;
   }
 }
@@ -146,7 +150,6 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
 {
   if (!currentNode->IsSolved() && !solutionDictionary->empty())
   { // If the node is already solved, no need to update it with a stored pattern.
-
     if (solutionDictionary->count(currentNode->GetDictionaryKey()) == 0)
     {
       for (auto & i : currentNode->GetChildren())
@@ -157,7 +160,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
     else
     {
       currentNode->SetSolution((*solutionDictionary)[currentNode->GetDictionaryKey()]) ;
-      currentNode->ToggleSolved() ;
+      currentNode->SetSolved(true) ;
     }
   }
 }
@@ -188,7 +191,8 @@ void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
 {
   for (auto & i : _vertexVector)
   {
-    i->ToggleSolved() ;
+    i->SetSolved(false) ;
+    i->MarkKeyUndefined() ;
   }
 }
 
@@ -351,7 +355,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
 void Forest::ComputeLoglik()
 {
   uint rateCategIndex = 0 ;
-  #pragma omp parallel for 
+  //#pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
     (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex)) ;
@@ -372,6 +376,7 @@ void Forest::ComputeLoglik()
     exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
     rateAveragedLogLiks[i] = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
+  
   _loglik = sum(rateAveragedLogLiks) ;
 }
 
@@ -446,7 +451,9 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
   {
     if (!(currentVertex->GetChildren().at(0)->GetWithinParentBranch()))
     {
-      currentVertex->ToggleSolved() ;
+      currentVertex->SetSolved(false) ;
+      currentVertex->MarkKeyUndefined() ;
+      
       for (auto & child : currentVertex->GetChildren())
       {
         CheckAndInvalidateBetweenRecursive(child) ;
