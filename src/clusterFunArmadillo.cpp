@@ -36,15 +36,21 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List & alignmentBin, uint numTips, uint numLoci)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci)
 {
   omp_set_num_threads(numOpenMP) ;
   
-  std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>>(as<std::vector<std::vector<uvec>>>(alignmentBin)) ;
+  std::vector<std::vector<uvec>> alignmentBinRecast = as<std::vector<std::vector<uvec>>>(alignmentBin) ;
+  std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>> ;
+  convertedBinData->resize(alignmentBinRecast.size()) ;
+  for (uint i = 0 ; i < alignmentBinRecast.size() ; i++) {
+    convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
+    std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
+  }
   
-  solutionDictionaryType solutionDictionary = new std::unordered_map<std::size_t, Col<double>> ;
+  solutionDictionaryType solutionDictionary = new std::vector<std::unordered_map<std::size_t, Col<double>>>(4) ;
   Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
-  
+
   PhylogeniesPoint1->ComputeLoglik() ;
   
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.

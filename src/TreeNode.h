@@ -11,7 +11,7 @@ using namespace arma ;
 #ifndef TREENODE_H
 #define TREENODE_H
 
-typedef std::unordered_map<std::size_t, Col<double>>* solutionDictionaryType ;
+typedef std::vector<std::unordered_map<std::size_t, Col<double>>>* solutionDictionaryType ;
 typedef std::unordered_map<std::size_t, Col<double>>* nodePatternDictionaryType ;
 typedef std::vector<Col<double>> doubleVec ;
 
@@ -24,15 +24,15 @@ public:
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChildren() = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
-  virtual void SetSolution(vec &) = 0 ;
+  //virtual void SetSolution(vec &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &, const mat &, double *) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void SetSolved(bool) = 0;
   virtual void SetInput(uvec *) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
-  virtual vec GetSolution() = 0;
-  virtual void EnterSolution(TreeNode *) = 0;
+  virtual vec GetSolution(solutionDictionaryType &) = 0;
+  virtual void EnterInput(TreeNode *) = 0;
   virtual uvec * GetInput() = 0 ;
   
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};

@@ -6,7 +6,7 @@ void IntermediateNode::InvalidateSolution()
 {
   _isSolved = false ;
   _keyDefined = false ; // If a solution is invalidated, it means something changed in lower vertice, which also invalidates the key.
-  _solution = zeros<Col<double>>(_solution.size()) ;
+  
   if (_parent != NULL)
   { // Root has a NULL parent.
     _parent->InvalidateSolution() ;
@@ -65,26 +65,25 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   //   cout << "Key defined? " << _children.at(0)->IsKeyDefined() << ", Solved? " << _children.at(0)->IsSolved() << "\n" ;
   //   cout << "Key defined? " << _children.at(1)->IsKeyDefined() << ", Solved? " << _children.at(1)->IsSolved() << "\n" ;
   // }
-  _solution = mySolution ;
+  (*solutionDictionary).at(_rateCategory)[_dictionaryKey] = mySolution ;
+  //_solution = &(*solutionDictionary).at(_rateCategory)[_dictionaryKey] ;
   _isSolved = true ;
-  //(*solutionDictionary)[_dictionaryKey] = mySolution ;
 }
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
 {
-  std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())+2) ; // The hash key is computed from the rate category and the within/between status, hence +2.
+  std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())+1) ; // The hash key is computed from the rate category and the within/between status, hence +2.
   std::vector<std::size_t> hashKeys ;
   hashKeys.reserve(permutations.size()) ;
   std::transform(_children.begin(), _children.end(), permutations.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
-  permutations[_children.size()] = _rateCategory ;
   permutations[_children.size() + 1] = (std::size_t) _withinParentBranch ;
-  std::sort(permutations.begin(), permutations.end()-2); // The children keys should be re-ordered, not the rate category index and within-cluster indicator.
+  std::sort(permutations.begin(), permutations.end()-1); // The children keys should be re-ordered, not the within-cluster indicator.
   do {
     hashKeys.push_back(boost::hash_range(permutations.begin(), permutations.end())) ;
   } while ( std::next_permutation(permutations.begin(),permutations.end() - 2) );
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
-    if (solutionDictionary->find(hashKey) != solutionDictionary->end()) {
+    if (solutionDictionary->at(_rateCategory).find(hashKey) != solutionDictionary->at(_rateCategory).end()) {
       _dictionaryKey = hashKey ;
       foundSolution = true ;
       break ;

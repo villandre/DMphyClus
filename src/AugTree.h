@@ -28,7 +28,7 @@ protected:
   void BuildTree(umat &) ;
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
-  void InitializeVertices(std::vector<uvec> &) ;
+  void InitializeVertices(std::vector<uvec> *, solutionDictionaryType &) ;
   void AssociateTransProbMatrices(const uvec &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void GetNNIverticesInternalWithin(TreeNode *, std::vector<uint> *) ;
@@ -36,7 +36,7 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
+  AugTree(const umat &, const uvec &, std::vector<uvec> *, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
   AugTree(const umat &, const vec &, const uint, const uint) ;
   
   void TrySolve(TreeNode *, solutionDictionaryType &, const mat &, const mat &)  ;

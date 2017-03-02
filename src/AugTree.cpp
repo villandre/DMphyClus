@@ -17,18 +17,18 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 }
 
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<uvec> & alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<uvec> * alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
 { 
-  _exponentContainer = 0 ;
+  _exponentContainer = 0 ; 
   _numTips = numTips ;
   _limProbs = limProbs ;
   _rateCateg = rateCategIndex ;
   umat edgeMatrixCopy(edgeMatrix) ;
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
   BuildTree(edgeMatrixCopy) ;
-  InitializeVertices(alignmentBinOneLocusOneRate) ;
+  InitializeVertices(alignmentBinOneLocusOneRate, solutionDictionary) ;
   AssociateTransProbMatrices(clusterMRCAs) ; 
-//  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
+  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
@@ -49,7 +49,7 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
   for (auto & i : _vertexVector)
   {
     i->EnterCommonInfo(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
-    i->EnterSolution(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
+    i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
     sourceVertexIndex++ ;
   }
 }
@@ -135,12 +135,13 @@ void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat &
   _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
 }
 
-void AugTree::InitializeVertices(std::vector<uvec> & alignmentBinOneLocusOneRate)
+void AugTree::InitializeVertices(std::vector<uvec> * alignmentBinOneLocusOneRate, solutionDictionaryType & solutionDictionary)
 { 
   std::vector<TreeNode *>::iterator treeIter = _vertexVector.begin() ;
-  for (auto & i : alignmentBinOneLocusOneRate)
+  for (auto & i : *alignmentBinOneLocusOneRate)
   {
-    (*treeIter)->SetInput(&i) ; 
+    (*treeIter)->SetInput(&i) ;
+    (*treeIter)->DeriveKey(solutionDictionary) ;
     //(*treeIter)->ToggleSolved() ;
     treeIter++ ;
   }
@@ -150,7 +151,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
 {
   if (!currentNode->IsSolved() && !solutionDictionary->empty())
   { // If the node is already solved, no need to update it with a stored pattern.
-    if (solutionDictionary->count(currentNode->GetDictionaryKey()) == 0)
+    if (solutionDictionary->at(_rateCateg).count(currentNode->GetDictionaryKey()) == 0)
     {
       for (auto & i : currentNode->GetChildren())
       {
@@ -159,7 +160,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
     }
     else
     {
-      currentNode->SetSolution((*solutionDictionary)[currentNode->GetDictionaryKey()]) ;
+      //currentNode->SetSolution((*solutionDictionary)[currentNode->GetDictionaryKey()]) ;
       currentNode->SetSolved(true) ;
     }
   }
@@ -327,7 +328,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
     
     for (uint rateCategIndex = 0 ; rateCategIndex < _numRateCats ; rateCategIndex++)
     {
-      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, i, limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, &i, limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
       _forest.push_back(LocusRateAugTree) ;
     }
   }
@@ -357,7 +358,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
 void Forest::ComputeLoglik()
 {
   uint rateCategIndex = 0 ;
-  #pragma omp parallel for 
+  //#pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
     (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex)) ;
@@ -378,7 +379,15 @@ void Forest::ComputeLoglik()
     exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
     rateAveragedLogLiks[i] = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
-  rateAveragedLogLiks.print("Log-liks per rate:") ;
+  // likAcrossRatesLoci.rows(4116,4118).print("Log-liks per rate:") ;
+  // for (uint i = 4116 ; i < 4119 ; i++)
+  // {
+  //   cout << "Tree: " << i << "\n" ;
+  //   for (uint j = 0 ; j < 11 ; j++)
+  //   {
+  //     cout << _forest.at(i)->GetVertexVector().at(j)->GetSolution() << "\n";
+  //   }
+  // }
   
   _loglik = sum(rateAveragedLogLiks) ;
 }
