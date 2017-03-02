@@ -28,11 +28,12 @@ public:
   virtual void ComputeSolution(solutionDictionaryType &, const mat &, double *) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void SetInput(const uvec &) = 0 ;
+  virtual void SetInput(uvec *) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual void DeriveKey(solutionDictionaryType &) = 0;
   virtual vec GetSolution() = 0;
   virtual void EnterSolution(TreeNode *) = 0;
+  virtual uvec * GetInput() = 0 ;
   
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;

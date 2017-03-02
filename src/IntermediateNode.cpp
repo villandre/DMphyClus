@@ -67,7 +67,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   // }
   _solution = mySolution ;
   _isSolved = true ;
-  (*solutionDictionary)[_dictionaryKey] = mySolution ;
+  //(*solutionDictionary)[_dictionaryKey] = mySolution ;
 }
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)

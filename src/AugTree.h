@@ -28,7 +28,7 @@ protected:
   void BuildTree(umat &) ;
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
-  void InitializeVertices(const std::vector<uvec> &) ;
+  void InitializeVertices(std::vector<uvec> &) ;
   void AssociateTransProbMatrices(const uvec &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void GetNNIverticesInternalWithin(TreeNode *, std::vector<uint> *) ;
@@ -36,7 +36,7 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, const std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
+  AugTree(const umat &, const uvec &, std::vector<uvec> &, const Col<double> &, const uint, const uint, solutionDictionaryType &) ;
   AugTree(const umat &, const vec &, const uint, const uint) ;
   
   void TrySolve(TreeNode *, solutionDictionaryType &, const mat &, const mat &)  ;
@@ -87,11 +87,12 @@ protected:
   gsl_rng * _randomNumGenerator ;
   std::vector<mat> _withinTransProbMatVec ;
   std::vector<mat> _betweenTransProbMatVec ;
+  std::vector<std::vector<uvec>> * _alignmentBinReference ;
   
 public:
-  Forest(const IntegerMatrix &, const NumericVector &, const List &, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
+  Forest(const IntegerMatrix &, const NumericVector &, std::vector<std::vector<uvec>> *, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
   Forest() ;
-  Forest(const IntegerMatrix &, const vec &, uint, uint, uint, gsl_rng *, solutionDictionaryType) ;
+  Forest(const IntegerMatrix &, const vec &, uint, uint, uint, gsl_rng *, solutionDictionaryType, std::vector<std::vector<uvec>> *) ;
   
   ~Forest() {deallocate_container(_forest) ;}
   
@@ -101,6 +102,8 @@ public:
   std::vector<AugTree *> GetForest() {return _forest ;} ;
   uint GetNumRateCats() {return _numRateCats ;} ;
   uint GetNumLoci() {return _numLoci ;}
+  std::vector<std::vector<uvec>> * GetAlignmentBinReference() {return _alignmentBinReference ;} ;
+  
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
   std::vector<mat> GetWithinTransProbMatVec() { return _withinTransProbMatVec ;} ;
   std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;} ;

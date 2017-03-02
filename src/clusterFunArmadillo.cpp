@@ -38,14 +38,18 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List & alignmentBin, uint numTips, uint numLoci)
 {
-  omp_set_num_threads(numOpenMP) ; 
+  omp_set_num_threads(numOpenMP) ;
   
+  std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>>(as<std::vector<std::vector<uvec>>>(alignmentBin)) ;
   solutionDictionaryType solutionDictionary = new std::unordered_map<std::size_t, Col<double>> ;
-  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, alignmentBin, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
   PhylogeniesPoint1->ComputeLoglik() ;
+  
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
+  XPtr<std::vector<std::vector<uvec>>> alignExtPoint(convertedBinData, false) ;
+  
   return List::create(Named("logLik") = PhylogeniesPoint1->GetLoglik(),
-                      Named("solutionPointer") = p) ;
+                      Named("solutionPointer") = p, Named("alignmentBinPointer") = alignExtPoint) ;
 }
 
 std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
@@ -115,7 +119,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
     newForest->InputForestElements(oriForest) ;
     newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
     newForest->InvalidateBetweenSolutions() ;
@@ -139,7 +143,7 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
     newForest->InputForestElements(oriForest) ;
     newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
     newForest->InvalidateAllSolutions() ;
@@ -161,7 +165,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, IntegerMatrix & edgeMat, uint MRCAo
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
     newForest->InputForestElements(oriForest) ;
     AugTree * augTreePoint = newForest->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
@@ -201,7 +205,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, NumericVector & clusterMRCAs, Inte
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
     newForest->InputForestElements(oriForest) ;
     
     AugTree * augTreePoint = newForest->GetForest().at(0) ;
@@ -244,7 +248,7 @@ List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOr
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
     uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
     newForest->InputForestElements(oriForest) ;
     
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
@@ -274,6 +278,7 @@ void finalDeallocate(SEXP ForestPointer) // We need to explicitly deallocate the
   XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
   gsl_rng_free(oriForest->GetRandomNumGenerator()) ;
   delete oriForest->GetSolutionDictionary() ;
+  delete oriForest->GetAlignmentBinReference() ;
 }
 
 // [[Rcpp::export]]

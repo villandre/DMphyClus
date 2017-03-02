@@ -17,8 +17,8 @@ auto zip(const T&... containers) -> boost::iterator_range<boost::zip_iterator<de
 }
 
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const std::vector<uvec> & alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
-{
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<uvec> & alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
+{ 
   _exponentContainer = 0 ;
   _numTips = numTips ;
   _limProbs = limProbs ;
@@ -28,7 +28,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, const std::
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices(alignmentBinOneLocusOneRate) ;
   AssociateTransProbMatrices(clusterMRCAs) ; 
-  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
+//  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
@@ -129,18 +129,18 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
 
 void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat)
 {
-  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ;
-  PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
+  //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ;
+  //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
   TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
   _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
 }
 
-void AugTree::InitializeVertices(const std::vector<uvec> & alignmentBinOneLocusOneRate)
-{
+void AugTree::InitializeVertices(std::vector<uvec> & alignmentBinOneLocusOneRate)
+{ 
   std::vector<TreeNode *>::iterator treeIter = _vertexVector.begin() ;
   for (auto & i : alignmentBinOneLocusOneRate)
   {
-    (*treeIter)->SetInput(i) ; 
+    (*treeIter)->SetInput(&i) ; 
     //(*treeIter)->ToggleSolved() ;
     treeIter++ ;
   }
@@ -306,12 +306,12 @@ void AugTree::AddEdgeRecursion(umat & matToUpdate, uint & lineNum, TreeNode * cu
   }
 }
 
-Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, const List & alignmentBin, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
+Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBinPoint, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
 {
   _numLoci = numLoci ;
   _numRateCats = withinTransProbMatList.size() ;
   _solutionDictionary = solutionDictionary ;
-  _forest.reserve(alignmentBin.size()*withinTransProbMatList.size()) ;
+  _forest.reserve(alignmentBinPoint->size()*withinTransProbMatList.size()) ;
   _withinTransProbMatVec = as<std::vector<mat>>(withinTransProbMatList) ;
   _betweenTransProbMatVec = as<std::vector<mat>>(betweenTransProbMatList) ;
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
@@ -319,27 +319,29 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
   Col<double> limProbsRecast = as<Col<double>>(limProbs) ;
   
   _randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ; // This is the random number generator. It's initialized when the Forest is built, and the seed is 0 by default.
-
-  for (auto & i : alignmentBin) // Iterating on loci...
+  _alignmentBinReference = alignmentBinPoint ;
+  
+  for (auto & i : *alignmentBinPoint) // Iterating on loci...
   {
     uint locusRateIndex = 0 ;
     
     for (uint rateCategIndex = 0 ; rateCategIndex < _numRateCats ; rateCategIndex++)
     {
-      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, as<std::vector<uvec>>(i), limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, i, limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
       _forest.push_back(LocusRateAugTree) ;
     }
   }
 }
 
-Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numRateCats, uint numLoci, uint numTips, gsl_rng * ranNumGenerator, solutionDictionaryType solutionDictionary)
-{
+Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numRateCats, uint numLoci, uint numTips, gsl_rng * ranNumGenerator, solutionDictionaryType solutionDictionary, std::vector<std::vector<uvec>> * alignmentBinPoint)
+{ 
   _numRateCats = numRateCats ;
   _numLoci = numLoci ;
   _randomNumGenerator = ranNumGenerator ;
   _forest.reserve(numLoci*numRateCats) ;
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   _solutionDictionary = solutionDictionary ;
+  _alignmentBinReference = alignmentBinPoint ;
   
   for (uint i = 0; i < numLoci; i++) // Iterating on loci...
   {
@@ -355,7 +357,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
 void Forest::ComputeLoglik()
 {
   uint rateCategIndex = 0 ;
-  //#pragma omp parallel for 
+  #pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
   {
     (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex)) ;

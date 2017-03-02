@@ -17,10 +17,11 @@ public:
   void ComputeSolution(solutionDictionaryType &, const mat &, double *) ;
   void InvalidateSolution() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void SetInput(const uvec &) { assert(false) ;};
+  void SetInput(uvec *) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
   void DeriveKey(solutionDictionaryType &) ;
   vec GetSolution() {return _solution ;} ;
+  uvec * GetInput() {assert(false) ; return NULL;} ;
   void EnterSolution(TreeNode * originVertex)
   {
     _solution = originVertex->GetSolution() ;
