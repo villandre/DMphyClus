@@ -378,6 +378,7 @@ void Forest::ComputeLoglik()
     exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
     rateAveragedLogLiks[i] = log(mean(likAcrossRatesLoci.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
+  rateAveragedLogLiks.print("Log-liks per rate:") ;
   
   _loglik = sum(rateAveragedLogLiks) ;
 }

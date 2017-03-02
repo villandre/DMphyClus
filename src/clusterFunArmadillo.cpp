@@ -41,8 +41,10 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   omp_set_num_threads(numOpenMP) ;
   
   std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>>(as<std::vector<std::vector<uvec>>>(alignmentBin)) ;
+  
   solutionDictionaryType solutionDictionary = new std::unordered_map<std::size_t, Col<double>> ;
   Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+  
   PhylogeniesPoint1->ComputeLoglik() ;
   
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
