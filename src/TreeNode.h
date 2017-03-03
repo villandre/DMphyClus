@@ -34,6 +34,7 @@ public:
   virtual vec GetSolution(solutionDictionaryType &, const uint &) = 0;
   virtual void EnterInput(TreeNode *) = 0;
   virtual uvec * GetInput() = 0 ;
+  virtual void MarkKeyUndefined() = 0 ;
   
   std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
   TreeNode * GetParent() {return _parent ;} ;
@@ -43,7 +44,7 @@ public:
   bool IsKeyDefined() {return _keyDefined ;} ;
   bool GetWithinParentBranch() {return _withinParentBranch ;} ;
   //std::size_t GetRateCategory() {return _rateCategory ;} ;
-  void MarkKeyUndefined() { _keyDefined = false ;} ;
+  
   
   void EnterCommonInfo(TreeNode * originVertex)
   {

@@ -48,7 +48,7 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
   for (auto & i : _vertexVector)
   {
     i->EnterCommonInfo(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
-    //i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
+    i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
     sourceVertexIndex++ ;
   }
 }
@@ -494,6 +494,8 @@ void Forest::InvalidateAllSolutions()
   for (auto & augtree : _forest)
   {
     augtree->InvalidateAll() ;
+    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
   }
 }
 

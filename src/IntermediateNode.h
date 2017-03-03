@@ -23,6 +23,7 @@ public:
   vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg) {return dictionary->at(rateCateg)[_dictionaryKey] ;} ;
   uvec * GetInput() {assert(false) ; return NULL;} ;
   void EnterInput(TreeNode * originVertex) {} ;
+  void MarkKeyUndefined() {_keyDefined = false ;} ;
 
   IntermediateNode(): _isSolved(false) {_parent = NULL ;  _keyDefined = false ;};
   

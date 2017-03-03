@@ -22,6 +22,7 @@ public:
   {
     _input = originVertex->GetInput() ;
   };
+  void MarkKeyUndefined() {} ;
   
   InputNode() {_parent = NULL ; _keyDefined = false ;};
   
