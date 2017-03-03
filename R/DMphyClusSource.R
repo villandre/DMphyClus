@@ -231,12 +231,12 @@ reorderTips <- function(phylogeny, newTipOrder)
   {
     if (betweenBool)
     {
-      newLogLikAndPoint <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads)
+      newLogLikAndPoint <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newBetweenMatListIndex = newIndex)
       newLogLik <- newLogLikAndPoint$logLik
     }
     else
     {
-      newLogLikAndPoint <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads)
+      newLogLikAndPoint <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newWithinMatListIndex = newIndex)
       newLogLik <- newLogLikAndPoint$logLik
     }
   }

@@ -30,7 +30,7 @@ public:
   virtual void SetSolved(bool) = 0;
   virtual void SetInput(uvec *) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
-  virtual void DeriveKey(solutionDictionaryType &, const uint &) = 0;
+  virtual void DeriveKey(solutionDictionaryType &, const uint &, const uint &) = 0;
   virtual vec GetSolution(solutionDictionaryType &, const uint &) = 0;
   virtual void EnterInput(TreeNode *) = 0;
   virtual uvec * GetInput() = 0 ;

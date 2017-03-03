@@ -28,7 +28,6 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices(alignmentBinOneLocusOneRate, solutionDictionary) ;
   AssociateTransProbMatrices(clusterMRCAs) ;
-  ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
 }
 
 AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
@@ -49,7 +48,7 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
   for (auto & i : _vertexVector)
   {
     i->EnterCommonInfo(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
-    i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
+    //i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
     sourceVertexIndex++ ;
   }
 }
@@ -112,7 +111,7 @@ void AugTree::BuildTree(umat & edgeMatrix)
   }
 }
 
-void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary)
+void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary, const uint withinMatListIndex, const uint betweenMatListIndex)
 {
   if (!vertex->IsKeyDefined())
   {
@@ -120,10 +119,15 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
     {
       for (auto & i : vertex->GetChildren())
       {
-        ComputeKeys(i, solutionDictionary) ;
+        ComputeKeys(i, solutionDictionary, withinMatListIndex, betweenMatListIndex) ;
       }
     }
-    vertex->DeriveKey(solutionDictionary, _rateCateg) ;
+    uint matListIndex = betweenMatListIndex ; 
+    if (vertex->GetChildren().at(0)->GetWithinParentBranch())
+    {
+      matListIndex = withinMatListIndex ;
+    }
+    vertex->DeriveKey(solutionDictionary, _rateCateg, matListIndex) ;
   }
 }
 
@@ -141,7 +145,7 @@ void AugTree::InitializeVertices(std::vector<uvec> * alignmentBinOneLocusOneRate
   for (auto & i : *alignmentBinOneLocusOneRate)
   {
     (*treeIter)->SetInput(&i) ;
-    (*treeIter)->DeriveKey(solutionDictionary, _rateCateg) ;
+    (*treeIter)->DeriveKey(solutionDictionary, _rateCateg, 0) ; // The 0 is a placeholder. It is not used in deriving the key for the tip configurations. 
     treeIter++ ;
   }
 }
@@ -264,7 +268,7 @@ void AugTree::GetNNIverticesInternalBetween(TreeNode * currentVertex, std::vecto
 }
 
 
-void AugTree::RearrangeTreeNNI(uint vertexId1, uint vertexId2) 
+void AugTree::RearrangeTreeNNI(uint vertexId1, uint vertexId2, solutionDictionaryType solutionDictionary) 
 {
   _vertexVector.at(vertexId1)->GetParent()->RemoveChild(_vertexVector.at(vertexId1)) ;
   _vertexVector.at(vertexId1)->GetParent()->AddChild(_vertexVector.at(vertexId2)) ;
@@ -306,7 +310,7 @@ void AugTree::AddEdgeRecursion(umat & matToUpdate, uint & lineNum, TreeNode * cu
   }
 }
 
-Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBinPoint, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary)
+Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBinPoint, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary, const uint withinMatListIndex, const uint betweenMatListIndex)
 {
   _numLoci = numLoci ;
   _numRateCats = withinTransProbMatList.size() ;
@@ -317,6 +321,8 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
   vec limProbsRecast = as<vec>(limProbs) ;
+  _withinMatListIndex = withinMatListIndex ;
+  _betweenMatListIndex = betweenMatListIndex ;
   
   _randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ; // This is the random number generator. It's initialized when the Forest is built, and the seed is 0 by default.
   _alignmentBinReference = alignmentBinPoint ;
@@ -328,12 +334,13 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
     for (uint rateCategIndex = 0 ; rateCategIndex < _numRateCats ; rateCategIndex++)
     {
       AugTree * LocusRateAugTree = new AugTree(edgeMatrixRecast, clusterMRCAsRecast, &i, limProbsRecast, numTips, rateCategIndex, _solutionDictionary) ;
+      LocusRateAugTree->ComputeKeys(LocusRateAugTree->GetVertexVector().at(LocusRateAugTree->GetNumTips()), solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ; // We start obtaining keys at the root.
       _forest.push_back(LocusRateAugTree) ;
     }
   }
 }
 
-Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numRateCats, uint numLoci, uint numTips, gsl_rng * ranNumGenerator, solutionDictionaryType solutionDictionary, std::vector<std::vector<uvec>> * alignmentBinPoint)
+Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numRateCats, uint numLoci, uint numTips, gsl_rng * ranNumGenerator, solutionDictionaryType solutionDictionary, std::vector<std::vector<uvec>> * alignmentBinPoint, const uint withinMatListIndex, const uint betweenMatListIndex)
 { 
   _numRateCats = numRateCats ;
   _numLoci = numLoci ;
@@ -342,6 +349,8 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBinPoint ;
+  _withinMatListIndex = withinMatListIndex ;
+  _betweenMatListIndex = betweenMatListIndex ;
   
   for (uint i = 0; i < numLoci; i++) // Iterating on loci...
   {
@@ -395,6 +404,9 @@ void Forest::HandleSplit(uint clusMRCAtoSplit)
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->InvalidateSolution() ;
+    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
+    
     for (auto & childNode : augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->GetChildren())
     {
       childNode->SetWithinParentBranch(false) ;
@@ -407,6 +419,9 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge)
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAstoMerge.at(0) - 1)->GetParent()->InvalidateSolution() ; // Elements of clusMRCAsToMerge should all have the same parent to allow a merge to occur.
+    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
+    
     for (auto & oldClusterMRCA : clusMRCAstoMerge)
     {
       augtree->GetVertexVector().at(oldClusterMRCA - 1)->SetWithinParentBranch(true) ;
@@ -452,6 +467,8 @@ void Forest::InvalidateBetweenSolutions()
   for (auto & augtree : _forest)
   {
     augtree->CheckAndInvalidateBetweenRecursive(augtree->GetVertexVector().at(numTips)) ;
+    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
   }
 }
 
@@ -477,5 +494,15 @@ void Forest::InvalidateAllSolutions()
   for (auto & augtree : _forest)
   {
     augtree->InvalidateAll() ;
+  }
+}
+
+void Forest::RearrangeNNI(const uint vertexId1, const uint vertexId2)
+{
+  for (auto & i : _forest)
+  {
+    i->RearrangeTreeNNI(vertexId1, vertexId2, _solutionDictionary) ;
+    i->ComputeKeys(i->GetVertexVector().at(i->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    i->PatternLookup(_solutionDictionary, i->GetVertexVector().at(i->GetNumTips())) ;
   }
 }

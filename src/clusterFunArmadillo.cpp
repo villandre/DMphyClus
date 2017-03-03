@@ -36,7 +36,7 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex)
 {
   omp_set_num_threads(numOpenMP) ;
   
@@ -49,7 +49,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   }
   cout << "About to build dictionary and Forest... " ;
   solutionDictionaryType solutionDictionary = new std::vector<std::unordered_map<std::size_t, vec>>(withinTransMatList.size()) ;
-  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
+  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex);
   cout << "Done! \n" ;
   PhylogeniesPoint1->ComputeLoglik() ;
   
@@ -121,13 +121,13 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs, IntegerMatrix & edgeMat, int numOpenMP) 
+List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs, IntegerMatrix & edgeMat, int numOpenMP, uint newBetweenMatListIndex) 
 {
-  omp_set_num_threads(numOpenMP) ;
+  //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference(), oriForest->GetWithinMatListIndex(), newBetweenMatListIndex) ;
     newForest->InputForestElements(oriForest) ;
     newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
     newForest->InvalidateBetweenSolutions() ;
@@ -144,14 +144,14 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, List & newBetweenTransProbs,
 
 // [[Rcpp::export]]
 
-List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs, IntegerMatrix & edgeMat, int numOpenMP) 
+List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs, IntegerMatrix & edgeMat, int numOpenMP, uint newWithinMatListIndex) 
 {
-  omp_set_num_threads(numOpenMP) ; 
+  //omp_set_num_threads(numOpenMP) ; 
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference(), newWithinMatListIndex, oriForest->GetBetweenMatListIndex()) ;
     newForest->InputForestElements(oriForest) ;
     newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
     newForest->InvalidateAllSolutions() ;
@@ -169,11 +169,11 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, Int
 
 List withinClusNNIlogLik(SEXP ForestPointer, IntegerMatrix & edgeMat, uint MRCAofClusForNNI, uint numMovesNNI, int numOpenMP) 
 {
-  omp_set_num_threads(numOpenMP) ;
+  //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference(), oriForest->GetWithinMatListIndex(), oriForest->GetBetweenMatListIndex()) ;
     newForest->InputForestElements(oriForest) ;
     AugTree * augTreePoint = newForest->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
@@ -187,11 +187,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, IntegerMatrix & edgeMat, uint MRCAo
       uvec placeholder(1) ;
       placeholder.at(0) = -1 ; // Probably a better way to do this than using a placeholder...
       vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(newForest->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
-      
-      for (auto & i : newForest->GetForest())
-      {
-        i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
-      }
+      newForest->RearrangeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
     newForest->ComputeLoglik() ;
     umat newEdge = newForest->GetForest().at(0)->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
@@ -209,11 +205,11 @@ List withinClusNNIlogLik(SEXP ForestPointer, IntegerMatrix & edgeMat, uint MRCAo
 
 List betweenClusNNIlogLik(SEXP ForestPointer, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint numMovesNNI, int numOpenMP) 
 {
-  omp_set_num_threads(numOpenMP) ;
+  //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference(), oriForest->GetWithinMatListIndex(), oriForest->GetBetweenMatListIndex()) ;
     newForest->InputForestElements(oriForest) ;
     
     AugTree * augTreePoint = newForest->GetForest().at(0) ;
@@ -231,7 +227,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, NumericVector & clusterMRCAs, Inte
       
       for (auto & i : newForest->GetForest())
       {
-        i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+        i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1), newForest->GetSolutionDictionary()) ;
       }
     }
     
@@ -251,12 +247,12 @@ List betweenClusNNIlogLik(SEXP ForestPointer, NumericVector & clusterMRCAs, Inte
 
 List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats, IntegerMatrix & edgeMat, int numOpenMP) 
 {
-  omp_set_num_threads(numOpenMP) ;
+  //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL))
   {
     XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
     uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
-    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference()) ;
+    Forest * newForest = new Forest(edgeMat, oriForest->GetForest().at(0)->GetLimProbs(), oriForest->GetNumRateCats(),  oriForest->GetNumLoci(), oriForest->GetForest().at(0)->GetNumTips(), oriForest->GetRandomNumGenerator(), oriForest->GetSolutionDictionary(), oriForest->GetAlignmentBinReference(), oriForest->GetWithinMatListIndex(), oriForest->GetBetweenMatListIndex()) ;
     newForest->InputForestElements(oriForest) ;
     
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move

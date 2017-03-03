@@ -70,17 +70,19 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   _isSolved = true ;
 }
 
-void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory)
+void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory, const uint & matListIndex)
 {
-  std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(3) ; // The hash key is also computed from the within/between status, hence +1. The tree is assumed to be bifurcating, hence the 3.
+  std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(4) ; // The hash key is also computed from the within/between status, and betweenMatListIndex or withinMatListIndex, hence +2. The tree is assumed bifurcating, hence the 4.
   std::vector<std::size_t> hashKeys ;
   hashKeys.reserve(childrenKeysAndWithinBetweenFlag.size()) ;
   std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
-  childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _withinParentBranch ;
-  std::sort(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-1); // The children keys should be re-ordered, not the within-cluster indicator.
+  childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _children.at(0)->GetWithinParentBranch() ;
+  childrenKeysAndWithinBetweenFlag.at(3) = matListIndex ;
+  
+  std::sort(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2); // The children keys should be re-ordered, not the within-cluster indicator.
   do {
     hashKeys.push_back(boost::hash_range(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end())) ;
-  } while ( std::next_permutation(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-1));
+  } while ( std::next_permutation(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2));
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
     if (solutionDictionary->at(rateCategory).find(hashKey) != solutionDictionary->at(rateCategory).end()) {

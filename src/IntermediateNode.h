@@ -19,7 +19,7 @@ public:
   void SetSolved(bool status) {_isSolved = status ;};
   void SetInput(uvec *) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
-  void DeriveKey(solutionDictionaryType &, const uint &) ;
+  void DeriveKey(solutionDictionaryType &, const uint &, const uint &) ;
   vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg) {return dictionary->at(rateCateg)[_dictionaryKey] ;} ;
   uvec * GetInput() {assert(false) ; return NULL;} ;
   void EnterInput(TreeNode * originVertex) {} ;

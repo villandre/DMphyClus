@@ -30,7 +30,6 @@ protected:
   void InitializeFromDictionary() ;
   void InitializeVertices(std::vector<uvec> *, solutionDictionaryType &) ;
   void AssociateTransProbMatrices(const uvec &) ;
-  void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void GetNNIverticesInternalWithin(TreeNode *, std::vector<uint> *) ;
   void GetNNIverticesInternalBetween(TreeNode *, std::vector<uint> *, uvec &) ;
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
@@ -42,7 +41,8 @@ public:
   void TrySolve(TreeNode *, solutionDictionaryType &, const mat &, const mat &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &) ;
-  void ComputeKeys(TreeNode *, solutionDictionaryType &) ;
+  void ComputeKeys(TreeNode *, solutionDictionaryType &, const uint, const uint) ;
+  void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
   void BindMatrix(TreeNode *, const bool) ;
@@ -63,8 +63,9 @@ public:
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
   vec GetLimProbs() { return _limProbs ;} ;
   double GetExponentContainer() { return _exponentContainer ;} ;
+  uint GetRateCateg() {return _rateCateg ;} ;
   
-  void RearrangeTreeNNI(uint, uint) ;
+  void RearrangeTreeNNI(uint, uint, solutionDictionaryType) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
   // AugTree( const AugTree& other ):_limProbs(other._limProbs), _likelihood(other._likelihood), _numTips(other._numTips), _rateCateg(other._rateCateg)
@@ -84,15 +85,17 @@ protected:
   solutionDictionaryType _solutionDictionary ;
   uint _numLoci ;
   uint _numRateCats ;
+  uint _withinMatListIndex ;
+  uint _betweenMatListIndex ;
   gsl_rng * _randomNumGenerator ;
   std::vector<mat> _withinTransProbMatVec ;
   std::vector<mat> _betweenTransProbMatVec ;
   std::vector<std::vector<uvec>> * _alignmentBinReference ;
   
 public:
-  Forest(const IntegerMatrix &, const NumericVector &, std::vector<std::vector<uvec>> *, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &) ;
+  Forest(const IntegerMatrix &, const NumericVector &, std::vector<std::vector<uvec>> *, const List &, const List &, const NumericVector &, const uint, const uint, solutionDictionaryType &, const uint, const uint) ;
   Forest() ;
-  Forest(const IntegerMatrix &, const vec &, uint, uint, uint, gsl_rng *, solutionDictionaryType, std::vector<std::vector<uvec>> *) ;
+  Forest(const IntegerMatrix &, const vec &, uint, uint, uint, gsl_rng *, solutionDictionaryType, std::vector<std::vector<uvec>> *, const uint, const uint) ;
   
   ~Forest() {deallocate_container(_forest) ;}
   
@@ -107,6 +110,9 @@ public:
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
   std::vector<mat> GetWithinTransProbMatVec() { return _withinTransProbMatVec ;} ;
   std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;} ;
+  uint GetWithinMatListIndex() {return _withinMatListIndex ;} ;
+  uint GetBetweenMatListIndex() {return _betweenMatListIndex ;} ;
+  
   void InvalidateBetweenSolutions() ;
   void InvalidateAllSolutions() ;
   
@@ -115,6 +121,7 @@ public:
   void HandleSplit(uint) ;
   void HandleMerge(uvec &) ;
   void SetLogLik(double logLik) {_loglik = logLik ;} ;
+  void RearrangeNNI(const uint, const uint) ;
   
   void InputForestElements(XPtr<Forest> originForest) ;
 };

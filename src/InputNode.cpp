@@ -1,6 +1,6 @@
 #include "InputNode.h"
 
-void InputNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory)
+void InputNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory, const uint & matListIndex)
 {
   std::vector<uint> intEquiv = conv_to<std::vector<uint>>::from(*_input) ;
   std::vector<bool> boolEquiv(intEquiv.size()) ;
