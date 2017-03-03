@@ -283,10 +283,6 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
 
     paraVec <- currentValue$paraValues
-    if (x == nIter) # Automatic garbage collection for the pointer is disabled.
-    {
-      manualDeallocation(currentValue$extPointer)
-    }
     c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
   })
   setTxtProgressBar(pb = progress, value = 1)
