@@ -45,7 +45,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   Col<double> mySolution(transProbM.n_rows, fill::ones) ;
   for(auto & child : _children)
   {
-    mySolution = mySolution % (transProbM*child->GetSolution()) ;
+    mySolution = mySolution % (transProbM*child->GetSolution(solutionDictionary)) ;
   }
   double myMax = max(mySolution) ;
   bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
@@ -80,7 +80,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   std::sort(permutations.begin(), permutations.end()-1); // The children keys should be re-ordered, not the within-cluster indicator.
   do {
     hashKeys.push_back(boost::hash_range(permutations.begin(), permutations.end())) ;
-  } while ( std::next_permutation(permutations.begin(),permutations.end() - 2) );
+  } while ( std::next_permutation(permutations.begin(), permutations.end() - 1) );
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
     if (solutionDictionary->at(_rateCategory).find(hashKey) != solutionDictionary->at(_rateCategory).end()) {

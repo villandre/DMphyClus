@@ -132,7 +132,7 @@ void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat &
   //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ;
   //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
   TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
-  _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(), _limProbs) ;
+  _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(solutionDictionary), _limProbs) ;
 }
 
 void AugTree::InitializeVertices(std::vector<uvec> * alignmentBinOneLocusOneRate, solutionDictionaryType & solutionDictionary)
