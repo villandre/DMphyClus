@@ -14,13 +14,13 @@ public:
   void RemoveChildren() {_children.clear() ;} ;
   void RemoveChild(TreeNode *) ;
   //void SetSolution(vec * solution) { _solution = solution ;};
-  void ComputeSolution(solutionDictionaryType &, const mat &, double *) ;
+  void ComputeSolution(solutionDictionaryType &, const mat &, double *, const uint &) ;
   void InvalidateSolution() ;
   void SetSolved(bool status) {_isSolved = status ;};
   void SetInput(uvec *) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
-  void DeriveKey(solutionDictionaryType &) ;
-  vec GetSolution(solutionDictionaryType & dictionary) {return dictionary->at(_rateCategory)[_dictionaryKey] ;} ;
+  void DeriveKey(solutionDictionaryType &, const uint &) ;
+  vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg) {return dictionary->at(rateCateg)[_dictionaryKey] ;} ;
   uvec * GetInput() {assert(false) ; return NULL;} ;
   void EnterInput(TreeNode * originVertex) {} ;
 

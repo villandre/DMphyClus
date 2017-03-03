@@ -47,10 +47,10 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
     convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
     std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
   }
-  
-  solutionDictionaryType solutionDictionary = new std::vector<std::unordered_map<std::size_t, Col<double>>>(4) ;
+  cout << "About to build dictionary and Forest... " ;
+  solutionDictionaryType solutionDictionary = new std::vector<std::unordered_map<std::size_t, vec>>(withinTransMatList.size()) ;
   Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary);
-
+  cout << "Done! \n" ;
   PhylogeniesPoint1->ComputeLoglik() ;
   
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.

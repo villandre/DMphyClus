@@ -10,13 +10,13 @@ public:
   void RemoveChildren() {};
   void RemoveChild(TreeNode *) {assert(false) ;} ;
   //void SetSolution(vec & inputVec) {assert(false) ;};
-  void ComputeSolution(solutionDictionaryType & dictionary, const mat &, double *) {assert(false) ;}; //Solution is known, this should not get called.
+  void ComputeSolution(solutionDictionaryType & dictionary, const mat &, double *, const uint &) {assert(false) ;}; //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;};
   void SetSolved(bool status) {};
   void SetInput(uvec * inputVec) { _input = inputVec ;} ;
   std::vector<TreeNode *> GetChildren() {std::vector<TreeNode *> myVec; myVec.push_back(NULL) ; return myVec;}; // An input node returns a null pointer when it is asked to provide the address of a child.
-  void DeriveKey(solutionDictionaryType &) ;
-  vec GetSolution(solutionDictionaryType & dictionary) {return conv_to<vec>::from(*_input) ;} ;
+  void DeriveKey(solutionDictionaryType &, const uint &) ;
+  vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg) {return conv_to<vec>::from(*_input) ;} ;
   uvec * GetInput() { return _input ;} ;
   void EnterInput(TreeNode * originVertex)
   {

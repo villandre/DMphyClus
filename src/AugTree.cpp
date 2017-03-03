@@ -27,8 +27,10 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices(alignmentBinOneLocusOneRate, solutionDictionary) ;
-  AssociateTransProbMatrices(clusterMRCAs) ; 
+  AssociateTransProbMatrices(clusterMRCAs) ;
+  cout << "Associating keys... " ;
   ComputeKeys(_vertexVector[_numTips], solutionDictionary) ; // We start obtaining keys at the root.
+  cout << "Done!" ;
 }
 
 AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
@@ -59,7 +61,7 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs)
   // By default all nodes are considered between clusters.
   for (auto & i : _vertexVector)
   {
-    i->SetWithinParentBranchAndRateCateg(false, _rateCateg) ;
+    i->SetWithinParentBranch(false) ;
   }
   
   for (auto & i : clusterMRCAs)
@@ -90,8 +92,8 @@ void AugTree::BuildTree(umat & edgeMatrix)
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
   for (uint i = 0; i < _numTips; i++) {
-    InputNode * newNode = new InputNode{};
-    _vertexVector.push_back(newNode) ; 
+    InputNode * newNode = new InputNode{} ;
+    _vertexVector.push_back(newNode) ;
   } ;
 
   // We add the internal nodes
@@ -123,7 +125,7 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
         ComputeKeys(i, solutionDictionary) ;
       }
     }
-    vertex->DeriveKey(solutionDictionary) ;
+    vertex->DeriveKey(solutionDictionary, _rateCateg) ;
   }
 }
 
@@ -132,19 +134,22 @@ void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat &
   //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ;
   //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
   TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
-  _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(solutionDictionary), _limProbs) ;
+  _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(solutionDictionary, _rateCateg), _limProbs) ;
 }
 
 void AugTree::InitializeVertices(std::vector<uvec> * alignmentBinOneLocusOneRate, solutionDictionaryType & solutionDictionary)
 { 
+  cout << "Initializing vertices... \n" ;
   std::vector<TreeNode *>::iterator treeIter = _vertexVector.begin() ;
   for (auto & i : *alignmentBinOneLocusOneRate)
   {
     (*treeIter)->SetInput(&i) ;
-    (*treeIter)->DeriveKey(solutionDictionary) ;
-    //(*treeIter)->ToggleSolved() ;
+    cout << "Done setting input! \n" ;
+    (*treeIter)->DeriveKey(solutionDictionary, _rateCateg) ;
+    cout << "Done deriving basic keys \n" ;
     treeIter++ ;
   }
+  cout << "Done! \n" ;
 }
 
 void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) 
@@ -179,11 +184,11 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster.
-      vertex->ComputeSolution(solutionDictionary, withinTransProbMat, &_exponentContainer) ;
+      vertex->ComputeSolution(solutionDictionary, withinTransProbMat, &_exponentContainer, _rateCateg) ;
     }
     else
     {
-      vertex->ComputeSolution(solutionDictionary, betweenTransProbMat, &_exponentContainer) ;
+      vertex->ComputeSolution(solutionDictionary, betweenTransProbMat, &_exponentContainer, _rateCateg) ;
     }
   }
 }
@@ -317,11 +322,11 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
   _betweenTransProbMatVec = as<std::vector<mat>>(betweenTransProbMatList) ;
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
-  Col<double> limProbsRecast = as<Col<double>>(limProbs) ;
+  vec limProbsRecast = as<vec>(limProbs) ;
   
   _randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ; // This is the random number generator. It's initialized when the Forest is built, and the seed is 0 by default.
   _alignmentBinReference = alignmentBinPoint ;
-  
+  cout << "Building trees... \n " ;
   for (auto & i : *alignmentBinPoint) // Iterating on loci...
   {
     uint locusRateIndex = 0 ;
@@ -332,6 +337,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMR
       _forest.push_back(LocusRateAugTree) ;
     }
   }
+  cout << "Done building trees! \n" ;
 }
 
 Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numRateCats, uint numLoci, uint numTips, gsl_rng * ranNumGenerator, solutionDictionaryType solutionDictionary, std::vector<std::vector<uvec>> * alignmentBinPoint)
@@ -357,6 +363,7 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
 
 void Forest::ComputeLoglik()
 {
+  cout << "About to compute log-lik vectors... " ;
   uint rateCategIndex = 0 ;
   //#pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
@@ -364,7 +371,7 @@ void Forest::ComputeLoglik()
     (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex)) ;
     rateCategIndex = littleCycle(rateCategIndex+1, _withinTransProbMatVec.size()) ;
   }
-  
+  cout << "Done!" ;
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   Col<double> rateAveragedLogLiks(_numLoci) ;
   Col<double> likAcrossRatesLoci(_forest.size()) ;

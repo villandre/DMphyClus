@@ -40,12 +40,12 @@ bool IntermediateNode::CanFindKey()
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double * expContainer)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double * expContainer, const uint & rateCategory)
 {
   Col<double> mySolution(transProbM.n_rows, fill::ones) ;
   for(auto & child : _children)
   {
-    mySolution = mySolution % (transProbM*child->GetSolution(solutionDictionary)) ;
+    mySolution = mySolution % (transProbM*child->GetSolution(solutionDictionary, rateCategory)) ;
   }
   double myMax = max(mySolution) ;
   bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
@@ -65,12 +65,12 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   //   cout << "Key defined? " << _children.at(0)->IsKeyDefined() << ", Solved? " << _children.at(0)->IsSolved() << "\n" ;
   //   cout << "Key defined? " << _children.at(1)->IsKeyDefined() << ", Solved? " << _children.at(1)->IsSolved() << "\n" ;
   // }
-  (*solutionDictionary).at(_rateCategory)[_dictionaryKey] = mySolution ;
+  (*solutionDictionary).at(rateCategory)[_dictionaryKey] = mySolution ;
   //_solution = &(*solutionDictionary).at(_rateCategory)[_dictionaryKey] ;
   _isSolved = true ;
 }
 
-void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
+void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory)
 {
   std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())+1) ; // The hash key is computed from the rate category and the within/between status, hence +2.
   std::vector<std::size_t> hashKeys ;
@@ -83,7 +83,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary)
   } while ( std::next_permutation(permutations.begin(), permutations.end() - 1) );
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
-    if (solutionDictionary->at(_rateCategory).find(hashKey) != solutionDictionary->at(_rateCategory).end()) {
+    if (solutionDictionary->at(rateCategory).find(hashKey) != solutionDictionary->at(rateCategory).end()) {
       _dictionaryKey = hashKey ;
       foundSolution = true ;
       break ;
