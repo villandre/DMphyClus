@@ -404,13 +404,13 @@ void Forest::HandleSplit(uint clusMRCAtoSplit)
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->InvalidateSolution() ;
-    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
-    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
     
     for (auto & childNode : augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->GetChildren())
     {
       childNode->SetWithinParentBranch(false) ;
     }
+    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
   }
 }
 
@@ -419,13 +419,13 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge)
   for (auto & augtree : _forest)
   {
     augtree->GetVertexVector().at(clusMRCAstoMerge.at(0) - 1)->GetParent()->InvalidateSolution() ; // Elements of clusMRCAsToMerge should all have the same parent to allow a merge to occur.
-    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
-    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
     
     for (auto & oldClusterMRCA : clusMRCAstoMerge)
     {
       augtree->GetVertexVector().at(oldClusterMRCA - 1)->SetWithinParentBranch(true) ;
     }
+    augtree->ComputeKeys(augtree->GetVertexVector().at(augtree->GetNumTips()), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(augtree->GetNumTips())) ;
   }
 }
 
