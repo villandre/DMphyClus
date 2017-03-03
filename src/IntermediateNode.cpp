@@ -72,15 +72,15 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
 
 void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory)
 {
-  std::vector<std::size_t> permutations(gsl_sf_fact(_children.size())+1) ; // The hash key is computed from the rate category and the within/between status, hence +2.
+  std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(3) ; // The hash key is also computed from the within/between status, hence +1. The tree is assumed to be bifurcating, hence the 3.
   std::vector<std::size_t> hashKeys ;
-  hashKeys.reserve(permutations.size()) ;
-  std::transform(_children.begin(), _children.end(), permutations.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
-  permutations[_children.size() + 1] = (std::size_t) _withinParentBranch ;
-  std::sort(permutations.begin(), permutations.end()-1); // The children keys should be re-ordered, not the within-cluster indicator.
+  hashKeys.reserve(childrenKeysAndWithinBetweenFlag.size()) ;
+  std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [] (TreeNode * childPointer) {return childPointer->GetDictionaryKey() ;}) ;
+  childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _withinParentBranch ;
+  std::sort(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-1); // The children keys should be re-ordered, not the within-cluster indicator.
   do {
-    hashKeys.push_back(boost::hash_range(permutations.begin(), permutations.end())) ;
-  } while ( std::next_permutation(permutations.begin(), permutations.end() - 1) );
+    hashKeys.push_back(boost::hash_range(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end())) ;
+  } while ( std::next_permutation(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-1));
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
     if (solutionDictionary->at(rateCategory).find(hashKey) != solutionDictionary->at(rateCategory).end()) {
