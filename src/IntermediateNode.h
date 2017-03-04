@@ -31,7 +31,6 @@ protected:
 
    bool _isSolved ;
    std::vector<TreeNode *> _children ;
-   //vec * _solution ;
 };
 
 #endif /* INTERMEDIATENODE_H */

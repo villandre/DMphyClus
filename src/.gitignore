@@ -16,3 +16,4 @@ VertexProperties.h
 AugTree.o
 InputNode.o
 IntermediateNode.o
+Forest.o

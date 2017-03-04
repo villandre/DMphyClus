@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-#include "AugTree.h"
+#include "Forest.h"
 #include <limits>
 #include <gsl/gsl_rng.h>
 
@@ -38,7 +38,7 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex)
 {
-  omp_set_num_threads(numOpenMP) ;
+  //omp_set_num_threads(numOpenMP) ;
   
   std::vector<std::vector<uvec>> alignmentBinRecast = as<std::vector<std::vector<uvec>>>(alignmentBin) ;
   std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>> ;

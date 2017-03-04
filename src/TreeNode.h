@@ -11,6 +11,8 @@ using namespace arma ;
 #ifndef TREENODE_H
 #define TREENODE_H
 
+#include "helper.h"
+
 typedef std::vector<std::unordered_map<std::size_t, Col<double>>>* solutionDictionaryType ;
 typedef std::unordered_map<std::size_t, Col<double>>* nodePatternDictionaryType ;
 typedef std::vector<Col<double>> doubleVec ;
