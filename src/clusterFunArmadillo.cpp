@@ -132,7 +132,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List 
     XPtr<Forest> newForest(alternatePointer) ;
     
     newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat)) ;
+    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
     newForest->InvalidateBetweenSolutions() ;
     newForest->ComputeLoglik() ;
@@ -157,7 +157,7 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List &
     XPtr<Forest> newForest(alternatePointer) ;
     
     newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat)) ;
+    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     
     newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
     newForest->InvalidateAllSolutions() ;
@@ -182,7 +182,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatri
     XPtr<Forest> newForest(alternatePointer) ;
     
     newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat)) ;
+    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     
     AugTree * augTreePoint = newForest->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
@@ -221,7 +221,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, NumericVect
     XPtr<Forest> newForest(alternatePointer) ;
     
     newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat)) ;
+    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     
     AugTree * augTreePoint = newForest->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
@@ -265,7 +265,7 @@ List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVect
     XPtr<Forest> newForest(alternatePointer) ;
     
     newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat)) ;
+    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
     {

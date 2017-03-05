@@ -26,7 +26,6 @@ public:
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChildren() = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
-  //virtual void SetSolution(vec &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &, const mat &, double *, const uint &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void SetSolved(bool) = 0;

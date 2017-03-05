@@ -74,6 +74,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$logLik <- logLikAndPointer$logLik
     currentValue$extPointer <- logLikAndPointer$solutionPointer
     currentValue$alignmentBinPointer <- logLikAndPointer$alignmentBinPointer
+    currentValue$alternatePointer <- logLikAndPointer$alternatePointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
     currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
@@ -93,7 +94,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
   }
   newLogLik <- newLogLikAndPoint$logLik
   
@@ -131,7 +132,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
   }
   newLogLik <- newLogLikAndPoint$logLik
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
@@ -193,17 +194,13 @@ reorderTips <- function(phylogeny, newTipOrder)
       currentValue$paraValues$clusInd <- splitMergeResult$clusInd
       currentValue$clusterCounts <- splitMergeResult$counts
       currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
-      manualDeallocation(currentValue$extPointer)
+      currentValue$alternatePointer <- currentValue$extPointer
       currentValue$extPointer <- splitMergeResult$updatedPointer
       if (!splitMove)
       {
         names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
         currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
       }
-    }
-    else
-    {
-      manualDeallocation(splitMergeResult$updatedPointer)
     }
     currentValue
 }
@@ -231,12 +228,12 @@ reorderTips <- function(phylogeny, newTipOrder)
   {
     if (betweenBool)
     {
-      newLogLikAndPoint <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newBetweenMatListIndex = newIndex)
+      newLogLikAndPoint <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newBetweenMatListIndex = newIndex)
       newLogLik <- newLogLikAndPoint$logLik
     }
     else
     {
-      newLogLikAndPoint <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newWithinMatListIndex = newIndex)
+      newLogLikAndPoint <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, alternatePointer = currentValue$alternatePointer, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newWithinMatListIndex = newIndex)
       newLogLik <- newLogLikAndPoint$logLik
     }
   }
@@ -250,13 +247,9 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
     currentValue$logLik <- newLogLik
-    manualDeallocation(currentValue$extPointer)
+    currentValue$alternatePointer <- currentValue$extPointer
     currentValue$extPointer <- newLogLikAndPoint$solutionPointer
   } 
-  else
-  {
-    manualDeallocation(newLogLikAndPoint$solutionPointer)
-  }
   currentValue
 }
 
@@ -362,7 +355,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     else 
     {
-      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge)
+      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge)
       updatedLogLik <- updatedPhyloAndLogLik$logLik
       newPhylo <- list(edge = updatedPhyloAndLogLik$edge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
       class(newPhylo) <- "phylo"
@@ -379,13 +372,9 @@ reorderTips <- function(phylogeny, newTipOrder)
       } # The cluster MRCAs should not change under the other scheme.
       currentValue$logLik <- updatedLogLik
       currentValue$paraValues$phylogeny <- newPhylo
-      manualDeallocation(currentValue$extPointer)
+      currentValue$alternatePointer <- currentValue$extPointer
       currentValue$extPointer <- updatedPhyloAndLogLik$solutionPointer
     } 
-    else
-    {
-      manualDeallocation(updatedPhyloAndLogLik$solutionPointer)
-    }
     currentValue
 }
 
@@ -457,7 +446,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       }
       else
       {
-        newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+        newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
         newLogLik <- newLogLikAndPhylo$logLik
         newEdge <- newLogLikAndPhylo$edge
         newBigPhylo <- list(edge = newEdge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
@@ -472,12 +461,8 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
         currentValue$logPostProb <<- currentValue$logPostProb - currentValue$logLik + newLogLik
         currentValue$logLik <<- newLogLik
         currentValue$paraValues$phylogeny <<- newBigPhylo
-        manualDeallocation(currentValue$extPointer)
+        currentValue$alternatePointer <<- currentValue$extPointer
         currentValue$extPointer <<- newLogLikAndPhylo$solutionPointer
-      }
-      else
-      {
-        manualDeallocation(newLogLikAndPhylo$solutionPointer)
       }
       NULL
     }
