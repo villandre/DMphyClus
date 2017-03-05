@@ -94,7 +94,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
   }
   newLogLik <- newLogLikAndPoint$logLik
   
@@ -132,7 +132,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   else
   {
-    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, withinTransProbsMats = withinTransMatList, betweenTransProbsMats = betweenTransMatList, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
+    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge)
   }
   newLogLik <- newLogLikAndPoint$logLik
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.

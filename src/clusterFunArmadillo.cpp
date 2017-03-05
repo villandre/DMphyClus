@@ -258,7 +258,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, NumericVect
 
 // [[Rcpp::export]]
 
-List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVector & clusMRCAsToSplitOrMerge, List & withinTransProbsMats, List & betweenTransProbsMats, IntegerMatrix & edgeMat, uint & numOpenMP) 
+List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL))
@@ -272,12 +272,10 @@ List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVect
     
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
     {
-      std::vector<mat> betweenTransProbsMatsRecast = as<std::vector<mat>>(betweenTransProbsMats) ;
       newForest->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0)) ;
     }
     else
     {
-      std::vector<mat> withinTransProbsMatsRecast = as<std::vector<mat>>(withinTransProbsMats) ;
       newForest->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
     }
     newForest->ComputeLoglik() ;

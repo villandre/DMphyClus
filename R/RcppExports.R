@@ -29,8 +29,8 @@ betweenClusNNIlogLik <- function(ForestPointer, alternatePointer, clusterMRCAs, 
     .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP)
 }
 
-clusSplitMergeLogLik <- function(ForestPointer, alternatePointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, edgeMat, numOpenMP) {
-    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, edgeMat, numOpenMP)
+clusSplitMergeLogLik <- function(ForestPointer, alternatePointer, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP) {
+    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP)
 }
 
 finalDeallocate <- function(ForestPointer) {
