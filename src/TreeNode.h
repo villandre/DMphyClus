@@ -50,6 +50,7 @@ public:
   {
     _withinParentBranch = originVertex->GetWithinParentBranch() ;
     _dictionaryKey = originVertex->GetDictionaryKey() ;
+    _keyDefined = true ;
   }
   void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;}
   virtual ~TreeNode() { }

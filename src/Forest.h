@@ -51,11 +51,14 @@ public:
   
   void SetBetweenTransProbs(const std::vector<mat> newBetweenTransProbsVec) {_betweenTransProbMatVec = newBetweenTransProbsVec ;} ;
   void SetWithinTransProbs(const std::vector<mat> newWithinTransProbsVec) {_withinTransProbMatVec = newWithinTransProbsVec ;} ;
+  void SetBetweenMatListIndex(const uint & index) {_betweenMatListIndex = index ;}
+  void SetWithinMatListIndex(const uint & index) {_withinMatListIndex = index ;}
   void HandleSplit(uint) ;
   void HandleMerge(uvec &) ;
   void SetLogLik(double logLik) {_loglik = logLik ;}
   void RearrangeNNI(const uint, const uint) ;
   void RebuildTrees(const umat &) ;
+  void SetRNG(gsl_rng * myRNG) { _randomNumGenerator = myRNG ;}
   
   void InputForestElements(Forest * originForest) ;
 };

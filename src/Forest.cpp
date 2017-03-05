@@ -67,7 +67,7 @@ void Forest::ComputeLoglik()
 {
   uint rateCategIndex = 0 ;
   //#pragma omp parallel for 
-  for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) // This syntax is compatible with openMP, unlike the more conventional 'for (auto & i : myVec')
+  for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) 
   {
     (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex), _limProbs, _numTips) ;
     rateCategIndex = littleCycle(rateCategIndex+1, _withinTransProbMatVec.size()) ;

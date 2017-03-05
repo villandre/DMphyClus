@@ -52,7 +52,8 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   PhylogeniesPoint1->ComputeLoglik() ;
   
   Forest * PhylogeniesPoint2 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex);
-  PhylogeniesPoint2->InputForestElements(PhylogeniesPoint1) ;
+  gsl_rng_free(PhylogeniesPoint2->GetRandomNumGenerator()) ; // We want the random number generator to be the same for both Forests, hence this deallocation, without which there would be a memory leak.
+  PhylogeniesPoint2->SetRNG(PhylogeniesPoint1->GetRandomNumGenerator()) ; 
   
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
   XPtr<std::vector<std::vector<uvec>>> alignExtPoint(convertedBinData, false) ;
@@ -132,6 +133,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List 
     XPtr<Forest> newForest(alternatePointer) ;
     
     newForest->InputForestElements(oriForest) ;
+    newForest->SetBetweenMatListIndex(newBetweenMatListIndex) ;
     newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
     newForest->InvalidateBetweenSolutions() ;
@@ -160,6 +162,7 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List &
     newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     
     newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
+    newForest->SetWithinMatListIndex(newWithinMatListIndex) ;
     newForest->InvalidateAllSolutions() ;
     newForest->ComputeLoglik() ;
     XPtr<Forest> p(newForest, false) ;

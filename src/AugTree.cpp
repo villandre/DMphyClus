@@ -35,7 +35,7 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
   for (auto & i : _vertexVector)
   {
     i->EnterCommonInfo(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
-    i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
+    //i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
     sourceVertexIndex++ ;
   }
 }
