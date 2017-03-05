@@ -54,17 +54,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution/myMax ;
     *expContainer = *expContainer + log(myMax);
   }
-  // if (mySolution.has_nan())
-  // {
-  //   cout << "NaN! \n" ;
-  //   cout << "Id: " << _id << "\n" ;
-  //   cout << "Child 0 id: " << _children.at(0)->GetId() << "\n" ;
-  //   _children.at(0)->GetSolution().print("Child0 solution:") ;
-  //   cout << "Child 1 id: " << _children.at(1)->GetId() << "\n" ;
-  //   _children.at(1)->GetSolution().print("Child0 solution:") ;
-  //   cout << "Key defined? " << _children.at(0)->IsKeyDefined() << ", Solved? " << _children.at(0)->IsSolved() << "\n" ;
-  //   cout << "Key defined? " << _children.at(1)->IsKeyDefined() << ", Solved? " << _children.at(1)->IsSolved() << "\n" ;
-  // }
+  
   (*solutionDictionary).at(rateCategory)[_dictionaryKey] = mySolution ;
   //_solution = &(*solutionDictionary).at(_rateCategory)[_dictionaryKey] ;
   _isSolved = true ;

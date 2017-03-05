@@ -50,79 +50,83 @@ BEGIN_RCPP
 END_RCPP
 }
 // newBetweenTransProbsLogLik
-List newBetweenTransProbsLogLik(SEXP ForestPointer, List& newBetweenTransProbs, IntegerMatrix& edgeMat, int numOpenMP, uint newBetweenMatListIndex);
-RcppExport SEXP DMphyClus_newBetweenTransProbsLogLik(SEXP ForestPointerSEXP, SEXP newBetweenTransProbsSEXP, SEXP edgeMatSEXP, SEXP numOpenMPSEXP, SEXP newBetweenMatListIndexSEXP) {
+List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List& newBetweenTransProbs, IntegerMatrix& edgeMat, uint& numOpenMP, uint& newBetweenMatListIndex);
+RcppExport SEXP DMphyClus_newBetweenTransProbsLogLik(SEXP ForestPointerSEXP, SEXP alternatePointerSEXP, SEXP newBetweenTransProbsSEXP, SEXP edgeMatSEXP, SEXP numOpenMPSEXP, SEXP newBetweenMatListIndexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type alternatePointer(alternatePointerSEXP);
     Rcpp::traits::input_parameter< List& >::type newBetweenTransProbs(newBetweenTransProbsSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix& >::type edgeMat(edgeMatSEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    Rcpp::traits::input_parameter< uint >::type newBetweenMatListIndex(newBetweenMatListIndexSEXP);
-    rcpp_result_gen = Rcpp::wrap(newBetweenTransProbsLogLik(ForestPointer, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex));
+    Rcpp::traits::input_parameter< uint& >::type numOpenMP(numOpenMPSEXP);
+    Rcpp::traits::input_parameter< uint& >::type newBetweenMatListIndex(newBetweenMatListIndexSEXP);
+    rcpp_result_gen = Rcpp::wrap(newBetweenTransProbsLogLik(ForestPointer, alternatePointer, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex));
     return rcpp_result_gen;
 END_RCPP
 }
 // newWithinTransProbsLogLik
-List newWithinTransProbsLogLik(SEXP ForestPointer, List newWithinTransProbs, IntegerVector clusterMRCAs, IntegerMatrix& edgeMat, int numOpenMP, uint newWithinMatListIndex);
-RcppExport SEXP DMphyClus_newWithinTransProbsLogLik(SEXP ForestPointerSEXP, SEXP newWithinTransProbsSEXP, SEXP clusterMRCAsSEXP, SEXP edgeMatSEXP, SEXP numOpenMPSEXP, SEXP newWithinMatListIndexSEXP) {
+List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List& newWithinTransProbs, IntegerMatrix& edgeMat, uint& numOpenMP, uint& newWithinMatListIndex);
+RcppExport SEXP DMphyClus_newWithinTransProbsLogLik(SEXP ForestPointerSEXP, SEXP alternatePointerSEXP, SEXP newWithinTransProbsSEXP, SEXP edgeMatSEXP, SEXP numOpenMPSEXP, SEXP newWithinMatListIndexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
-    Rcpp::traits::input_parameter< List >::type newWithinTransProbs(newWithinTransProbsSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type clusterMRCAs(clusterMRCAsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type alternatePointer(alternatePointerSEXP);
+    Rcpp::traits::input_parameter< List& >::type newWithinTransProbs(newWithinTransProbsSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix& >::type edgeMat(edgeMatSEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    Rcpp::traits::input_parameter< uint >::type newWithinMatListIndex(newWithinMatListIndexSEXP);
-    rcpp_result_gen = Rcpp::wrap(newWithinTransProbsLogLik(ForestPointer, newWithinTransProbs, clusterMRCAs, edgeMat, numOpenMP, newWithinMatListIndex));
+    Rcpp::traits::input_parameter< uint& >::type numOpenMP(numOpenMPSEXP);
+    Rcpp::traits::input_parameter< uint& >::type newWithinMatListIndex(newWithinMatListIndexSEXP);
+    rcpp_result_gen = Rcpp::wrap(newWithinTransProbsLogLik(ForestPointer, alternatePointer, newWithinTransProbs, edgeMat, numOpenMP, newWithinMatListIndex));
     return rcpp_result_gen;
 END_RCPP
 }
 // withinClusNNIlogLik
-List withinClusNNIlogLik(SEXP ForestPointer, IntegerMatrix& edgeMat, uint MRCAofClusForNNI, uint numMovesNNI, int numOpenMP);
-RcppExport SEXP DMphyClus_withinClusNNIlogLik(SEXP ForestPointerSEXP, SEXP edgeMatSEXP, SEXP MRCAofClusForNNISEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP) {
+List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatrix& edgeMat, uint& MRCAofClusForNNI, uint& numMovesNNI, uint& numOpenMP);
+RcppExport SEXP DMphyClus_withinClusNNIlogLik(SEXP ForestPointerSEXP, SEXP alternatePointerSEXP, SEXP edgeMatSEXP, SEXP MRCAofClusForNNISEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type alternatePointer(alternatePointerSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix& >::type edgeMat(edgeMatSEXP);
-    Rcpp::traits::input_parameter< uint >::type MRCAofClusForNNI(MRCAofClusForNNISEXP);
-    Rcpp::traits::input_parameter< uint >::type numMovesNNI(numMovesNNISEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    rcpp_result_gen = Rcpp::wrap(withinClusNNIlogLik(ForestPointer, edgeMat, MRCAofClusForNNI, numMovesNNI, numOpenMP));
+    Rcpp::traits::input_parameter< uint& >::type MRCAofClusForNNI(MRCAofClusForNNISEXP);
+    Rcpp::traits::input_parameter< uint& >::type numMovesNNI(numMovesNNISEXP);
+    Rcpp::traits::input_parameter< uint& >::type numOpenMP(numOpenMPSEXP);
+    rcpp_result_gen = Rcpp::wrap(withinClusNNIlogLik(ForestPointer, alternatePointer, edgeMat, MRCAofClusForNNI, numMovesNNI, numOpenMP));
     return rcpp_result_gen;
 END_RCPP
 }
 // betweenClusNNIlogLik
-List betweenClusNNIlogLik(SEXP ForestPointer, NumericVector& clusterMRCAs, IntegerMatrix& edgeMat, uint numMovesNNI, int numOpenMP);
-RcppExport SEXP DMphyClus_betweenClusNNIlogLik(SEXP ForestPointerSEXP, SEXP clusterMRCAsSEXP, SEXP edgeMatSEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP) {
+List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, NumericVector& clusterMRCAs, IntegerMatrix& edgeMat, uint& numMovesNNI, uint& numOpenMP);
+RcppExport SEXP DMphyClus_betweenClusNNIlogLik(SEXP ForestPointerSEXP, SEXP alternatePointerSEXP, SEXP clusterMRCAsSEXP, SEXP edgeMatSEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type alternatePointer(alternatePointerSEXP);
     Rcpp::traits::input_parameter< NumericVector& >::type clusterMRCAs(clusterMRCAsSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix& >::type edgeMat(edgeMatSEXP);
-    Rcpp::traits::input_parameter< uint >::type numMovesNNI(numMovesNNISEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    rcpp_result_gen = Rcpp::wrap(betweenClusNNIlogLik(ForestPointer, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP));
+    Rcpp::traits::input_parameter< uint& >::type numMovesNNI(numMovesNNISEXP);
+    Rcpp::traits::input_parameter< uint& >::type numOpenMP(numOpenMPSEXP);
+    rcpp_result_gen = Rcpp::wrap(betweenClusNNIlogLik(ForestPointer, alternatePointer, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP));
     return rcpp_result_gen;
 END_RCPP
 }
 // clusSplitMergeLogLik
-List clusSplitMergeLogLik(SEXP ForestPointer, IntegerVector& clusMRCAsToSplitOrMerge, List& withinTransProbsMats, List& betweenTransProbsMats, IntegerMatrix& edgeMat, int numOpenMP);
-RcppExport SEXP DMphyClus_clusSplitMergeLogLik(SEXP ForestPointerSEXP, SEXP clusMRCAsToSplitOrMergeSEXP, SEXP withinTransProbsMatsSEXP, SEXP betweenTransProbsMatsSEXP, SEXP edgeMatSEXP, SEXP numOpenMPSEXP) {
+List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVector& clusMRCAsToSplitOrMerge, List& withinTransProbsMats, List& betweenTransProbsMats, IntegerMatrix& edgeMat, uint& numOpenMP);
+RcppExport SEXP DMphyClus_clusSplitMergeLogLik(SEXP ForestPointerSEXP, SEXP alternatePointerSEXP, SEXP clusMRCAsToSplitOrMergeSEXP, SEXP withinTransProbsMatsSEXP, SEXP betweenTransProbsMatsSEXP, SEXP edgeMatSEXP, SEXP numOpenMPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type ForestPointer(ForestPointerSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type alternatePointer(alternatePointerSEXP);
     Rcpp::traits::input_parameter< IntegerVector& >::type clusMRCAsToSplitOrMerge(clusMRCAsToSplitOrMergeSEXP);
     Rcpp::traits::input_parameter< List& >::type withinTransProbsMats(withinTransProbsMatsSEXP);
     Rcpp::traits::input_parameter< List& >::type betweenTransProbsMats(betweenTransProbsMatsSEXP);
     Rcpp::traits::input_parameter< IntegerMatrix& >::type edgeMat(edgeMatSEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    rcpp_result_gen = Rcpp::wrap(clusSplitMergeLogLik(ForestPointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, edgeMat, numOpenMP));
+    Rcpp::traits::input_parameter< uint& >::type numOpenMP(numOpenMPSEXP);
+    rcpp_result_gen = Rcpp::wrap(clusSplitMergeLogLik(ForestPointer, alternatePointer, clusMRCAsToSplitOrMerge, withinTransProbsMats, betweenTransProbsMats, edgeMat, numOpenMP));
     return rcpp_result_gen;
 END_RCPP
 }

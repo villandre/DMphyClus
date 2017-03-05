@@ -11,10 +11,11 @@ class Forest
 {
 protected:
   std::vector<AugTree *> _forest ; 
+  vec _limProbs ;
   double _loglik ;
-  //nodePatternDictionaryType _nodePatternDictionary ;
   solutionDictionaryType _solutionDictionary ;
   uint _numLoci ;
+  uint _numTips ;
   uint _numRateCats ;
   uint _withinMatListIndex ;
   uint _betweenMatListIndex ;
@@ -31,18 +32,19 @@ public:
   ~Forest() {deallocate_container(_forest) ;}
   
   void ComputeLoglik() ;
-  double GetLoglik() {return _loglik ;} ;
-  gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;} ;
-  std::vector<AugTree *> GetForest() {return _forest ;} ;
-  uint GetNumRateCats() {return _numRateCats ;} ;
+  double GetLoglik() {return _loglik ;}
+  gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;}
+  std::vector<AugTree *> GetForest() {return _forest ;}
+  uint GetNumRateCats() {return _numRateCats ;}
   uint GetNumLoci() {return _numLoci ;}
-  std::vector<std::vector<uvec>> * GetAlignmentBinReference() {return _alignmentBinReference ;} ;
+  std::vector<std::vector<uvec>> * GetAlignmentBinReference() {return _alignmentBinReference ;}
+  uint GetNumTips() {return _numTips ;}
   
-  solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;} ;
-  std::vector<mat> GetWithinTransProbMatVec() { return _withinTransProbMatVec ;} ;
-  std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;} ;
-  uint GetWithinMatListIndex() {return _withinMatListIndex ;} ;
-  uint GetBetweenMatListIndex() {return _betweenMatListIndex ;} ;
+  solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;}
+  std::vector<mat> GetWithinTransProbMatVec() { return _withinTransProbMatVec ;}
+  std::vector<mat> GetBetweenTransProbMatVec() { return _betweenTransProbMatVec ;}
+  uint GetWithinMatListIndex() {return _withinMatListIndex ;}
+  uint GetBetweenMatListIndex() {return _betweenMatListIndex ;}
   
   void InvalidateBetweenSolutions() ;
   void InvalidateAllSolutions() ;
@@ -51,10 +53,11 @@ public:
   void SetWithinTransProbs(const std::vector<mat> newWithinTransProbsVec) {_withinTransProbMatVec = newWithinTransProbsVec ;} ;
   void HandleSplit(uint) ;
   void HandleMerge(uvec &) ;
-  void SetLogLik(double logLik) {_loglik = logLik ;} ;
+  void SetLogLik(double logLik) {_loglik = logLik ;}
   void RearrangeNNI(const uint, const uint) ;
+  void RebuildTrees(const umat &) ;
   
-  void InputForestElements(XPtr<Forest> originForest) ;
+  void InputForestElements(Forest * originForest) ;
 };
 
 #endif /* FOREST_H */

@@ -8,28 +8,24 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<uvec> * alignmentBinOneLocusOneRate, const Col<double> & limProbs, const uint numTips, const uint rateCategIndex, solutionDictionaryType & solutionDictionary)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<uvec> * alignmentBinOneLocusOneRate, const uint rateCategIndex, solutionDictionaryType & solutionDictionary, const uint & numTips)
 { 
-  _exponentContainer = 0 ; 
-  _numTips = numTips ;
-  _limProbs = limProbs ;
+  _exponentContainer = 0 ;
   _rateCateg = rateCategIndex ;
   umat edgeMatrixCopy(edgeMatrix) ;
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
-  BuildTree(edgeMatrixCopy) ;
+  BuildTree(edgeMatrixCopy, numTips) ;
   InitializeVertices(alignmentBinOneLocusOneRate, solutionDictionary) ;
-  AssociateTransProbMatrices(clusterMRCAs) ;
+  AssociateTransProbMatrices(clusterMRCAs, numTips) ;
 }
 
-AugTree::AugTree(const umat & edgeMatrix, const vec & limProbs, const uint numTips, const uint rateCategIndex)
+AugTree::AugTree(const umat & edgeMatrix, const uint & rateCategIndex, const uint & numTips)
 {
   _exponentContainer = 0 ;
-  _numTips = numTips ;
   _rateCateg = rateCategIndex ;
-  _limProbs = limProbs ;
   umat edgeMatrixCopy(edgeMatrix) ;
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
-  BuildTree(edgeMatrixCopy) ;
+  BuildTree(edgeMatrixCopy, numTips) ;
 }
 
 void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) 
@@ -44,7 +40,7 @@ void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree)
   }
 }
 
-void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
+void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const uint & numTips) 
 {
   // By default all nodes are considered between clusters.
   for (auto & i : _vertexVector)
@@ -54,7 +50,7 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs)
   
   for (auto & i : clusterMRCAs)
   {
-    if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
+    if (i > numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
       for (auto & j : _vertexVector[i-1]->GetChildren()) {
         BindMatrix(j, true) ; 
       }  
@@ -73,19 +69,19 @@ void AugTree::BindMatrix(TreeNode * vertex, const bool withinCluster)
   }
 }
 
-void AugTree::BuildTree(umat & edgeMatrix)
+void AugTree::BuildTree(const umat & edgeMatrix, const uint & numTips)
 {
   _vertexVector.reserve(edgeMatrix.n_rows + 1) ;
 
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
-  for (uint i = 0; i < _numTips; i++) {
+  for (uint i = 0; i < numTips; i++) {
     InputNode * newNode = new InputNode{} ;
     _vertexVector.push_back(newNode) ;
   } ;
 
   // We add the internal nodes
-  for (uint i = 0 ; i < edgeMatrix.n_rows - _numTips + 1; i++) {
+  for (uint i = 0 ; i < edgeMatrix.n_rows - numTips + 1; i++) {
     IntermediateNode * newNode = new IntermediateNode{};
     _vertexVector.push_back(newNode) ; 
   } ;
@@ -95,12 +91,29 @@ void AugTree::BuildTree(umat & edgeMatrix)
   } ;
   // The vertices are all disjoint, the next loop defines their relationships
   // The iterator follows columns.
-  for (umat::iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
+  for (umat::const_iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
   {
     _vertexVector[*iter]->AddChild(_vertexVector[*(iter+edgeMatrix.n_rows)]) ;
     _vertexVector[*(iter+edgeMatrix.n_rows)]->SetParent(_vertexVector[*iter]) ;
   }
 }
+
+void AugTree::BuildTreeNoAssign(const umat & edgeMatrix)
+{
+  // We set the IDs (to facilitate exporting the phylogeny to R).
+  for (uint i = 0 ; i < _vertexVector.size(); i++) {
+    _vertexVector[i]->RemoveChildren() ; // Might be more memory-efficient to overwrite the children... 
+  } ;
+  // The vertices are all disjoint, the next loop defines their relationships
+  // The iterator follows columns.
+  for (umat::const_iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
+  {
+    _vertexVector[*iter]->AddChild(_vertexVector[*(iter+edgeMatrix.n_rows)]) ;
+    _vertexVector[*(iter+edgeMatrix.n_rows)]->SetParent(_vertexVector[*iter]) ;
+  }
+}
+
+
 
 void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary, const uint withinMatListIndex, const uint betweenMatListIndex)
 {
@@ -122,12 +135,10 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
   }
 }
 
-void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat)
+void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat, const vec & limProbs, const uint & numTips)
 {
-  //ComputeKeys(_vertexVector[_numTips], solutionDictionary) ;
-  //PatternLookup(solutionDictionary, _vertexVector[_numTips]) ;
-  TrySolve(_vertexVector[_numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
-  _likelihoodProp = dot(_vertexVector[_numTips]->GetSolution(solutionDictionary, _rateCateg), _limProbs) ;
+  TrySolve(_vertexVector[numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
+  _likelihoodProp = dot(_vertexVector[numTips]->GetSolution(solutionDictionary, _rateCateg), limProbs) ;
 }
 
 void AugTree::InitializeVertices(std::vector<uvec> * alignmentBinOneLocusOneRate, solutionDictionaryType & solutionDictionary)
@@ -275,11 +286,11 @@ void AugTree::RearrangeTreeNNI(uint vertexId1, uint vertexId2, solutionDictionar
   _vertexVector.at(vertexId2)->GetParent()->InvalidateSolution() ;
 }
 
-umat AugTree::BuildEdgeMatrix()
+umat AugTree::BuildEdgeMatrix(const uint & numTips)
 {
   umat edgeMatrix(_vertexVector.size()-1, 2, fill::zeros) ;
   uint lineNum = 0 ;
-  AddEdgeRecursion(edgeMatrix, lineNum, _vertexVector.at(_numTips)) ;
+  AddEdgeRecursion(edgeMatrix, lineNum, _vertexVector.at(numTips)) ;
   return edgeMatrix ;
 }
 

@@ -38,33 +38,27 @@ public:
   virtual uvec * GetInput() = 0 ;
   virtual void MarkKeyUndefined() = 0 ;
   
-  std::size_t GetDictionaryKey() const { return _dictionaryKey ;};
-  TreeNode * GetParent() {return _parent ;} ;
-  void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;} ;
-  void SetId(uint vertexId) {_id = vertexId ;} ;
-  uint GetId() {return _id ;} ;
-  bool IsKeyDefined() {return _keyDefined ;} ;
-  bool GetWithinParentBranch() {return _withinParentBranch ;} ;
-  //std::size_t GetRateCategory() {return _rateCategory ;} ;
+  std::size_t GetDictionaryKey() const { return _dictionaryKey ;}
+  TreeNode * GetParent() {return _parent ;}
+  void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
+  void SetId(uint vertexId) {_id = vertexId ;}
+  uint GetId() {return _id ;}
+  bool IsKeyDefined() {return _keyDefined ;}
   
+  bool GetWithinParentBranch() {return _withinParentBranch ;}
   
   void EnterCommonInfo(TreeNode * originVertex)
   {
-    _id = originVertex->GetId() ;
-//    _rateCategory = originVertex->GetRateCategory() ;
     _withinParentBranch = originVertex->GetWithinParentBranch() ;
     _dictionaryKey = originVertex->GetDictionaryKey() ;
-    _keyDefined = true ;
   }
-//  void SetWithinParentBranchAndRateCateg(bool parentBranchWithin, uint rateCategory) {_withinParentBranch = parentBranchWithin ; _rateCategory = rateCategory ;} ;
-  void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;} ;
-  virtual ~TreeNode() { };
+  void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;}
+  virtual ~TreeNode() { }
   
   protected:
 
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
-  //std::size_t _rateCategory ; 
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   std::size_t _dictionaryKey ;
   bool _keyDefined ;
