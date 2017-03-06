@@ -48,10 +48,10 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
     std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
   }
   solutionDictionaryType solutionDictionary = new std::vector<std::unordered_map<std::size_t, vec>>(withinTransMatList.size()) ;
-  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex);
-  PhylogeniesPoint1->ComputeLoglik() ;
+  Forest * PhylogeniesPoint1 = new Forest(edgeMat, clusterMRCAs, convertedBinData, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size());
+  PhylogeniesPoint1->ComputeLoglik(withinTransMatList, betweenTransMatList) ;
   
-  Forest * PhylogeniesPoint2 = new Forest(edgeMat, clusterMRCAs, convertedBinData, withinTransMatList, betweenTransMatList, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex);
+  Forest * PhylogeniesPoint2 = new Forest(edgeMat, clusterMRCAs, convertedBinData, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size());
   gsl_rng_free(PhylogeniesPoint2->GetRandomNumGenerator()) ; // We want the random number generator to be the same for both Forests, hence this deallocation, without which there would be a memory leak.
   PhylogeniesPoint2->SetRNG(PhylogeniesPoint1->GetRandomNumGenerator()) ; 
   
@@ -124,7 +124,7 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex) 
+List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List & withinTransProbs, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
@@ -135,9 +135,9 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List 
     newForest->InputForestElements(oriForest) ;
     newForest->SetBetweenMatListIndex(newBetweenMatListIndex) ;
     newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
-    newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
+    //newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
     newForest->InvalidateBetweenSolutions() ;
-    newForest->ComputeLoglik() ;
+    newForest->ComputeLoglik(withinTransProbs, newBetweenTransProbs) ;
     XPtr<Forest> p(newForest, false) ;
     
     return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
@@ -150,7 +150,7 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List 
 
 // [[Rcpp::export]]
 
-List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List & newWithinTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex) 
+List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex) 
 {
   //omp_set_num_threads(numOpenMP) ; 
   if (!(ForestPointer == NULL)) 
@@ -161,10 +161,10 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List &
     newForest->InputForestElements(oriForest) ;
     newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
     
-    newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
+    //newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
     newForest->SetWithinMatListIndex(newWithinMatListIndex) ;
     newForest->InvalidateAllSolutions() ;
-    newForest->ComputeLoglik() ;
+    newForest->ComputeLoglik(newWithinTransProbs, betweenTransProbs) ;
     XPtr<Forest> p(newForest, false) ;
     return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
   } 
@@ -176,7 +176,7 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List &
 
 // [[Rcpp::export]]
 
-List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatrix & edgeMat, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP) 
+List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
@@ -201,7 +201,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatri
       vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(newForest->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
       newForest->RearrangeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
-    newForest->ComputeLoglik() ;
+    newForest->ComputeLoglik(withinTransProbs, betweenTransProbs) ;
     umat newEdge = newForest->GetForest().at(0)->BuildEdgeMatrix(newForest->GetNumTips()) ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
     XPtr<Forest> p(newForest, false) ;
     return List::create(Named("logLik") = newForest->GetLoglik(),
@@ -215,7 +215,7 @@ List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatri
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP) 
+List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL)) 
@@ -244,7 +244,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, NumericVect
       }
     }
     
-    newForest->ComputeLoglik() ;
+    newForest->ComputeLoglik(withinTransProbs, betweenTransProbs) ;
     umat newEdge = newForest->GetForest().at(0)->BuildEdgeMatrix(newForest->GetNumTips()) ;
     XPtr<Forest> p(newForest, false) ;
     return List::create(Named("logLik") = newForest->GetLoglik(),
@@ -258,7 +258,7 @@ List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, NumericVect
 
 // [[Rcpp::export]]
 
-List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP) 
+List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(ForestPointer == NULL))
@@ -278,7 +278,7 @@ List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerVect
     {
       newForest->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
     }
-    newForest->ComputeLoglik() ;
+    newForest->ComputeLoglik(withinTransProbs, betweenTransProbs) ;
     XPtr<Forest> p(newForest, false) ;
     return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
   }

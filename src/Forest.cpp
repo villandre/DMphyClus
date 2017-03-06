@@ -9,15 +9,15 @@ using namespace Rcpp ;
 using namespace arma ;
 
 
-Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBinPoint, const List & withinTransProbMatList, const List & betweenTransProbMatList, const NumericVector & limProbs, const uint numTips, const uint numLoci, solutionDictionaryType & solutionDictionary, const uint withinMatListIndex, const uint betweenMatListIndex)
+Forest::Forest(const IntegerMatrix & edgeMatrix, const NumericVector & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBinPoint, const NumericVector & limProbs, const uint & numTips, const uint & numLoci, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats)
 {
   _numLoci = numLoci ;
   _numTips = numTips ;
-  _numRateCats = withinTransProbMatList.size() ;
+  _numRateCats = numRateCats ;
   _solutionDictionary = solutionDictionary ;
-  _forest.reserve(alignmentBinPoint->size()*withinTransProbMatList.size()) ;
-  _withinTransProbMatVec = as<std::vector<mat>>(withinTransProbMatList) ;
-  _betweenTransProbMatVec = as<std::vector<mat>>(betweenTransProbMatList) ;
+  _forest.reserve(alignmentBinPoint->size()*_numRateCats) ;
+  //_withinTransProbMatVec = as<std::vector<mat>>(withinTransProbMatList) ;
+  //_betweenTransProbMatVec = as<std::vector<mat>>(betweenTransProbMatList) ;
   umat edgeMatrixRecast = as<umat>(edgeMatrix) ;
   uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
   _limProbs = as<vec>(limProbs) ;
@@ -63,14 +63,14 @@ Forest::Forest(const IntegerMatrix & edgeMatrix, const vec & limProbs, uint numR
   }
 }
 
-void Forest::ComputeLoglik()
+void Forest::ComputeLoglik(List & withinClusTransProbs, List & betweenClusTransProbs)
 {
   uint rateCategIndex = 0 ;
   //#pragma omp parallel for 
   for (std::vector<AugTree *>::iterator forestIter = _forest.begin(); forestIter < _forest.end(); forestIter++) 
   {
-    (*forestIter)->SolveRoot(_solutionDictionary, _withinTransProbMatVec.at(rateCategIndex), _betweenTransProbMatVec.at(rateCategIndex), _limProbs, _numTips) ;
-    rateCategIndex = littleCycle(rateCategIndex+1, _withinTransProbMatVec.size()) ;
+    (*forestIter)->SolveRoot(_solutionDictionary, as<mat>(withinClusTransProbs.at(rateCategIndex)), as<mat>(betweenClusTransProbs.at(rateCategIndex)), _limProbs, _numTips) ;
+    rateCategIndex = littleCycle(rateCategIndex+1, withinClusTransProbs.size()) ;
   }
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   vec rateAveragedLogLiks(_numLoci) ;
@@ -122,8 +122,8 @@ void Forest::HandleMerge(uvec & clusMRCAstoMerge)
 
 void Forest::InputForestElements(Forest * originForest)
 {
-  _withinTransProbMatVec = originForest->GetWithinTransProbMatVec() ;
-  _betweenTransProbMatVec = originForest->GetBetweenTransProbMatVec() ;
+  //_withinTransProbMatVec = originForest->GetWithinTransProbMatVec() ;
+  //_betweenTransProbMatVec = originForest->GetBetweenTransProbMatVec() ;
   _withinMatListIndex = originForest->GetWithinMatListIndex() ;
   _betweenMatListIndex = originForest->GetBetweenMatListIndex() ;
   uint originAugTreeIndex = 0 ;
