@@ -35,17 +35,27 @@ bool IntermediateNode::CanFindKey()
   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
 }
 
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec expContainerVec)
+{
+  uint rateCateg = 0 ;
+  for (uint i = 0 ; i < _dictionaryKeyVec.size() ; i++)
+  {
+    ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i) ;
+    rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
+  }
+}
+
 // I'm using a scaling strategy to avoid computational zeros, where when the maximum value in my solution vector
 // gets too small, I factorize it out and increment _exponentContainer, whose total value is taken into
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double * expContainer, const uint & rateCategory)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double & expContainer, const uint & rateCategory, const uint & elementNum)
 {
   Col<double> mySolution(transProbM.n_rows, fill::ones) ;
   for(auto & child : _children)
   {
-    mySolution = mySolution % (transProbM*child->GetSolution(solutionDictionary, rateCategory)) ;
+    mySolution = mySolution % transProbM*(solutionDictionary->at(rateCategory)[child->GetDictionaryKeyVec().at(elementNum)]) ;
   }
   double myMax = max(mySolution) ;
   bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.

@@ -6,30 +6,40 @@ using namespace Rcpp ;
 class AugTree
 {
 protected:
+  double _logLik ;
   std::vector<TreeNode *> _vertexVector ;
+  solutionDictionaryType _solutionDictionary ;
+  uint _numLoci ;
+  uint _numTips ;
+  uint _numRateCats ;
+  uint _withinMatListIndex ;
+  uint _betweenMatListIndex ;
+  gsl_rng * _randomNumGenerator ;
   
-  double _likelihoodProp ; // This is scaled to avoid computational zeros.
-  uint _rateCateg ;
-  double _exponentContainer ;
+  std::vector<std::vector<uvec>> * _alignmentBinReference ;
+  
+  vec _likPropVec ; // This is scaled to avoid computational zeros.
+  
+  vec _exponentVec ;
 
-  void BuildTree(const umat &, const uint &) ;
+  void BuildTree(const umat &) ;
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
-  void InitializeVertices(std::vector<uvec> *, solutionDictionaryType &) ;
-  void AssociateTransProbMatrices(const uvec &, const uint &) ;
+  void InitializeVertices() ;
+  void AssociateTransProbMatrices(const uvec &) ;
   void GetNNIverticesInternalWithin(TreeNode *, std::vector<uint> *) ;
   void GetNNIverticesInternalBetween(TreeNode *, std::vector<uint> *, uvec &) ;
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<uvec> *, const uint, solutionDictionaryType &, const uint &) ;
-  AugTree(const umat &, const uint &, const uint &) ;
+  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, gsl_rng *) ;
+  //AugTree(const umat &, const uint &, const uint &) ;
   
   void BuildTreeNoAssign(const umat &) ;
   void TrySolve(TreeNode *, solutionDictionaryType &, const mat &, const mat &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &, const vec &, const uint &) ;
-  void ComputeKeys(TreeNode *, solutionDictionaryType &, const uint, const uint) ;
+  void ComputeKeys(TreeNode *, const uint &, const uint &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
@@ -43,10 +53,33 @@ public:
   double GetLikelihood() const {return _likelihoodProp ;} ;
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
-  double GetExponentContainer() { return _exponentContainer ;} ;
-  uint GetRateCateg() {return _rateCateg ;} ;
+  vec GetExponentContainer() { return _exponentContainer ;} ;
+  void ComputeLoglik(List &, List &, const vec &) ;
+  double GetLoglik() {return _loglik ;}
+  gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;}
+  
+  uint GetNumRateCats() {return _numRateCats ;}
+  uint GetNumLoci() {return _numLoci ;}
+  std::vector<std::vector<uvec>> * GetAlignmentBinReference() {return _alignmentBinReference ;}
+  uint GetNumTips() {return _numTips ;}
+  solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;}
+  uint GetWithinMatListIndex() {return _withinMatListIndex ;}
+  uint GetBetweenMatListIndex() {return _betweenMatListIndex ;}
+  void InvalidateBetweenSolutions() ;
+  void InvalidateAllSolutions() ;
+ 
+  void SetBetweenMatListIndex(const uint & index) {_betweenMatListIndex = index ;}
+  void SetWithinMatListIndex(const uint & index) {_withinMatListIndex = index ;}
+  void HandleSplit(uint) ;
+  void HandleMerge(uvec &) ;
+  void SetLogLik(double logLik) {_loglik = logLik ;}
+  void RearrangeNNI(const uint, const uint) ;
+  void RebuildTrees(const umat &) ;
+  void SetRNG(gsl_rng * myRNG) { _randomNumGenerator = myRNG ;}
   
   void RearrangeTreeNNI(uint, uint, solutionDictionaryType) ;
+  
+  void ComputeLoglik(List &, List &, NumericVector &) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
 };

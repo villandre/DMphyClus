@@ -26,18 +26,18 @@ public:
   virtual void AddChild(TreeNode *) = 0 ;
   virtual void RemoveChildren() = 0 ;
   virtual void RemoveChild(TreeNode *) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &, const mat &, double *, const uint &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &, const mat &, double &, const uint &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void SetInput(uvec *) = 0 ;
+  virtual void SetInput(std::vector<uvec> *) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
-  virtual void DeriveKey(solutionDictionaryType &, const uint &, const uint &) = 0;
-  virtual vec GetSolution(solutionDictionaryType &, const uint &) = 0;
-  virtual void EnterInput(TreeNode *) = 0;
-  virtual uvec * GetInput() = 0 ;
+  virtual void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) = 0;
+  virtual vec GetSolution(solutionDictionaryType &, const uint &, const std::size_t &) = 0;
+  //virtual void EnterInput(TreeNode *) = 0;
+  virtual std::vector<uvec> * GetInput() = 0 ;
   virtual void MarkKeyUndefined() = 0 ;
   
-  std::size_t GetDictionaryKey() const { return _dictionaryKey ;}
+  std::vector<std::size_t> GetDictionaryKeyVec() const { return _dictionaryKeyVec ;}
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
   void SetId(uint vertexId) {_id = vertexId ;}
@@ -46,13 +46,23 @@ public:
   
   bool GetWithinParentBranch() {return _withinParentBranch ;}
   
-  void EnterCommonInfo(TreeNode * originVertex)
-  {
-    _withinParentBranch = originVertex->GetWithinParentBranch() ;
-    _dictionaryKey = originVertex->GetDictionaryKey() ;
-    _keyDefined = true ;
-  }
+  // void EnterCommonInfo(TreeNode * originVertex)
+  // {
+  //   _withinParentBranch = originVertex->GetWithinParentBranch() ;
+  //   _dictionaryKey = originVertex->GetDictionaryKey() ;
+  //   _keyDefined = true ;
+  // }
   void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;}
+  void DeriveKeys(solutionDictionaryType & solutionDictionary, const uint & matListIndex, const uint & numElements)
+  {
+    _dictionaryKeyVec.reserve(numElements) ;
+    uint rateCategIndex = 0 ;
+    for (uint i = 0; i < numElements ; i++)
+    {
+      DeriveKey(solutionDictionary, rateCategIndex, matListIndex, i) ;
+      rateCategIndex = littleCycle(rateCategIndex+1, solutionDictionary->size()) ;
+    }
+  }
   virtual ~TreeNode() { }
   
   protected:
@@ -60,7 +70,7 @@ public:
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
-  std::size_t _dictionaryKey ;
+  std::vector<std::size_t> _dictionaryKeyVec ;
   bool _keyDefined ;
 };
 

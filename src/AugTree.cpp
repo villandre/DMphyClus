@@ -8,39 +8,28 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<uvec> * alignmentBinOneLocusOneRate, const uint rateCategIndex, solutionDictionaryType & solutionDictionary, const uint & numTips)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, gsl_rng * RNGpoint)
 { 
-  _exponentContainer = 0 ;
-  _rateCateg = rateCategIndex ;
+  uint numElements = alignmentBin->size()*_solutionDictionary->size() ;
+  _solutionDictionary = solutionDictionary ;
+  _alignmentBinReference = alignmentBin ;
+  _numTips = alignmentBin->size() ;
+  _numLoci = alignmentBin->at(0).size() ;
+  _numRateCats = _solutionDictionary->size() ;
+  _exponentVec = vec(numElements, fill::zeros) ;
+  _likPropVec = vec(numElements, fill::zeros) ;
+  _withinMatListIndex = withinMatListIndex ;
+  _betweenMatListIndex = betweenMatListIndex ;
+  _randomNumGenerator = RNGpoint ;
+  
   umat edgeMatrixCopy(edgeMatrix) ;
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
-  BuildTree(edgeMatrixCopy, numTips) ;
-  InitializeVertices(alignmentBinOneLocusOneRate, solutionDictionary) ;
-  AssociateTransProbMatrices(clusterMRCAs, numTips) ;
+  BuildTree(edgeMatrixCopy) ;
+  InitializeVertices() ;
+  AssociateTransProbMatrices(clusterMRCAs) ;
 }
 
-AugTree::AugTree(const umat & edgeMatrix, const uint & rateCategIndex, const uint & numTips)
-{
-  _exponentContainer = 0 ;
-  _rateCateg = rateCategIndex ;
-  umat edgeMatrixCopy(edgeMatrix) ;
-  edgeMatrixCopy = edgeMatrixCopy - 1 ;
-  BuildTree(edgeMatrixCopy, numTips) ;
-}
-
-void AugTree::CopyAugTreeNonPointer(AugTree * sourceAugTree) 
-{
-  _exponentContainer = sourceAugTree->GetExponentContainer() ;
-  uint sourceVertexIndex = 0 ; // Defining an iterator on sourceAugTree->GetVertexVector() cannot be done without copying it, which I can't explain for now.
-  for (auto & i : _vertexVector)
-  {
-    i->EnterCommonInfo(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
-    //i->EnterInput(sourceAugTree->GetVertexVector().at(sourceVertexIndex)) ;
-    sourceVertexIndex++ ;
-  }
-}
-
-void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const uint & numTips) 
+void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
 {
   // By default all nodes are considered between clusters.
   for (auto & i : _vertexVector)
@@ -50,7 +39,7 @@ void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs, const uint &
   
   for (auto & i : clusterMRCAs)
   {
-    if (i > numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
+    if (i > _numTips) { // Again, clusterMRCAs is based on the R convention, hence >, and not >=.
       for (auto & j : _vertexVector[i-1]->GetChildren()) {
         BindMatrix(j, true) ; 
       }  
@@ -69,20 +58,20 @@ void AugTree::BindMatrix(TreeNode * vertex, const bool withinCluster)
   }
 }
 
-void AugTree::BuildTree(const umat & edgeMatrix, const uint & numTips)
+void AugTree::BuildTree(const umat & edgeMatrix)
 {
   _vertexVector.reserve(edgeMatrix.n_rows + 1) ;
 
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
-  for (uint i = 0; i < numTips; i++) {
-    InputNode * newNode = new InputNode{} ;
+  for (uint i = 0; i < _numTips; i++) {
+    InputNode * newNode = new InputNode(_numLoci) ;
     _vertexVector.push_back(newNode) ;
   } ;
 
   // We add the internal nodes
-  for (uint i = 0 ; i < edgeMatrix.n_rows - numTips + 1; i++) {
-    IntermediateNode * newNode = new IntermediateNode{};
+  for (uint i = 0 ; i < edgeMatrix.n_rows - _numTips + 1; i++) {
+    IntermediateNode * newNode = new IntermediateNode(_numLoci, _numRateCats) ;
     _vertexVector.push_back(newNode) ; 
   } ;
   // We set the IDs (to facilitate exporting the phylogeny to R).
@@ -115,7 +104,7 @@ void AugTree::BuildTreeNoAssign(const umat & edgeMatrix)
 
 
 
-void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDictionary, const uint withinMatListIndex, const uint betweenMatListIndex)
+void AugTree::ComputeKeys(TreeNode * vertex)
 {
   if (!vertex->IsKeyDefined())
   {
@@ -123,40 +112,39 @@ void AugTree::ComputeKeys(TreeNode * vertex, solutionDictionaryType & solutionDi
     {
       for (auto & i : vertex->GetChildren())
       {
-        ComputeKeys(i, solutionDictionary, withinMatListIndex, betweenMatListIndex) ;
+        ComputeKeys(i) ;
       }
     }
-    uint matListIndex = betweenMatListIndex ; 
+    uint matListIndex = _betweenMatListIndex ; 
     if (vertex->GetChildren().at(0)->GetWithinParentBranch())
     {
-      matListIndex = withinMatListIndex ;
+      matListIndex = _withinMatListIndex ;
     }
-    vertex->DeriveKey(solutionDictionary, _rateCateg, matListIndex) ;
+    vertex->DeriveKeys(_solutionDictionary, matListIndex, vertex->GetDictionaryKeyVec().size()) ;
   }
 }
 
-void AugTree::SolveRoot(solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat, const vec & limProbs, const uint & numTips)
+void AugTree::SolveRoot(const List & withinTransMatList, const List & withinTransMatList, const NumericVector & limProbs)
 {
-  TrySolve(_vertexVector[numTips], solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
-  _likelihoodProp = dot(_vertexVector[numTips]->GetSolution(solutionDictionary, _rateCateg), limProbs) ;
+  
 }
 
-void AugTree::InitializeVertices(std::vector<uvec> * alignmentBinOneLocusOneRate, solutionDictionaryType & solutionDictionary)
+void AugTree::InitializeVertices()
 { 
   std::vector<TreeNode *>::iterator treeIter = _vertexVector.begin() ;
-  for (auto & i : *alignmentBinOneLocusOneRate)
+  for (auto & i : *_alignmentBinReference)
   {
     (*treeIter)->SetInput(&i) ;
-    (*treeIter)->DeriveKey(solutionDictionary, _rateCateg, 0) ; // The 0 is a placeholder. It is not used in deriving the key for the tip configurations. 
+    (*treeIter)->DeriveKeys(_solutionDictionary, 0, i.size()) ; // The 0 is a placeholder. It is not used in deriving the key for the tip configurations. 
     treeIter++ ;
   }
 }
 
-void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode) 
+void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode, const uint & rateCateg, const uint & locusRateIndex) 
 {
   if (!currentNode->IsSolved() && !solutionDictionary->empty())
   { // If the node is already solved, no need to update it with a stored pattern.
-    if (solutionDictionary->at(_rateCateg).count(currentNode->GetDictionaryKey()) == 0)
+    if (solutionDictionary->at(rateCateg).count(currentNode->GetDictionaryKeyVec().at(locusRateIndex)) == 0)
     {
       for (auto & i : currentNode->GetChildren())
       {
@@ -171,7 +159,7 @@ void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNod
   }
 }
 
-void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDictionary, const mat & withinTransProbMat, const mat & betweenTransProbMat)
+void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats)
 {
   if (!(vertex->IsSolved())) // Could be solved because of the pattern lookup.
   {
@@ -179,16 +167,16 @@ void AugTree::TrySolve(TreeNode * vertex, solutionDictionaryType & solutionDicti
     {
       for (auto & i : vertex->GetChildren())
       {
-        TrySolve(i, solutionDictionary, withinTransProbMat, betweenTransProbMat) ;
+        TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
       }
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster.
-      vertex->ComputeSolution(solutionDictionary, withinTransProbMat, &_exponentContainer, _rateCateg) ;
+      vertex->ComputeSolution(_solutionDictionary, withinTransProbMats, _exponentVec) ;
     }
     else
     {
-      vertex->ComputeSolution(solutionDictionary, betweenTransProbMat, &_exponentContainer, _rateCateg) ;
+      vertex->ComputeSolution(_solutionDictionary, betweenTransProbMats, _exponentVec) ;
     }
   }
 }
@@ -345,5 +333,101 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
         CheckAndInvalidateBetweenRecursive(child) ;
       }
     }
+  }
+}
+
+void AugTree::ComputeLoglik(List & withinClusTransList, List & betweenClusTransList, NumericVector & limProbs)
+{
+  uint numElements = _numLoci*_numRateCats ;
+  uint rateCategIndex = 0 ;
+  std::vector<mat> withinClusTransProbs = as<std::vector<mat>>(withinClusTransList) ;
+  std::vector<mat> betweenClusTransProbs = as<std::vector<mat>>(betweenClusTransList) ;
+  
+  TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
+  uint rateCateg = 0 ;
+  for (uint i = 0 ; i < numElements ; i++) {
+    _likPropVec.at(i) = dot(_solutionDictionary->at(rateCateg)[_vertexVector[_numTips]->GetDictionaryKeyVec().at(i)], as<vec>(limProbs)) ;
+    rateCateg = littleCycle(i+1, _numRateCats) ;
+  }
+  
+  // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
+  vec rateAveragedLogLiks(_numLoci) ;
+  
+  for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
+  {
+    double maxExponent = max(_exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)) ;
+    _exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
+    rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(_exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
+  }
+  _logLik = sum(rateAveragedLogLiks) ;
+}
+
+void AugTree::HandleSplit(uint clusMRCAtoSplit)
+{
+  for (auto & augtree : _forest)
+  {
+    augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->InvalidateSolution() ;
+    
+    for (auto & childNode : augtree->GetVertexVector().at(clusMRCAtoSplit - 1)->GetChildren())
+    {
+      childNode->SetWithinParentBranch(false) ;
+    }
+    augtree->ComputeKeys(augtree->GetVertexVector().at(_numTips), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(_numTips)) ;
+  }
+}
+
+void AugTree::HandleMerge(uvec & clusMRCAstoMerge)
+{
+  for (auto & augtree : _forest)
+  {
+    augtree->GetVertexVector().at(clusMRCAstoMerge.at(0) - 1)->GetParent()->InvalidateSolution() ; // Elements of clusMRCAsToMerge should all have the same parent to allow a merge to occur.
+    
+    for (auto & oldClusterMRCA : clusMRCAstoMerge)
+    {
+      augtree->GetVertexVector().at(oldClusterMRCA - 1)->SetWithinParentBranch(true) ;
+    }
+    augtree->ComputeKeys(augtree->GetVertexVector().at(_numTips), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    augtree->PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(_numTips)) ;
+  }
+}
+
+void AugTree::InputForestElements(Forest * originForest)
+{
+  //_withinTransProbMatVec = originForest->GetWithinTransProbMatVec() ;
+  //_betweenTransProbMatVec = originForest->GetBetweenTransProbMatVec() ;
+  _withinMatListIndex = originForest->GetWithinMatListIndex() ;
+  _betweenMatListIndex = originForest->GetBetweenMatListIndex() ;
+  uint originAugTreeIndex = 0 ;
+  for (auto & i : _forest)  
+  {
+    i->CopyAugTreeNonPointer(originForest->GetForest().at(originAugTreeIndex)) ;
+    originAugTreeIndex++ ;
+  }
+}
+
+void AugTree::InvalidateBetweenSolutions()
+{
+    CheckAndInvalidateBetweenRecursive(augtree->GetVertexVector().at(_numTips)) ;
+    ComputeKeys(augtree->GetVertexVector().at(_numTips), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(_numTips)) ;
+  }
+}
+
+void AugTree::InvalidateAllSolutions()
+{
+    InvalidateAll() ;
+    ComputeKeys(rtexVector().at(_numTips)) ;
+    PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(_numTips)) ;
+  }
+}
+
+void AugTree::RearrangeNNI(const uint vertexId1, const uint vertexId2)
+{
+  for (auto & i : _forest)
+  {
+    i->RearrangeTreeNNI(vertexId1, vertexId2, _solutionDictionary) ;
+    i->ComputeKeys(i->GetVertexVector().at(_numTips), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
+    i->PatternLookup(_solutionDictionary, i->GetVertexVector().at(_numTips)) ;
   }
 }

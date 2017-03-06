@@ -14,18 +14,22 @@ public:
   void RemoveChildren() {_children.clear() ;} ;
   void RemoveChild(TreeNode *) ;
   //void SetSolution(vec * solution) { _solution = solution ;};
-  void ComputeSolution(solutionDictionaryType &, const mat &, double *, const uint &) ;
+  void ComputeSolution(solutionDictionaryType &, const mat &, double &, const uint &, const uint &) ;
   void InvalidateSolution() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void SetInput(uvec *) { assert(false) ;};
+  void SetInput(std::vector<uvec> *) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
-  void DeriveKey(solutionDictionaryType &, const uint &, const uint &) ;
-  vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg) {return dictionary->at(rateCateg)[_dictionaryKey] ;} ;
-  uvec * GetInput() {assert(false) ; return NULL;} ;
+  void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) ;
+  vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg, const std::size_t & dictionaryKey) {return dictionary->at(rateCateg)[dictionaryKey] ;} ;
+  std::vector<uvec> * GetInput() {assert(false) ; return NULL;} ;
   void EnterInput(TreeNode * originVertex) {} ;
   void MarkKeyUndefined() {_keyDefined = false ;} ;
 
-  IntermediateNode(): _isSolved(false) {_parent = NULL ;  _keyDefined = false ;};
+  IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
+    _parent = NULL ;  
+    _keyDefined = false ;
+    _dictionaryKeyVec.reserve(numLoci*numRates) ;
+  };
   
 protected:
 
