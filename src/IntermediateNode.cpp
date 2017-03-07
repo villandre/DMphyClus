@@ -55,7 +55,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   Col<double> mySolution(transProbM.n_rows, fill::ones) ;
   for(auto & child : _children)
   {
-    mySolution = mySolution % transProbM*(solutionDictionary->at(rateCategory)[child->GetDictionaryKeyVec().at(elementNum)]) ;
+    mySolution = mySolution % transProbM*(child->GetDictionaryIterVec().at(elementNum)->second) ;
   }
   double myMax = max(mySolution) ;
   bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
@@ -64,7 +64,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution/myMax ;
     expContainer = expContainer + log(myMax);
   }
-  (*solutionDictionary).at(rateCategory)[_dictionaryKeyVec.at(elementNum)] = mySolution ;
+  (*solutionDictionary).at(rateCategory)[_dictionaryIterVec.at(elementNum)->first] = mySolution ;
   _isSolved = true ;
 }
 
@@ -73,7 +73,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, co
   std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(4) ; // The hash key is also computed from the within/between status, and betweenMatListIndex or withinMatListIndex, hence +2. The tree is assumed bifurcating, hence the 4.
   std::vector<std::size_t> hashKeys ;
   hashKeys.reserve(childrenKeysAndWithinBetweenFlag.size()) ;
-  std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [& elementNum] (TreeNode * childPointer) {return childPointer->GetDictionaryKeyVec().at(elementNum) ;}) ;
+  std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [& elementNum] (TreeNode * childPointer) {return childPointer->GetDictionaryIterVec().at(elementNum)->first ;}) ;
   childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _children.at(0)->GetWithinParentBranch() ;
   childrenKeysAndWithinBetweenFlag.at(3) = matListIndex ;
   
@@ -84,6 +84,7 @@ void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, co
   bool foundSolution = false ;
   for(auto & hashKey : hashKeys) {
     if (solutionDictionary->at(rateCategory).find(hashKey) != solutionDictionary->at(rateCategory).end()) {
+      solutionDictionary[hashKey] = vec(4, fill::zeros) ;
       _dictionaryKeyVec.at(elementNum) = hashKey ;
       foundSolution = true ;
       break ;

@@ -13,10 +13,9 @@ using namespace arma ;
 
 #include "helper.h"
 
-typedef std::vector<std::unordered_map<std::size_t, Col<double>>>* solutionDictionaryType ;
-typedef std::unordered_map<std::size_t, Col<double>>* nodePatternDictionaryType ;
+typedef std::vector<std::map<std::size_t, Col<double>>>* solutionDictionaryType ;
 typedef std::vector<Col<double>> doubleVec ;
-
+typedef std::vector<std::map<std::size_t, vec>::iterator> iterVec ;
 class TreeNode
 {
 public:
@@ -38,7 +37,7 @@ public:
   virtual void MarkKeyUndefined() = 0 ;
   virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) = 0 ;
   
-  std::vector<std::size_t> GetDictionaryKeyVec() const { return _dictionaryKeyVec ;}
+  iterVec GetDictionaryIterVec() { return _dictionaryIterVec ;}
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
   void SetId(uint vertexId) {_id = vertexId ;}
@@ -50,7 +49,8 @@ public:
   void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;}
   void DeriveKeys(solutionDictionaryType & solutionDictionary, const uint & matListIndex, const uint & numElements)
   {
-    _dictionaryIter.reserve(numElements) ;
+    _dictionaryIterVec.reserve(numElements) ;
+    _iteratorMove.reserve(numElements) ;
     uint rateCategIndex = 0 ;
     for (uint i = 0; i < numElements ; i++)
     {
@@ -65,7 +65,7 @@ public:
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
-  std::vector<std::unordered_map<std::size_t, vec>::iterator> _dictionaryIter ;
+  iterVec _dictionaryIterVec ;
   bool _keyDefined ;
   std::vector<uint> _iteratorMove ;
 };

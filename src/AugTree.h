@@ -84,8 +84,4 @@ public:
   ~AugTree() {deallocate_container(_vertexVector) ;};
 };
 
-class AugTreeWithUndoMove
-{
-  AugTree * originalAugTree ;
-  void UndoMove() ;
-};
+class AugTreeWithUndoMove;
