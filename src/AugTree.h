@@ -50,12 +50,12 @@ public:
   void CheckAndInvalidateBetweenRecursive(TreeNode *) ; 
   
   std::vector<TreeNode *> GetVertexVector() {return _vertexVector ;} ;
-  double GetLikelihood() const {return _likelihoodProp ;} ;
+  vec GetLikPropVec() const {return _likPropVec ;} ;
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
-  vec GetExponentContainer() { return _exponentContainer ;} ;
+  vec GetExponentVec() { return _exponentVec ;} ;
   void ComputeLoglik(List &, List &, const vec &) ;
-  double GetLoglik() {return _loglik ;}
+  double GetLoglik() {return _logLik ;}
   gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;}
   
   uint GetNumRateCats() {return _numRateCats ;}
@@ -72,7 +72,7 @@ public:
   void SetWithinMatListIndex(const uint & index) {_withinMatListIndex = index ;}
   void HandleSplit(uint) ;
   void HandleMerge(uvec &) ;
-  void SetLogLik(double logLik) {_loglik = logLik ;}
+  void SetLogLik(double logLik) {_logLik = logLik ;}
   void RearrangeNNI(const uint, const uint) ;
   void RebuildTrees(const umat &) ;
   void SetRNG(gsl_rng * myRNG) { _randomNumGenerator = myRNG ;}
@@ -82,4 +82,10 @@ public:
   void ComputeLoglik(List &, List &, NumericVector &) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
+};
+
+class AugTreeWithUndoMove
+{
+  AugTree * originalAugTree ;
+  void UndoMove() ;
 };

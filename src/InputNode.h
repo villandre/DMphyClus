@@ -17,8 +17,8 @@ public:
   void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) ;
   vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg, const std::size_t & dictionaryKey) {return conv_to<vec>::from(*_input) ;}
   std::vector<uvec> * GetInput() { return _input ;}
- // void EnterInput(TreeNode * originVertex) { _input = originVertex->GetInput() ;}
   void MarkKeyUndefined() {}
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) {assert(false) ;}
   
   InputNode(uint & numLoci)
   {

@@ -172,11 +172,11 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster.
-      vertex->ComputeSolution(_solutionDictionary, withinTransProbMats, _exponentVec) ;
+      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec) ;
     }
     else
     {
-      vertex->ComputeSolution(_solutionDictionary, betweenTransProbMats, _exponentVec) ;
+      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _exponentVec) ;
     }
   }
 }

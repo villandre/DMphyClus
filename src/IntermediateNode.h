@@ -24,6 +24,7 @@ public:
   std::vector<uvec> * GetInput() {assert(false) ; return NULL;} ;
   void EnterInput(TreeNode * originVertex) {} ;
   void MarkKeyUndefined() {_keyDefined = false ;} ;
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) ;
 
   IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
     _parent = NULL ;  

@@ -36,6 +36,7 @@ public:
   //virtual void EnterInput(TreeNode *) = 0;
   virtual std::vector<uvec> * GetInput() = 0 ;
   virtual void MarkKeyUndefined() = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) = 0 ;
   
   std::vector<std::size_t> GetDictionaryKeyVec() const { return _dictionaryKeyVec ;}
   TreeNode * GetParent() {return _parent ;}
@@ -46,16 +47,10 @@ public:
   
   bool GetWithinParentBranch() {return _withinParentBranch ;}
   
-  // void EnterCommonInfo(TreeNode * originVertex)
-  // {
-  //   _withinParentBranch = originVertex->GetWithinParentBranch() ;
-  //   _dictionaryKey = originVertex->GetDictionaryKey() ;
-  //   _keyDefined = true ;
-  // }
   void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;}
   void DeriveKeys(solutionDictionaryType & solutionDictionary, const uint & matListIndex, const uint & numElements)
   {
-    _dictionaryKeyVec.reserve(numElements) ;
+    _dictionaryIter.reserve(numElements) ;
     uint rateCategIndex = 0 ;
     for (uint i = 0; i < numElements ; i++)
     {
@@ -70,8 +65,9 @@ public:
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
-  std::vector<std::size_t> _dictionaryKeyVec ;
+  std::vector<std::unordered_map<std::size_t, vec>::iterator> _dictionaryIter ;
   bool _keyDefined ;
+  std::vector<uint> _iteratorMove ;
 };
 
 #endif /* TREENODE_H */

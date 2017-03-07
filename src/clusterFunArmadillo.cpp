@@ -52,9 +52,6 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, randomNumGenerator) ;
   PhylogeniesPoint1->ComputeLoglik(withinTransMatList, betweenTransMatList, as<vec>(limProbsVec)) ;
   
-  Forest * PhylogeniesPoint2 = new Forest(edgeMat, clusterMRCAs, convertedBinData, limProbsVec, numTips, numLoci, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size());
-  gsl_rng_free(PhylogeniesPoint2->GetRandomNumGenerator()) ; // We want the random number generator to be the same for both Forests, hence this deallocation, without which there would be a memory leak.
-  PhylogeniesPoint2->SetRNG(PhylogeniesPoint1->GetRandomNumGenerator()) ; 
   
   XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
   XPtr<std::vector<std::vector<uvec>>> alignExtPoint(convertedBinData, false) ;
