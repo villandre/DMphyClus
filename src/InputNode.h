@@ -14,19 +14,19 @@ public:
   void SetSolved(bool status) {}
   void SetInput(std::vector<uvec> * inputVec) { _input = inputVec ;}
   std::vector<TreeNode *> GetChildren() {std::vector<TreeNode *> myVec; myVec.push_back(NULL) ; return myVec;} // An input node returns a null pointer when it is asked to provide the address of a child.
-  void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) ;
+  //void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) ;
   vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg, const std::size_t & dictionaryKey) {return conv_to<vec>::from(*_input) ;}
   std::vector<uvec> * GetInput() { return _input ;}
   void MarkKeyUndefined() {}
   void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) {assert(false) ;}
+  void UpdateMapAndIterVec(solutionDictionaryType &, uint &) ;
   
   InputNode(uint & numLoci)
   {
     _parent = NULL ; 
-    _keyDefined = false ;
-    _dictionaryKeyVec.reserve(numLoci) ;
   }
   
 protected:
   std::vector<uvec> * _input ;
+  std::map<size_t, vec>::iterator _dictionaryIter ;
 };

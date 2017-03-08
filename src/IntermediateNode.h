@@ -19,17 +19,19 @@ public:
   void SetSolved(bool status) {_isSolved = status ;};
   void SetInput(std::vector<uvec> *) { assert(false) ;};
   std::vector<TreeNode *> GetChildren() {return _children;};
-  void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) ;
+  //void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) ;
   vec GetSolution(solutionDictionaryType & dictionary, const uint & rateCateg, const std::size_t & dictionaryKey) {return dictionary->at(rateCateg)[dictionaryKey] ;} ;
   std::vector<uvec> * GetInput() {assert(false) ; return NULL;} ;
   void EnterInput(TreeNode * originVertex) {} ;
   void MarkKeyUndefined() {_keyDefined = false ;} ;
   void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) ;
-
+  void UpdateMapAndIterVec(solutionDictionaryType &, uint &) ;
+  
   IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
     _parent = NULL ;  
     _keyDefined = false ;
-    _dictionaryKeyVec.reserve(numLoci*numRates) ;
+    _dictionaryIterVec.reserve(numLoci*numRates) ;
+    _iteratorMove = std::vector<unsigned int>(numLoci*numRates, UINT_MAX) ;
   };
   
 protected:

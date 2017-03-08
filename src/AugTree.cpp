@@ -102,32 +102,25 @@ void AugTree::BuildTreeNoAssign(const umat & edgeMatrix)
   }
 }
 
-
-
-void AugTree::ComputeKeys(TreeNode * vertex)
-{
-  if (!vertex->IsKeyDefined())
-  {
-    if (!vertex->CanFindKey()) // If a vertex can be solved, then its children have patterns assigned to them.
-    {
-      for (auto & i : vertex->GetChildren())
-      {
-        ComputeKeys(i) ;
-      }
-    }
-    uint matListIndex = _betweenMatListIndex ; 
-    if (vertex->GetChildren().at(0)->GetWithinParentBranch())
-    {
-      matListIndex = _withinMatListIndex ;
-    }
-    vertex->DeriveKeys(_solutionDictionary, matListIndex, vertex->GetDictionaryKeyVec().size()) ;
-  }
-}
-
-void AugTree::SolveRoot(const List & withinTransMatList, const List & withinTransMatList, const NumericVector & limProbs)
-{
-  
-}
+// void AugTree::ComputeKeys(TreeNode * vertex)
+// {
+//   if (!vertex->IsKeyDefined())
+//   {
+//     if (!vertex->CanFindKey()) // If a vertex can be solved, then its children have patterns assigned to them.
+//     {
+//       for (auto & i : vertex->GetChildren())
+//       {
+//         ComputeKeys(i) ;
+//       }
+//     }
+//     uint matListIndex = _betweenMatListIndex ; 
+//     if (vertex->GetChildren().at(0)->GetWithinParentBranch())
+//     {
+//       matListIndex = _withinMatListIndex ;
+//     }
+//     vertex->UpdateMapAndKeyIter(_solutionDictionary, matListIndex)
+//   }
+// }
 
 void AugTree::InitializeVertices()
 { 
@@ -135,7 +128,7 @@ void AugTree::InitializeVertices()
   for (auto & i : *_alignmentBinReference)
   {
     (*treeIter)->SetInput(&i) ;
-    (*treeIter)->DeriveKeys(_solutionDictionary, 0, i.size()) ; // The 0 is a placeholder. It is not used in deriving the key for the tip configurations. 
+    (*treeIter)->UpdateMapAndIterVec(_solutionDictionary, (unsigned int) 1) ; // The 1 is a placeholder. The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
     treeIter++ ;
   }
 }

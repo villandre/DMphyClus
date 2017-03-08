@@ -30,12 +30,13 @@ public:
   virtual void SetSolved(bool) = 0;
   virtual void SetInput(std::vector<uvec> *) = 0 ;
   virtual std::vector<TreeNode *> GetChildren() = 0;
-  virtual void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) = 0;
+  //virtual void DeriveKey(solutionDictionaryType &, const uint &, const uint &, const uint &) = 0;
   virtual vec GetSolution(solutionDictionaryType &, const uint &, const std::size_t &) = 0;
   //virtual void EnterInput(TreeNode *) = 0;
   virtual std::vector<uvec> * GetInput() = 0 ;
   virtual void MarkKeyUndefined() = 0 ;
   virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &) = 0 ;
+  virtual void UpdateMapAndIterVec(solutionDictionaryType &, uint &) = 0;
   
   iterVec GetDictionaryIterVec() { return _dictionaryIterVec ;}
   TreeNode * GetParent() {return _parent ;}
@@ -47,17 +48,17 @@ public:
   bool GetWithinParentBranch() {return _withinParentBranch ;}
   
   void SetWithinParentBranch(bool parentBranchWithin) {_withinParentBranch = parentBranchWithin ;}
-  void DeriveKeys(solutionDictionaryType & solutionDictionary, const uint & matListIndex, const uint & numElements)
-  {
-    _dictionaryIterVec.reserve(numElements) ;
-    _iteratorMove.reserve(numElements) ;
-    uint rateCategIndex = 0 ;
-    for (uint i = 0; i < numElements ; i++)
-    {
-      DeriveKey(solutionDictionary, rateCategIndex, matListIndex, i) ;
-      rateCategIndex = littleCycle(rateCategIndex+1, solutionDictionary->size()) ;
-    }
-  }
+  // void DeriveKeys(solutionDictionaryType & solutionDictionary, const uint & matListIndex, const uint & numElements)
+  // {
+  //   _dictionaryIterVec.reserve(numElements) ;
+  //   _iteratorMove.reserve(numElements) ;
+  //   uint rateCategIndex = 0 ;
+  //   for (uint i = 0; i < numElements ; i++)
+  //   {
+  //     DeriveKey(solutionDictionary, rateCategIndex, matListIndex, i) ;
+  //     rateCategIndex = littleCycle(rateCategIndex+1, solutionDictionary->size()) ;
+  //   }
+  // }
   virtual ~TreeNode() { }
   
   protected:
@@ -66,8 +67,8 @@ public:
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   iterVec _dictionaryIterVec ;
-  bool _keyDefined ;
-  std::vector<uint> _iteratorMove ;
+  //bool _keyDefined ;
+  std::vector<unsigned int> _iteratorMove ;
 };
 
 #endif /* TREENODE_H */

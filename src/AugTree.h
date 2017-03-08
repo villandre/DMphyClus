@@ -39,7 +39,7 @@ public:
   void TrySolve(TreeNode *, solutionDictionaryType &, const mat &, const mat &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &, const vec &, const uint &) ;
-  void ComputeKeys(TreeNode *, const uint &, const uint &) ;
+  //void ComputeKeys(TreeNode *, const uint &, const uint &) ;
   void PatternLookup(solutionDictionaryType &, TreeNode *) ;
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
@@ -84,4 +84,37 @@ public:
   ~AugTree() {deallocate_container(_vertexVector) ;};
 };
 
-class AugTreeWithUndoMove;
+struct S {
+  std::size_t _aKey;
+  std::size_t _otherKey;
+  std::size_t _withinFlag;
+  std::size_t _transMatrixIndex;
+  
+  S(std::size_t aKey, std::size_t otherKey, std::size_t withinFlag, std::size_t transMatrixIndex) : _aKey(aKey), _otherKey(otherKey), _withinFlag(withinFlag), _transMatrixIndex(transMatrixIndex) {}
+};
+
+bool operator==(const S& lhs, const S& rhs) 
+{
+  return (((lhs._aKey == rhs._aKey) && (lhs._otherKey == rhs._otherKey)) || 
+    ((lhs._aKey == rhs._otherKey) && (lhs._otherKey == rhs._aKey))) &&
+    (lhs._withinFlag == rhs._withinFlag) && (lhs._transMatrixIndex == rhs._transMatrixIndex) ;
+}
+
+// custom specialization of std::hash can be injected in namespace std
+namespace std
+{
+template<> struct hash<S>
+{
+  typedef S argument_type;
+  typedef std::size_t result_type;
+  result_type operator()(argument_type const& s) const
+  {
+    std::vector<std::size_t> hashKeys ;
+    hashKeys.reserve(4) ;
+    std::vector<std::size_t> allInfoForHashing{s._aKey,s._otherKey,s._transMatrixIndex,s._withinFlag} ;
+    
+    std::sort(allInfoForHashing.begin(), allInfoForHashing.begin()+2); // The children keys should be re-ordered, not the within-cluster indicator. This will make the function symmetrical.
+    return boost::hash_range(allInfoForHashing.begin(), allInfoForHashing.end()) ;
+  };
+} ;
+}

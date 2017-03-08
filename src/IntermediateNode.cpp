@@ -38,7 +38,7 @@ bool IntermediateNode::CanFindKey()
 void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec & expContainerVec)
 {
   uint rateCateg = 0 ;
-  for (uint i = 0 ; i < _dictionaryKeyVec.size() ; i++)
+  for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
     ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i) ;
     rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
@@ -68,33 +68,42 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   _isSolved = true ;
 }
 
-void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory, const uint & matListIndex, const uint & elementNum)
-{
-  std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(4) ; // The hash key is also computed from the within/between status, and betweenMatListIndex or withinMatListIndex, hence +2. The tree is assumed bifurcating, hence the 4.
-  std::vector<std::size_t> hashKeys ;
-  hashKeys.reserve(childrenKeysAndWithinBetweenFlag.size()) ;
-  std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [& elementNum] (TreeNode * childPointer) {return childPointer->GetDictionaryIterVec().at(elementNum)->first ;}) ;
-  childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _children.at(0)->GetWithinParentBranch() ;
-  childrenKeysAndWithinBetweenFlag.at(3) = matListIndex ;
-  
-  std::sort(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2); // The children keys should be re-ordered, not the within-cluster indicator.
-  do {
-    hashKeys.push_back(boost::hash_range(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end())) ;
-  } while ( std::next_permutation(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2));
-  bool foundSolution = false ;
-  for(auto & hashKey : hashKeys) {
-    if (solutionDictionary->at(rateCategory).find(hashKey) != solutionDictionary->at(rateCategory).end()) {
-      solutionDictionary[hashKey] = vec(4, fill::zeros) ;
-      _dictionaryKeyVec.at(elementNum) = hashKey ;
-      foundSolution = true ;
-      break ;
-    }
-  }
-  if (!foundSolution) {
-    _dictionaryKeyVec.at(elementNum) = hashKeys[0] ;
-  }
-  _keyDefined = true ;
-}
+// When a new key is computed, it is immediately added to the map, and points to a vector of zeros.
+// void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory, const uint & matListIndex, const uint & elementNum)
+// {
+//   std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(4) ; // The hash key is also computed from the within/between status, and betweenMatListIndex or withinMatListIndex, hence +2. The tree is assumed bifurcating, hence the 4.
+//   std::vector<std::size_t> hashKeys ;
+//   hashKeys.reserve(childrenKeysAndWithinBetweenFlag.size()) ;
+//   std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [& elementNum] (TreeNode * childPointer) {return childPointer->GetDictionaryIterVec().at(elementNum)->first ;}) ;
+//   childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _children.at(0)->GetWithinParentBranch() ;
+//   childrenKeysAndWithinBetweenFlag.at(3) = matListIndex ;
+//   
+//   std::sort(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2); // The children keys should be re-ordered, not the within-cluster indicator.
+//   do {
+//     hashKeys.push_back(boost::hash_range(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end())) ;
+//   } while ( std::next_permutation(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2));
+//   bool foundSolution = false ;
+//   for(auto & hashKey : hashKeys) 
+//   {
+//     std::map<std::size_t, vec>::iterator findOutput = solutionDictionary->at(rateCategory).find(hashKey) ;
+//     if (findOutput != solutionDictionary->at(rateCategory).end()) 
+//     {
+//       _dictionaryIterVec.at(elementNum) = findOutput ;
+//       foundSolution = true ;
+//       break ;
+//     }
+//   }
+//   if (!foundSolution) 
+//   {
+//     _dictionaryIterVec.at(elementNum) = solutionDictionary->at(rateCategory).insert(std::pair<std::size_t, vec>(hashKeys[0], vec(4,fill::zeros))).first ;
+//   }
+//   _keyDefined = true ;
+//   if (_iteratorMove.at(elementNum) != UINT_MAX) // This ensures that this is not the first assignment of the iterator. 
+//   {
+//     
+//   }
+// }
+
 
 void IntermediateNode::RemoveChild(TreeNode * childToRemove)
 {
