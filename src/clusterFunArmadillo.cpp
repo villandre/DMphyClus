@@ -47,18 +47,16 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
     convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
     std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
   }
-  solutionDictionaryType solutionDictionary = new std::vector<std::unordered_map<std::size_t, vec>>(withinTransMatList.size()) ;
+  solutionDictionaryType solutionDictionary = new std::vector<std::map<S, vec>>(withinTransMatList.size()) ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
   AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, randomNumGenerator) ;
   PhylogeniesPoint1->ComputeLoglik(withinTransMatList, betweenTransMatList, as<vec>(limProbsVec)) ;
   
-  
-  XPtr<Forest> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
+  XPtr<AugTree> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
   XPtr<std::vector<std::vector<uvec>>> alignExtPoint(convertedBinData, false) ;
-  XPtr<Forest> p2(PhylogeniesPoint2, false) ;
   
   return List::create(Named("logLik") = PhylogeniesPoint1->GetLoglik(),
-                      Named("solutionPointer") = p, Named("alignmentBinPointer") = alignExtPoint, Named("alternatePointer") = p2) ;
+                      Named("solutionPointer") = p, Named("alignmentBinPointer") = alignExtPoint) ;
 }
 
 std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
@@ -122,23 +120,19 @@ SEXP getNULLextPointer()
 
 // [[Rcpp::export]]
 
-List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List & withinTransProbs, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex) 
+double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL)) 
+  if (!(AugTreePointer == NULL)) 
   {
-    XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    XPtr<Forest> newForest(alternatePointer) ;
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
     
-    newForest->InputForestElements(oriForest) ;
-    newForest->SetBetweenMatListIndex(newBetweenMatListIndex) ;
-    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
-    //newForest->SetBetweenTransProbs(as<std::vector<mat>>(newBetweenTransProbs)) ; // We overwrite the between-cluster transition probabilities.
-    newForest->InvalidateBetweenSolutions() ;
-    newForest->ComputeLoglik(withinTransProbs, newBetweenTransProbs) ;
-    XPtr<Forest> p(newForest, false) ;
+    pointedTree->NegateAllUpdateFlags() ;
+    pointedTree->SetBetweenMatListIndex(newBetweenMatListIndex) ;
+    pointedTree->CheckAndInvalidateBetweenRecursive(pointedTree->GetVertexVector().at(pointedTree->GetNumTips())) ;
+    pointedTree->ComputeLoglik(withinTransProbs, newBetweenTransProbs, limProbs) ;
     
-    return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
+    return pointedTree->GetLoglik() ;
   } 
   else 
   {
@@ -148,23 +142,19 @@ List newBetweenTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List 
 
 // [[Rcpp::export]]
 
-List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex) 
+double newWithinTransProbsLogLik(SEXP AugTreePointer, SEXP alternatePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ; 
-  if (!(ForestPointer == NULL)) 
+  if (!(AugTreePointer == NULL)) 
   {
-    XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    XPtr<Forest> newForest(alternatePointer) ;
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
     
-    newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
+    pointedTree->NegateAllUpdateFlags() ;
+    pointedTree->SetWithinMatListIndex(newWithinMatListIndex) ;
+    pointedTree->InvalidateAll() ;
+    pointedTree->ComputeLoglik(newWithinTransProbs, betweenTransProbs, limProbs) ;
     
-    //newForest->SetWithinTransProbs(as<std::vector<mat>>(newWithinTransProbs)) ;
-    newForest->SetWithinMatListIndex(newWithinMatListIndex) ;
-    newForest->InvalidateAllSolutions() ;
-    newForest->ComputeLoglik(newWithinTransProbs, betweenTransProbs) ;
-    XPtr<Forest> p(newForest, false) ;
-    return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
+    return pointedTree->GetLoglik() ;
   } 
   else 
   {
@@ -174,36 +164,33 @@ List newWithinTransProbsLogLik(SEXP ForestPointer, SEXP alternatePointer, List &
 
 // [[Rcpp::export]]
 
-List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP) 
+List withinClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL)) 
+  if (!(AugTreePointer == NULL)) 
   {
-    XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    XPtr<Forest> newForest(alternatePointer) ;
-    
-    newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
-    
-    AugTree * augTreePoint = newForest->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     
-    vertexIndexForNNI = augTreePoint->GetNNIverticesWithin(augTreePoint->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    
+    pointedTree->NegateAllUpdateFlags() ;
+    
+    vertexIndexForNNI = pointedTree->GetNNIverticesWithin(pointedTree->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
     
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      unsigned long int rootForNNIindex = gsl_rng_uniform_int(newForest->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(pointedTree->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
       uvec placeholder(1) ;
       placeholder.at(0) = -1 ; // Probably a better way to do this than using a placeholder...
-      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(newForest->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
-      newForest->RearrangeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+      vertexIndexVec = pointedTree->GetTwoVerticesForNNI(pointedTree->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
+      pointedTree->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
-    newForest->ComputeLoglik(withinTransProbs, betweenTransProbs) ;
-    umat newEdge = newForest->GetForest().at(0)->BuildEdgeMatrix(newForest->GetNumTips()) ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
-    XPtr<Forest> p(newForest, false) ;
-    return List::create(Named("logLik") = newForest->GetLoglik(),
-                        Named("edge") = newEdge, Named("solutionPointer") = p) ;
+    pointedTree->ComputeLoglik(withinTransProbs, betweenTransProbs, limProbs) ;
+    umat newEdge = pointedTree->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
+    
+    return List::create(Named("logLik") = pointedTree->GetLoglik(),
+                        Named("edge") = newEdge) ;
   } 
   else 
   {
@@ -213,40 +200,32 @@ List withinClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, IntegerMatri
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP) 
+List betweenClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL)) 
+  if (!(AugTreePointer == NULL)) 
   {
-    XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-    XPtr<Forest> newForest(alternatePointer) ;
-    
-    newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
-    
-    AugTree * augTreePoint = newForest->GetForest().at(0) ;
     std::vector<uint> vertexIndexForNNI ;
     std::vector<uint> vertexIndexVec ;
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
     
-    vertexIndexForNNI = augTreePoint->GetNNIverticesBetween(augTreePoint->GetVertexVector().at(newForest->GetNumTips()), clusterMRCAsRecast) ;
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    pointedTree->NegateAllUpdateFlags() ;
+    
+    vertexIndexForNNI = pointedTree->GetNNIverticesBetween(pointedTree->GetVertexVector().at(pointedTree->GetNumTips()), clusterMRCAsRecast) ;
     
     for (uint counter = 0; counter < numMovesNNI; counter++)
     {
-      unsigned long int rootForNNIindex = gsl_rng_uniform_int(newForest->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
-      vertexIndexVec = augTreePoint->GetTwoVerticesForNNI(newForest->GetRandomNumGenerator(), augTreePoint->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), clusterMRCAsRecast) ;
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(pointedTree->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      vertexIndexVec = pointedTree->GetTwoVerticesForNNI(pointedTree->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), clusterMRCAsRecast) ;
       
-      for (auto & i : newForest->GetForest())
-      {
-        i->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1), newForest->GetSolutionDictionary()) ;
-      }
+      pointedTree->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
     
-    newForest->ComputeLoglik(withinTransProbs, betweenTransProbs) ;
-    umat newEdge = newForest->GetForest().at(0)->BuildEdgeMatrix(newForest->GetNumTips()) ;
-    XPtr<Forest> p(newForest, false) ;
-    return List::create(Named("logLik") = newForest->GetLoglik(),
-                       Named("edge") = newEdge, Named("solutionPointer") = p) ;
+    pointedTree->ComputeLoglik(withinTransProbs, betweenTransProbs, limProbs) ;
+    umat newEdge = pointedTree->BuildEdgeMatrix() ;
+    return List::create(Named("logLik") = pointedTree->GetLoglik(),
+                       Named("edge") = newEdge) ;
   } 
   else 
   {
@@ -256,29 +235,27 @@ List betweenClusNNIlogLik(SEXP ForestPointer, SEXP alternatePointer, List & with
 
 // [[Rcpp::export]]
 
-List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP) 
+double clusSplitMergeLogLik(SEXP AugTreePointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
-  if (!(ForestPointer == NULL))
+  if (!(AugTreePointer == NULL))
   {
-    XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    pointedTree->NegateAllUpdateFlags() ;
+    
     uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
-    XPtr<Forest> newForest(alternatePointer) ;
-    
-    newForest->InputForestElements(oriForest) ;
-    newForest->RebuildTrees(as<umat>(edgeMat) - 1) ;
-    
+   
     if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
     {
-      newForest->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0)) ;
+      pointedTree->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0)) ;
     }
     else
     {
-      newForest->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
+      pointedTree->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
     }
-    newForest->ComputeLoglik(withinTransProbs, betweenTransProbs) ;
-    XPtr<Forest> p(newForest, false) ;
-    return List::create(Named("logLik") = newForest->GetLoglik(), Named("solutionPointer") = p) ;
+    pointedTree->ComputeLoglik(withinTransProbs, betweenTransProbs, limProbs) ;
+    
+    return pointedTree->GetLoglik() ;
   }
   else
   {
@@ -288,19 +265,18 @@ List clusSplitMergeLogLik(SEXP ForestPointer, SEXP alternatePointer, List & with
 
 // [[Rcpp::export]]
 
-void finalDeallocate(SEXP ForestPointer) // We need to explicitly deallocate the random number generator.
+void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix & edgeMat, bool NNImove)
 {
-  XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-  gsl_rng_free(oriForest->GetRandomNumGenerator()) ;
-  delete oriForest->GetSolutionDictionary() ;
-  delete oriForest->GetAlignmentBinReference() ;
+  XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+  pointedTree->RestorePreviousConfig(edgeMat, NNImove) ;
 }
 
 // [[Rcpp::export]]
 
-void manualDeallocation(SEXP ForestPointer) // We need to explicitly deallocate the random number generator.
+void finalDeallocate(SEXP AugTreePointer) // We need to explicitly deallocate the random number generator.
 {
-  XPtr<Forest> oriForest(ForestPointer) ; // Becomes a regular pointer again.
-  Forest * pointerRecast = oriForest ;
-  delete pointerRecast ;
+  XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+  gsl_rng_free(pointedTree->GetRandomNumGenerator()) ;
+  delete pointedTree->GetSolutionDictionary() ;
+  delete pointedTree->GetAlignmentBinReference() ;
 }

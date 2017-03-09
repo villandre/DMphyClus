@@ -5,7 +5,7 @@
 void IntermediateNode::InvalidateSolution()
 {
   _isSolved = false ;
-  _keyDefined = false ; // If a solution is invalidated, it means something changed in lower vertice, which also invalidates the key.
+  //_keyDefined = false ; // If a solution is invalidated, it means something changed in lower vertice, which also invalidates the key.
   
   if (_parent != NULL)
   { // Root has a NULL parent.
@@ -24,23 +24,23 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-bool IntermediateNode::CanFindKey()
-{
-  std::vector<bool> childKeyDefined(_children.size()) ;
-  childKeyDefined.reserve(_children.size()) ;
-  for (auto & i : _children)
-  {
-    childKeyDefined.push_back(i->IsKeyDefined()) ; 
-  }
-  return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
-}
+// bool IntermediateNode::CanFindKey()
+// {
+//   std::vector<bool> childKeyDefined(_children.size()) ;
+//   childKeyDefined.reserve(_children.size()) ;
+//   for (auto & i : _children)
+//   {
+//     childKeyDefined.push_back(i->IsKeyDefined()) ; 
+//   }
+//   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
+// }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec & expContainerVec)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec & expContainerVec, const uint & transMatIndex)
 {
   uint rateCateg = 0 ;
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i) ;
+    ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i, transMatIndex) ;
     rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
   }
 }
@@ -50,10 +50,10 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double & expContainer, const uint & rateCategory, const uint & elementNum)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double & expContainer, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
   Col<double> mySolution(transProbM.n_rows, fill::ones) ;
-  for(auto & child : _children)
+  for(auto & child : _children) 
   {
     mySolution = mySolution % transProbM*(child->GetDictionaryIterVec().at(elementNum)->second) ;
   }
@@ -64,7 +64,9 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution/myMax ;
     expContainer = expContainer + log(myMax);
   }
-  (*solutionDictionary).at(rateCategory)[_dictionaryIterVec.at(elementNum)->first] = mySolution ;
+  (*solutionDictionary).at(rateCategory)[S(std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first), 
+    std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first),
+    _children.at(0)->GetWithinParentBranch(), transMatrixIndex)] = mySolution ;
   _isSolved = true ;
 }
 
