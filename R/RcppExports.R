@@ -9,35 +9,31 @@ getConvertedAlignment <- function(equivVector, alignmentAlphaMat) {
     .Call('DMphyClus_getConvertedAlignment', PACKAGE = 'DMphyClus', equivVector, alignmentAlphaMat)
 }
 
-getNULLextPointer <- function() {
-    .Call('DMphyClus_getNULLextPointer', PACKAGE = 'DMphyClus')
+newBetweenTransProbsLogLik <- function(AugTreePointer, withinTransProbs, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex, limProbs) {
+    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex, limProbs)
 }
 
-newBetweenTransProbsLogLik <- function(ForestPointer, alternatePointer, withinTransProbs, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex) {
-    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, withinTransProbs, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex)
+newWithinTransProbsLogLik <- function(AugTreePointer, newWithinTransProbs, betweenTransProbs, edgeMat, numOpenMP, newWithinMatListIndex, limProbs) {
+    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, newWithinTransProbs, betweenTransProbs, edgeMat, numOpenMP, newWithinMatListIndex, limProbs)
 }
 
-newWithinTransProbsLogLik <- function(ForestPointer, alternatePointer, newWithinTransProbs, betweenTransProbs, edgeMat, numOpenMP, newWithinMatListIndex) {
-    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, newWithinTransProbs, betweenTransProbs, edgeMat, numOpenMP, newWithinMatListIndex)
+withinClusNNIlogLik <- function(AugTreePointer, edgeMat, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs) {
+    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs)
 }
 
-withinClusNNIlogLik <- function(ForestPointer, alternatePointer, edgeMat, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP) {
-    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, edgeMat, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP)
+betweenClusNNIlogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP, limProbs) {
+    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP, limProbs)
 }
 
-betweenClusNNIlogLik <- function(ForestPointer, alternatePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP) {
-    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP)
+clusSplitMergeLogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP, limProbs) {
+    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP, limProbs)
 }
 
-clusSplitMergeLogLik <- function(ForestPointer, alternatePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP) {
-    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', ForestPointer, alternatePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP)
+RestorePreviousConfig <- function(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove) {
+    invisible(.Call('DMphyClus_RestorePreviousConfig', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove))
 }
 
-finalDeallocate <- function(ForestPointer) {
-    invisible(.Call('DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', ForestPointer))
-}
-
-manualDeallocation <- function(ForestPointer) {
-    invisible(.Call('DMphyClus_manualDeallocation', PACKAGE = 'DMphyClus', ForestPointer))
+finalDeallocate <- function(AugTreePointer) {
+    invisible(.Call('DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', AugTreePointer))
 }
 

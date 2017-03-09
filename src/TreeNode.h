@@ -5,6 +5,7 @@
 #include <RcppArmadillo.h>
 #include <unordered_map>
 #include <gsl/gsl_rng.h>
+#include <algorithm>
 
 using namespace arma ;
 
@@ -24,21 +25,16 @@ struct S {
     _withinFlag = (std::size_t) withinFlag ;
     _transMatrixIndex = (std::size_t) transMatrixIndex ;
   }
+  S() {};
 };
-
-bool operator==(const S& lhs, const S& rhs) 
-{
-  return (((lhs._aHash == rhs._aHash) && (lhs._otherHash == rhs._otherHash)) || 
-          ((lhs._aHash == rhs._otherHash) && (lhs._otherHash == rhs._aHash))) &&
-          (lhs._withinFlag == rhs._withinFlag) && (lhs._transMatrixIndex == rhs._transMatrixIndex) ;
-}
 
 struct classcomp {
   bool operator() (const S& lhs, const S& rhs) const
   {
-    if (lhs._transMatrixIndex != rhs._transMatrixIndex) return true ;
-    if (lhs._withinFlag != rhs._withinFlag) return true ;
-    if (!(((lhs._aHash == rhs._aHash)&&(lhs._otherHash == rhs._otherHash))||((lhs._aHash == rhs._otherHash)&&(lhs._otherHash == rhs._aHash)))) return true ;
+    if (lhs._transMatrixIndex != rhs._transMatrixIndex) return lhs._transMatrixIndex < rhs._transMatrixIndex ;
+    if (lhs._withinFlag != rhs._withinFlag) return lhs._withinFlag < rhs._withinFlag ;
+    if (std::min(lhs._aHash, lhs._otherHash) != std::min(rhs._aHash, rhs._otherHash)) return std::min(lhs._aHash,lhs._otherHash) < std::min(rhs._aHash, rhs._otherHash) ;
+    if (std::max(lhs._aHash,lhs._otherHash) != std::max(rhs._aHash, rhs._otherHash)) return std::max(lhs._aHash,lhs._otherHash) < std::max(rhs._aHash, rhs._otherHash) ;
     return false ;
   }
 };
@@ -62,34 +58,37 @@ template<> struct hash<S>
 } ;
 }
 
-typedef std::vector<std::unordered_map<S, vec>>* solutionDictionaryType ;
+typedef std::vector<std::map<S, vec, classcomp>>* solutionDictionaryType ;
 typedef std::vector<vec> doubleVec ;
-typedef std::unordered_map<S, vec>::iterator mapIterator ;
+typedef std::map<S, vec, classcomp>::iterator mapIterator ;
 typedef std::vector<mapIterator> iterVec ;
 
 class TreeNode
 {
 public:
+  virtual void AddChild(TreeNode *) = 0 ;
+  virtual void RemoveChild(TreeNode *) = 0 ;
+  virtual std::vector<TreeNode *> GetChildren() = 0;
+  virtual void RemoveChildren() = 0 ;
+  
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
-  virtual void AddChild(TreeNode *) = 0 ;
-  virtual void RemoveChildren() = 0 ;
-  virtual void RemoveChild(TreeNode *) = 0 ;
+  virtual void SetSolved(bool) = 0;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &, const uint &, const std::vector<bool> &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &, const mat &, double &, const uint &, const uint &, const uint &) = 0 ;
   virtual void InvalidateSolution() = 0;
-  virtual void SetSolved(bool) = 0;
-  virtual void SetInput(std::vector<uvec> *) = 0 ;
-  virtual std::vector<TreeNode *> GetChildren() = 0;
   virtual vec GetSolution(const uint &, const uint & numRateCats) = 0;
   
+  virtual void SetInput(std::vector<uvec> *) = 0 ;
   virtual std::vector<uvec> * GetInput() = 0 ;
-  virtual void MarkKeyUndefined() = 0 ;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &, const uint &) = 0 ;
+  
   virtual void InitMapAndIterVec(solutionDictionaryType &) = 0;
   virtual void CopyIterVec() = 0 ;
   virtual void RestoreIterVec() = 0;
+  virtual std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) = 0;
+  virtual S GetSfromVertex(const uint &, const uint &) = 0;
   
-  std::vector<std::pair<const S, vec>*> GetDictionaryIterVec() { return _dictionaryIterVec ;}
+  iterVec GetDictionaryIterVec() { return _dictionaryIterVec ;}
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
   void SetId(uint vertexId) {_id = vertexId ;}
@@ -107,8 +106,8 @@ public:
   uint _id ; // From 1 to number of nodes. Used for exporting the phylogeny to R.
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
-  std::vector<std::pair<const S, vec>*> _dictionaryIterVec ;
-  std::vector<std::pair<const S, vec>*> _previousIterVec ;
+  iterVec _dictionaryIterVec ;
+  iterVec _previousIterVec ;
   bool _updateFlag ;
 };
 

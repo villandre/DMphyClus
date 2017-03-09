@@ -102,26 +102,6 @@ void AugTree::BuildTreeNoAssign(const umat & edgeMatrix)
   }
 }
 
-// void AugTree::ComputeKeys(TreeNode * vertex)
-// {
-//   if (!vertex->IsKeyDefined())
-//   {
-//     if (!vertex->CanFindKey()) // If a vertex can be solved, then its children have patterns assigned to them.
-//     {
-//       for (auto & i : vertex->GetChildren())
-//       {
-//         ComputeKeys(i) ;
-//       }
-//     }
-//     uint matListIndex = _betweenMatListIndex ; 
-//     if (vertex->GetChildren().at(0)->GetWithinParentBranch())
-//     {
-//       matListIndex = _withinMatListIndex ;
-//     }
-//     vertex->UpdateMapAndKeyIter(_solutionDictionary, matListIndex)
-//   }
-// }
-
 void AugTree::InitializeVertices()
 { 
   std::vector<TreeNode *>::iterator treeIter = _vertexVector.begin() ;
@@ -133,60 +113,44 @@ void AugTree::InitializeVertices()
   }
 }
 
-// void AugTree::PatternLookup(solutionDictionaryType & solutionDictionary, TreeNode * currentNode, const uint & rateCateg, const uint & locusRateIndex) 
-// {
-//   if (!currentNode->IsSolved() && !solutionDictionary->empty())
-//   { // If the node is already solved, no need to update it with a stored pattern.
-//     if (solutionDictionary->at(rateCateg).count(currentNode->GetDictionaryKeyVec().at(locusRateIndex)) == 0)
-//     {
-//       for (auto & i : currentNode->GetChildren())
-//       {
-//         PatternLookup(solutionDictionary, i) ;
-//       }
-//     }
-//     else
-//     {
-//       //currentNode->SetSolution((*solutionDictionary)[currentNode->GetDictionaryKey()]) ;
-//       currentNode->SetSolved(true) ;
-//     }
-//   }
-// }
+
 
 void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats)
 {
   if (!(vertex->IsSolved()))
   {
     vertex->CopyIterVec() ;
-    if (!vertex->CanSolve())
-    {
-      for (auto & i : vertex->GetChildren())
-      {
-        TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
-      }
-    }
-    uint transProbMatIndex = _betweenMatListIndex ;
+    std::vector<bool> solInDictionary ;
+    uint childTransMatIndex = _betweenMatListIndex ;
     if (vertex->GetChildren().at(0)->GetWithinParentBranch())
     {
-      transProbMatIndex = _withinMatListIndex ;
+      childTransMatIndex = _withinMatListIndex ;
     }
-    
-    uint rateCategIndex = 0 ;
-    for (unsigned int i = 0 ; i<_vertexVector.size() ; i++)
+    solInDictionary = vertex->UpdateDictionaryIter(_solutionDictionary, childTransMatIndex) ;
+    bool allSolved = std::all_of(solInDictionary.begin(), solInDictionary.end(), [](bool i){ return i;}) ;
+    if (!allSolved) 
     {
-      S myStruct(std::hash<S> {} (vertex->GetChildren().at(0)->GetDictionaryIterVec().at(i)->first), std::hash<S> {} (vertex->GetChildren().at(1)->GetDictionaryIterVec().at(i)->first), vertex->GetChildren().at(0)->GetWithinParentBranch(), transProbMatIndex) ;
-      if (_solutionDictionary->at(0).count(myStruct) == 1)
+      if (!vertex->CanSolve())
       {
-        
+        for (auto & i : vertex->GetChildren())
+        {
+          TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
+        }
       }
-    }
-    
-    if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
-    {  // This junction is within a cluster.
-      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec, _withinMatListIndex) ;
-    }
-    else
-    {
-      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _exponentVec, _betweenMatListIndex) ;
+      uint transProbMatIndex = _betweenMatListIndex ;
+      if (vertex->GetChildren().at(0)->GetWithinParentBranch())
+      {
+        transProbMatIndex = _withinMatListIndex ;
+      }
+      
+      if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
+      {  // This junction is within a cluster. 
+        vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec, _withinMatListIndex, solInDictionary) ;
+      }
+      else
+      {
+        vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _exponentVec, _betweenMatListIndex, solInDictionary) ;
+      }
     }
   }
 }
@@ -336,7 +300,6 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
     if (!(currentVertex->GetChildren().at(0)->GetWithinParentBranch()))
     {
       currentVertex->SetSolved(false) ;
-//      currentVertex->MarkKeyUndefined() ;
       
       for (auto & child : currentVertex->GetChildren())
       {
@@ -346,17 +309,15 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
   }
 }
 
-void AugTree::ComputeLoglik(List & withinClusTransList, List & betweenClusTransList, NumericVector & limProbs)
+void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const std::vector<mat> & betweenClusTransProbs, const vec & limProbs)
 {
   uint numElements = _numLoci*_numRateCats ;
   uint rateCategIndex = 0 ;
-  std::vector<mat> withinClusTransProbs = as<std::vector<mat>>(withinClusTransList) ;
-  std::vector<mat> betweenClusTransProbs = as<std::vector<mat>>(betweenClusTransList) ;
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
   uint rateCateg = 0 ;
   for (uint i = 0 ; i < numElements ; i++) {
-    _likPropVec.at(i) = dot(_vertexVector.at(_numTips)->GetSolution(i, _numRateCats), as<vec>(limProbs)) ;
+    _likPropVec.at(i) = dot(_vertexVector.at(_numTips)->GetSolution(i, _numRateCats), limProbs) ;
     rateCateg = littleCycle(i+1, _numRateCats) ;
   }
   
@@ -392,8 +353,10 @@ void AugTree::HandleMerge(uvec & clusMRCAstoMerge)
   }
 }
 
-void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NNImoveFlag) 
+void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NNImoveFlag, const int & withinMatListIndex, const int & betweenMatListIndex) 
 {
+  _withinMatListIndex = withinMatListIndex ;
+  _betweenMatListIndex = betweenMatListIndex ;
   if (NNImoveFlag)
   {
     BuildTreeNoAssign(as<umat>(edgeMat)) ;
@@ -412,21 +375,3 @@ void AugTree::NegateAllUpdateFlags()
     i->NegateFlag() ;
   }
 }
-// void AugTree::InvalidateBetweenSolutions()
-// {
-//     CheckAndInvalidateBetweenRecursive(augtree->GetVertexVector().at(_numTips)) ;
-//     ComputeKeys(augtree->GetVertexVector().at(_numTips), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
-//     PatternLookup(_solutionDictionary, augtree->GetVertexVector().at(_numTips)) ;
-//   }
-// }
-
-// void AugTree::RearrangeNNI(const uint vertexId1, const uint vertexId2)
-// {
-//   for (auto & i : _forest)
-//   {
-//     i->RearrangeTreeNNI(vertexId1, vertexId2, _solutionDictionary) ;
-//     i->ComputeKeys(i->GetVertexVector().at(_numTips), _solutionDictionary, _withinMatListIndex, _betweenMatListIndex) ;
-//     i->PatternLookup(_solutionDictionary, i->GetVertexVector().at(_numTips)) ;
-//   }
-// }
-

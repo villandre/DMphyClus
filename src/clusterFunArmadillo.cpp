@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-#include "Forest.h"
+#include "AugTree.h"
 #include <limits>
 #include <gsl/gsl_rng.h>
 
@@ -39,6 +39,9 @@ template void print_vector<arma::vec>(arma::vec colvec);
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex)
 {
   //omp_set_num_threads(numOpenMP) ;
+  std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransMatList) ;
+  std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransMatList) ;
+  vec limProbsVals = as<vec>(limProbsVec) ;
   
   std::vector<std::vector<uvec>> alignmentBinRecast = as<std::vector<std::vector<uvec>>>(alignmentBin) ;
   std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>> ;
@@ -47,10 +50,10 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
     convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
     std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
   }
-  solutionDictionaryType solutionDictionary = new std::vector<std::map<S, vec>>(withinTransMatList.size()) ;
+  solutionDictionaryType solutionDictionary = new std::vector<std::map<S, vec, classcomp>>(withinTransMatList.size()) ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
   AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, randomNumGenerator) ;
-  PhylogeniesPoint1->ComputeLoglik(withinTransMatList, betweenTransMatList, as<vec>(limProbsVec)) ;
+  PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
   
   XPtr<AugTree> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
   XPtr<std::vector<std::vector<uvec>>> alignExtPoint(convertedBinData, false) ;
@@ -112,25 +115,20 @@ SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaM
 
 // [[Rcpp::export]]
 
-SEXP getNULLextPointer()
-{
-  Rcpp::XPtr<int> p(NULL, true) ;
-  return p ;
-}
-
-// [[Rcpp::export]]
-
 double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
   {
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(newBetweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
     
     pointedTree->NegateAllUpdateFlags() ;
     pointedTree->SetBetweenMatListIndex(newBetweenMatListIndex) ;
     pointedTree->CheckAndInvalidateBetweenRecursive(pointedTree->GetVertexVector().at(pointedTree->GetNumTips())) ;
-    pointedTree->ComputeLoglik(withinTransProbs, newBetweenTransProbs, limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
     
     return pointedTree->GetLoglik() ;
   } 
@@ -142,17 +140,21 @@ double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, 
 
 // [[Rcpp::export]]
 
-double newWithinTransProbsLogLik(SEXP AugTreePointer, SEXP alternatePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
+double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ; 
   if (!(AugTreePointer == NULL)) 
   {
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(newWithinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
     
     pointedTree->NegateAllUpdateFlags() ;
     pointedTree->SetWithinMatListIndex(newWithinMatListIndex) ;
+    
     pointedTree->InvalidateAll() ;
-    pointedTree->ComputeLoglik(newWithinTransProbs, betweenTransProbs, limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
     
     return pointedTree->GetLoglik() ;
   } 
@@ -164,7 +166,7 @@ double newWithinTransProbsLogLik(SEXP AugTreePointer, SEXP alternatePointer, Lis
 
 // [[Rcpp::export]]
 
-List withinClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
+List withinClusNNIlogLik(SEXP AugTreePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
@@ -173,6 +175,9 @@ List withinClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, IntegerMatr
     std::vector<uint> vertexIndexVec ;
     
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
     
     pointedTree->NegateAllUpdateFlags() ;
     
@@ -186,7 +191,7 @@ List withinClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, IntegerMatr
       vertexIndexVec = pointedTree->GetTwoVerticesForNNI(pointedTree->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
       pointedTree->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
-    pointedTree->ComputeLoglik(withinTransProbs, betweenTransProbs, limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
     umat newEdge = pointedTree->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
     
     return List::create(Named("logLik") = pointedTree->GetLoglik(),
@@ -200,7 +205,7 @@ List withinClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, IntegerMatr
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
+List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
@@ -210,6 +215,10 @@ List betweenClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, List & wit
     uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
     
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
     pointedTree->NegateAllUpdateFlags() ;
     
     vertexIndexForNNI = pointedTree->GetNNIverticesBetween(pointedTree->GetVertexVector().at(pointedTree->GetNumTips()), clusterMRCAsRecast) ;
@@ -222,7 +231,7 @@ List betweenClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, List & wit
       pointedTree->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
     }
     
-    pointedTree->ComputeLoglik(withinTransProbs, betweenTransProbs, limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
     umat newEdge = pointedTree->BuildEdgeMatrix() ;
     return List::create(Named("logLik") = pointedTree->GetLoglik(),
                        Named("edge") = newEdge) ;
@@ -235,12 +244,16 @@ List betweenClusNNIlogLik(SEXP AugTreePointer, SEXP alternatePointer, List & wit
 
 // [[Rcpp::export]]
 
-double clusSplitMergeLogLik(SEXP AugTreePointer, SEXP alternatePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP, NumericVector & limProbs) 
+double clusSplitMergeLogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL))
   {
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
     pointedTree->NegateAllUpdateFlags() ;
     
     uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
@@ -253,7 +266,7 @@ double clusSplitMergeLogLik(SEXP AugTreePointer, SEXP alternatePointer, List & w
     {
       pointedTree->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
     }
-    pointedTree->ComputeLoglik(withinTransProbs, betweenTransProbs, limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
     
     return pointedTree->GetLoglik() ;
   }
@@ -265,10 +278,10 @@ double clusSplitMergeLogLik(SEXP AugTreePointer, SEXP alternatePointer, List & w
 
 // [[Rcpp::export]]
 
-void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix & edgeMat, bool NNImove)
+void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix & edgeMat, int & withinMatListIndex, int & betweenMatListIndex, bool NNImove)
 {
   XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
-  pointedTree->RestorePreviousConfig(edgeMat, NNImove) ;
+  pointedTree->RestorePreviousConfig(edgeMat, NNImove, withinMatListIndex, betweenMatListIndex) ;
 }
 
 // [[Rcpp::export]]

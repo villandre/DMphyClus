@@ -33,14 +33,12 @@ protected:
   
 public:
   AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, gsl_rng *) ;
-  //AugTree(const umat &, const uint &, const uint &) ;
   
   void BuildTreeNoAssign(const umat &) ;
   void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &, const vec &, const uint &) ;
-  //void ComputeKeys(TreeNode *, const uint &, const uint &) ;
-  //void PatternLookup(solutionDictionaryType &, TreeNode *) ;
+  
   void BindMatrixBetween(TreeNode *, const mat &) ;
   void InvalidateAll() ;
   void BindMatrix(TreeNode *, const bool) ;
@@ -48,7 +46,7 @@ public:
   std::vector<uint> GetTwoVerticesForNNI(TreeNode *, uvec &) ;
   void CopyAugTreeNonPointer(AugTree *) ;
   void CheckAndInvalidateBetweenRecursive(TreeNode *) ; 
-  void RestorePreviousConfig(const IntegerMatrix &, const bool) ;
+  void RestorePreviousConfig(const IntegerMatrix &, const bool, const int &, const int &) ;
   void NegateAllUpdateFlags() ;
   
   std::vector<TreeNode *> GetVertexVector() {return _vertexVector ;} ;
@@ -56,7 +54,7 @@ public:
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
   vec GetExponentVec() { return _exponentVec ;} ;
-  void ComputeLoglik(List &, List &, const vec &) ;
+  void ComputeLoglik(const std::vector<mat> &, const std::vector<mat> &, const vec &) ;
   double GetLoglik() {return _logLik ;}
   gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;}
   

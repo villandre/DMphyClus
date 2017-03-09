@@ -74,7 +74,6 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$logLik <- logLikAndPointer$logLik
     currentValue$extPointer <- logLikAndPointer$solutionPointer
     currentValue$alignmentBinPointer <- logLikAndPointer$alignmentBinPointer
-    currentValue$alternatePointer <- logLikAndPointer$alternatePointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
     currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
@@ -89,14 +88,8 @@ reorderTips <- function(phylogeny, newTipOrder)
   newClusMRCAs <- currentValue$paraValues$clusterNodeIndices
   newClusMRCAs[clusNumber] <- newClusNodes[1]
   newClusMRCAs <- c(newClusMRCAs, tail(newClusNodes, n = -1))
-  if (is.null(currentValue$extPointer)) {
-    newLogLikAndPoint <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentPhylo), clusterMRCAs = newClusMRCAs, numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
-  }
-  else
-  {
-    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
-  }
-  newLogLik <- newLogLikAndPoint$logLik
+  
+  newLogLik <- clusSplitMergeLogLik(AugTreePointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = currentValue$paraValues$clusterNodeIndices[[clusNumber]], numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
   
   shortRecursive <- function(cMRCAs, cNumbers, clusInd, index = 1) {
     seqLabelsToChange <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, cMRCAs[index])[[1]]]
@@ -115,7 +108,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
   numPairsNew <- length(ancestorsGroupsPairsNew)
   transKernRatio <- numSplits/numPairsNew
-  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs, updatedPointer = newLogLikAndPoint$solutionPointer)
+  list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
 .performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numPairs) {
@@ -126,15 +119,9 @@ reorderTips <- function(phylogeny, newTipOrder)
   newMRCA <- phangorn::mrca.phylo(currentPhylo, clusMRCAsToMerge)
   clusToMergeNumbers <- match(clusMRCAsToMerge, currentClusMRCAs)
   newClusMRCAs <- unique(replace(currentClusMRCAs, clusToMergeNumbers, newMRCA)) # No two clusters can have the same MRCA.
-  if (is.null(currentValue$extPointer)) 
-  {
-    newLogLikAndPoint <- logLikCpp(edgeMat = currentPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = newClusMRCAs, numTips = ape::Ntip(currentPhylo), numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
-  }
-  else
-  {
-    newLogLikAndPoint <- clusSplitMergeLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
-  }
-  newLogLik <- newLogLikAndPoint$logLik
+  
+  newLogLik <- clusSplitMergeLogLik(AugTreePointer = currentValue$extPointer, clusMRCAsToSplitOrMerge = clusMRCAsToMerge, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
+  
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
   newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
@@ -194,13 +181,14 @@ reorderTips <- function(phylogeny, newTipOrder)
       currentValue$paraValues$clusInd <- splitMergeResult$clusInd
       currentValue$clusterCounts <- splitMergeResult$counts
       currentValue$paraValues$clusterNodeIndices <- splitMergeResult$clusterNodeIndices
-      currentValue$alternatePointer <- currentValue$extPointer
-      currentValue$extPointer <- splitMergeResult$updatedPointer
+      
       if (!splitMove)
       {
         names(currentValue$clusterCounts) <- as.character(.relabel(as.numeric(names(currentValue$clusterCounts))))
         currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
       }
+    } else {
+      RestorePreviousConfig(currentValue$extPointer, edgeMat = matrix(0,1,1), NNImove = FALSE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
     }
     currentValue
 }
@@ -220,22 +208,14 @@ reorderTips <- function(phylogeny, newTipOrder)
     betweenTransMatList <- transMatsNoChange
     withinTransMatList <- allTransMatList[[newIndex]]
   }
-  if (is.null(currentValue$extPointer))
+  
+  if (betweenBool)
   {
-    newLogLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
+    newLogLik <- newBetweenTransProbsLogLik(AugTreePointer = currentValue$extPointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newBetweenMatListIndex = newIndex, withinTransProbs = withinTransMatList)
   }
   else
   {
-    if (betweenBool)
-    {
-      newLogLikAndPoint <- newBetweenTransProbsLogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, newBetweenTransProbs = betweenTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newBetweenMatListIndex = newIndex, withinTransProbs = withinTransMatList)
-      newLogLik <- newLogLikAndPoint$logLik
-    }
-    else
-    {
-      newLogLikAndPoint <- newWithinTransProbsLogLik(ForestPointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, alternatePointer = currentValue$alternatePointer, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newWithinMatListIndex = newIndex, betweenTransProbs = betweenTransMatList)
-      newLogLik <- newLogLikAndPoint$logLik
-    }
+    newLogLik <- newWithinTransProbsLogLik(AugTreePointer = currentValue$extPointer, newWithinTransProbs = withinTransMatList, edgeMat = currentValue$paraValues$phylogeny$edge, numOpenMP = numLikThreads, newWithinMatListIndex = newIndex, betweenTransProbs = betweenTransMatList)
   }
  
   MHratio <- exp(newLogLik - currentValue$logLik)
@@ -247,9 +227,9 @@ reorderTips <- function(phylogeny, newTipOrder)
     }
     currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
     currentValue$logLik <- newLogLik
-    currentValue$alternatePointer <- currentValue$extPointer
-    currentValue$extPointer <- newLogLikAndPoint$solutionPointer
-  } 
+  } else {
+    RestorePreviousConfig(currentValue$extPointer, edgeMat = matrix(0,1,1), NNImove = FALSE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
+  }
   currentValue
 }
 
@@ -282,7 +262,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   close(con = progress)
   cat("\n Chain complete. \n\n\n")
   finalDeallocate(currentValue$extPointer)
-  rm(currentValue) # Probably not needed... Once the function is done running, currentValue should go out of scope, and the destructor for Forest should get called.
+  rm(currentValue) # Probably not needed... Once the function is done running, currentValue should go out of scope, and the destructor for AugTree should get called.
   longOut
 }
 
@@ -345,37 +325,21 @@ reorderTips <- function(phylogeny, newTipOrder)
 
 ## DNAdataMultiBin is a list of lists of matrices. Outer list has # elements = # rate categories. The next level has # elements = #loci, the inner level is a matrix with # rows = # states and # col. = number of tips.
 .updateBetweenPhylo <- function(currentValue, limProbs, withinTransMatList, betweenTransMatList, numMovesNNI, numLikThreads, DNAdataBin) {
-    if (is.null(currentValue$extPointer)) 
-    {
-      newPhylo <- getNNIbetweenPhylo(phylogeny = currentValue$paraValues$phylogeny, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numMovesNNI = numMovesNNI)
-      if (!all(newPhylo$tip.label == currentValue$paraValues$phylogeny$tip.label)) {
-        stop("Tips in newPhylo don't have the same ordering as in the original phylogeny! (.updateSupportingPhylo)\n")
-      }
-      updatedLogLik <- logLikCpp(edgeMat = newPhylo$edge, limProbsVec = limProbs, betweenTransMatList = betweenTransMatList, withinTransMatList = withinTransMatList, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numOpenMP = numLikThreads, alignmentBin = DNAdataBin, numTips = ape::Ntip(newPhylo), numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)$logLik ## Note that all edges belong to the same rate category, hence extTransMatList and intTransMatList taking the same value.
-    }
-    else 
-    {
-      updatedPhyloAndLogLik <- betweenClusNNIlogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
-      updatedLogLik <- updatedPhyloAndLogLik$logLik
-      newPhylo <- list(edge = updatedPhyloAndLogLik$edge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
-      class(newPhylo) <- "phylo"
-    }
-    MHratio <- exp(updatedLogLik - currentValue$logLik) ## Prior doesn't change...
-    if (runif(1) < MHratio) {
-      if (is.null(currentValue$extPointer))
-      {
-        currentValue$paraValues$clusterNodeIndices <- sapply(currentValue$paraValues$clusterNodeIndices, FUN = function(x) {
-          currentPhylo <- currentValue$paraValues$phylogeny # This does not create a copy unless the RHS is modified.
-          descendantNames <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, node = x)[[1]]]
-          ape::getMRCA(phy = newPhylo, node = descendantNames)
-        })
-      } # The cluster MRCAs should not change under the other scheme.
-      currentValue$logLik <- updatedLogLik
-      currentValue$paraValues$phylogeny <- newPhylo
-      currentValue$alternatePointer <- currentValue$extPointer
-      currentValue$extPointer <- updatedPhyloAndLogLik$solutionPointer
-    } 
-    currentValue
+    
+  updatedPhyloAndLogLik <- betweenClusNNIlogLik(AugTreePointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
+  updatedLogLik <- updatedPhyloAndLogLik$logLik
+  newPhylo <- list(edge = updatedPhyloAndLogLik$edge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
+  class(newPhylo) <- "phylo"
+  
+  MHratio <- exp(updatedLogLik - currentValue$logLik) ## Prior doesn't change...
+  if (runif(1) < MHratio) {
+    currentValue$logPostProb <- currentValue$logPostProb - currentValue$logLik + updatedLogLik
+    currentValue$logLik <- updatedLogLik
+    currentValue$paraValues$phylogeny <- newPhylo
+  } else {
+    RestorePreviousConfig(currentValue$extPointer, edgeMat = currentValue$paraValues$phylogeny$edge, NNImove = TRUE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
+  }
+  currentValue
 }
 
 getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
@@ -415,44 +379,14 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       {
         return(NULL) # NNI moves cannot be performed for phylogenies with 1 or two tips.
       }
-      if (is.null(currentValue$extPointer)) 
-      {
-        if (length(nodeDescendants) == ape::Ntip(originalPhylo))
-        {
-          newBigPhylo <- phangorn::rNNI(originalPhylo, moves = numMovesNNI)
-        } 
-        else
-        {
-          clusterPhylo <- ape::extract.clade(originalPhylo, node = clusterMRCA)
-          newClusPhylo <- phangorn::rNNI(clusterPhylo, moves = numMovesNNI)
-          splitPhylo <- ape::drop.tip(currentValue$paraValues$phylogeny, tip = nodeDescendants, trim.internal = FALSE, subtree = TRUE)
-          newBigPhylo <- ape::bind.tree(x = splitPhylo, y = newClusPhylo, where = grep(x = splitPhylo$tip.label, pattern = "_tips]"))
-        }
-        newBigPhylo <- reorderTips(newBigPhylo, originalPhylo$tip.label)
-        if (!all(newBigPhylo$tip.label == originalPhylo$tip.label)) ## We only have one cluster.
-        { 
-          stop("Tips in newBigPhylo don't have the same ordering as in the original phylogeny! (.updateClusterPhylos)\n")
-        }
-        newClusterMRCAs <- ape::Ntip(newBigPhylo) + 1
-        if (length(currentValue$paraValues$clusterNodeIndices) > 1)
-        {
-          newClusterMRCAs <- sapply(currentValue$paraValues$clusterNodeIndices, FUN = function(x) {
-            currentPhylo <- currentValue$paraValues$phylogeny # This does not create a copy unless the RHS is modified.
-            descendantNames <- currentPhylo$tip.label[phangorn::Descendants(currentPhylo, node = x)[[1]]]
-            ape::getMRCA(phy = newBigPhylo, tip = descendantNames)
-          }) ## A change in the ordering of tips in one cluster-tree may change the cluster MRCA indices for the other cluster trees.
-        }
-        newLogLik <- logLikCpp(edgeMat = newBigPhylo$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, alignmentBin = DNAdataBin, numOpenMP = numLikThreads, numTips = ape::Ntip(newBigPhylo), clusterMRCAs = newClusterMRCAs, numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)$logLik
-      }
-      else
-      {
-        newLogLikAndPhylo <- withinClusNNIlogLik(ForestPointer = currentValue$extPointer, alternatePointer = currentValue$alternatePointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
-        newLogLik <- newLogLikAndPhylo$logLik
-        newEdge <- newLogLikAndPhylo$edge
-        newBigPhylo <- list(edge = newEdge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
-        class(newBigPhylo) <- "phylo"
-        newClusterMRCAs <- currentValue$paraValues$clusterNodeIndices # A NNI move should not change the numbering of the cluster root nodes. 
-      }
+      
+      newLogLikAndPhylo <- withinClusNNIlogLik(AugTreePointer = currentValue$extPointer, MRCAofClusForNNI = clusterMRCA, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList)
+      newLogLik <- newLogLikAndPhylo$logLik
+      newEdge <- newLogLikAndPhylo$edge
+      newBigPhylo <- list(edge = newEdge, tip.label = currentValue$paraValues$phylogeny$tip.label, edge.length = NULL, Nnode = ape::Nnode(currentValue$paraValues$phylogeny))
+      class(newBigPhylo) <- "phylo"
+      newClusterMRCAs <- currentValue$paraValues$clusterNodeIndices # A NNI move should not change the numbering of the cluster root nodes. 
+      
       MHratio <- exp(newLogLik - currentValue$logLik)
       
       if (runif(1) < MHratio) 
@@ -461,8 +395,10 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
         currentValue$logPostProb <<- currentValue$logPostProb - currentValue$logLik + newLogLik
         currentValue$logLik <<- newLogLik
         currentValue$paraValues$phylogeny <<- newBigPhylo
-        currentValue$alternatePointer <<- currentValue$extPointer
-        currentValue$extPointer <<- newLogLikAndPhylo$solutionPointer
+      } 
+      else
+      {
+        RestorePreviousConfig(currentValue$extPointer, edgeMat = currentValue$paraValues$phylogeny$edge, NNImove = TRUE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
       }
       NULL
     }

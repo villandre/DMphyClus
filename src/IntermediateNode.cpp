@@ -35,12 +35,15 @@ bool IntermediateNode::CanSolve()
 //   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
 // }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec & expContainerVec, const uint & transMatIndex)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec & expContainerVec, const uint & transMatIndex, const std::vector<bool> & solInDictionaryVec)
 {
   uint rateCateg = 0 ;
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i, transMatIndex) ;
+    if (!solInDictionaryVec.at(i))
+    {
+      ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i, transMatIndex) ;
+    }
     rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
   }
 }
@@ -52,7 +55,7 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double & expContainer, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
-  Col<double> mySolution(transProbM.n_rows, fill::ones) ;
+  vec mySolution(transProbM.n_rows, fill::ones) ;
   for(auto & child : _children) 
   {
     mySolution = mySolution % transProbM*(child->GetDictionaryIterVec().at(elementNum)->second) ;
@@ -64,9 +67,10 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution/myMax ;
     expContainer = expContainer + log(myMax);
   }
-  (*solutionDictionary).at(rateCategory)[S(std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first), 
+  std::pair<mapIterator, bool> insertResult = (*solutionDictionary).at(rateCategory).insert(std::pair<S,vec>(S(std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first), 
     std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first),
-    _children.at(0)->GetWithinParentBranch(), transMatrixIndex)] = mySolution ;
+    _children.at(0)->GetWithinParentBranch(), transMatrixIndex), mySolution)) ;
+  _dictionaryIterVec.at(elementNum) = insertResult.first ;
   _isSolved = true ;
 }
 
@@ -118,4 +122,32 @@ void IntermediateNode::RemoveChild(TreeNode * childToRemove)
   {
     _children.erase(ChildIterPos) ;
   }
+}
+
+std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType & solutionDictionary, uint & transMatIndex)
+{
+  std::vector<bool> foundSolution(_dictionaryIterVec.size(), false) ;
+  uint rateCategIndex = 0 ;
+  for (uint i = 0 ; i < _dictionaryIterVec.size(); i++)
+  {
+    S newS = GetSfromVertex(i, transMatIndex) ;
+    mapIterator solutionIter = solutionDictionary->at(rateCategIndex).find(newS) ;
+    if (solutionIter != solutionDictionary->at(rateCategIndex).end()) 
+    {
+      _dictionaryIterVec.at(i) = solutionIter ;
+      foundSolution.at(i) = true ;
+    }
+    rateCategIndex = littleCycle(rateCategIndex + 1, solutionDictionary->size()) ;
+  }
+  return foundSolution ;
+}
+
+S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMatIndex)
+{
+  bool childrenWithinCluster = _children.at(0)->GetWithinParentBranch() ;
+  
+  return S(std::hash<S>{} (_children.at(0)->GetDictionaryIterVec().at(elementNum)->first),
+           std::hash<S>{} (_children.at(1)->GetDictionaryIterVec().at(elementNum)->first),
+           childrenWithinCluster,
+           transMatIndex) ;
 }
