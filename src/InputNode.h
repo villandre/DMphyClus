@@ -12,8 +12,8 @@ public:
   bool IsSolved() {return true ;}
   bool CanSolve() {return true ;}
   void SetSolved(bool status) {}
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &, const uint &, const std::vector<bool> &) {assert(false) ;}
-  void ComputeSolution(solutionDictionaryType & dictionary, const mat &, double &, const uint &, const uint &, const uint &) {assert(false) ;} //Solution is known, this should not get called.
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, const std::vector<bool> &) {assert(false) ;}
+  void ComputeSolution(solutionDictionaryType & dictionary, const mat &, const uint &, const uint &, const uint &) {assert(false) ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
   vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats))->second ;};
   
@@ -21,11 +21,13 @@ public:
   std::vector<uvec> * GetInput() { return _inputVec ;}
   
   void InitMapAndIterVec(solutionDictionaryType &) ;
-  void CopyIterVec() {assert(false) ; }
-  void RestoreIterVec() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
+  void CopyIterVecAndExp() {assert(false) ; }
+  void RestoreIterVecAndExp() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
   std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) {assert(false) ; return std::vector<bool>(0) ;};
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats)) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
+  
+  vec GetExponentIncrementVec(const uint & numRateCats) {return vec(_dictionaryIterVec.size()*numRateCats, fill::zeros) ;}
   
   InputNode(uint & numLoci)
   {

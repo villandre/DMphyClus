@@ -17,7 +17,6 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   _numRateCats = _solutionDictionary->size() ;
   
   uint numElements = _numLoci*_numRateCats ;
-  _exponentVec = vec(numElements, fill::zeros) ;
   _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
@@ -118,7 +117,7 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
 {
   if (!(vertex->IsSolved()))
   {
-    vertex->CopyIterVec() ;
+    vertex->CopyIterVecAndExp() ;
     if (!vertex->CanSolve())
     {
       for (auto & i : vertex->GetChildren())
@@ -139,11 +138,11 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     {
       if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
       {  // This junction is within a cluster. 
-        vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec, _withinMatListIndex, solInDictionary) ;
+        vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, solInDictionary) ;
       }
       else
       {
-        vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _exponentVec, _betweenMatListIndex, solInDictionary) ;
+        vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, solInDictionary) ;
       }
     }
   }
@@ -306,7 +305,6 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
 {
   uint numElements = _numLoci*_numRateCats ;
   uint rateCategIndex = 0 ;
-  _exponentVec.fill(0) ; // This should be reset before a likelihood computation is done, since AugTree is not being rebuilt.
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
   uint rateCateg = 0 ;
@@ -320,9 +318,14 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
-    double maxExponent = max(_exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)) ;
-    _exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
-    rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(_exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
+    vec exponentVec(_numRateCats*_numLoci, fill::zeros) ;
+    for (auto & i : _vertexVector) 
+    {
+      exponentVec=+i->GetExponentIncrementVec(_numRateCats) ;
+    }
+    double maxExponent = max(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)) ;
+    exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
+    rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
   rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
   _logLik = sum(rateAveragedLogLiks) ;
@@ -361,7 +364,7 @@ void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NN
   
   for (auto & vertex : _vertexVector)
   {
-    vertex->RestoreIterVec() ;
+    vertex->RestoreIterVecAndExp() ;
   }
 }
 

@@ -74,8 +74,8 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &, const uint &, const std::vector<bool> &) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &, const mat &, double &, const uint &, const uint &, const uint &) = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, const std::vector<bool> &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &, const mat &, const uint &, const uint &, const uint &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual vec GetSolution(const uint &, const uint & numRateCats) = 0;
   
@@ -83,12 +83,13 @@ public:
   virtual std::vector<uvec> * GetInput() = 0 ;
   
   virtual void InitMapAndIterVec(solutionDictionaryType &) = 0;
-  virtual void CopyIterVec() = 0 ;
-  virtual void RestoreIterVec() = 0;
+  virtual void CopyIterVecAndExp() = 0 ;
+  virtual void RestoreIterVecAndExp() = 0;
   virtual std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) = 0;
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
+  virtual vec GetExponentIncrementVec(const uint &) = 0 ;
   
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}

@@ -19,8 +19,6 @@ protected:
   std::vector<std::vector<uvec>> * _alignmentBinReference ;
   
   vec _likPropVec ; // This is scaled to avoid computational zeros.
-  
-  vec _exponentVec ;
 
   void BuildTree(const umat &) ;
   void SolveOneLevel() ;
@@ -53,7 +51,7 @@ public:
   vec GetLikPropVec() const {return _likPropVec ;} ;
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
-  vec GetExponentVec() { return _exponentVec ;} ;
+
   void ComputeLoglik(const std::vector<mat> &, const std::vector<mat> &, const vec &) ;
   double GetLoglik() {return _logLik ;}
   gsl_rng * GetRandomNumGenerator() {return _randomNumGenerator ;}

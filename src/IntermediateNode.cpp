@@ -35,14 +35,15 @@ bool IntermediateNode::CanSolve()
 //   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
 // }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, vec & expContainerVec, const uint & transMatIndex, const std::vector<bool> & solInDictionaryVec)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, const std::vector<bool> & solInDictionaryVec)
 {
   uint rateCateg = 0 ;
+  _exponentIncrementVec.fill(0) ; // This must be reset to 0, since AugTree persists between iterations.
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
     if (!solInDictionaryVec.at(i))
     {
-      ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), expContainerVec.at(i), rateCateg, i, transMatIndex) ;
+      ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), rateCateg, i, transMatIndex) ;
     }
     rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
   }
@@ -53,7 +54,7 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double & expContainer, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
   vec mySolution(transProbM.n_rows, fill::ones) ;
   
@@ -67,7 +68,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   if (status)
   {
     mySolution = mySolution/myMax ;
-    expContainer = expContainer + log(myMax);
+    _exponentIncrementVec.at(elementNum) = log(myMax);
   }
   std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,vec>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), mySolution)) ;
   _dictionaryIterVec.at(elementNum) = insertResult.first ;
