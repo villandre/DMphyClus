@@ -18,6 +18,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   
   uint numElements = _numLoci*_numRateCats ;
   _exponentVec = vec(numElements, fill::zeros) ;
+  _previousExponentVec = vec(numElements, fill::zeros) ;
   _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
@@ -306,6 +307,7 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
 {
   uint numElements = _numLoci*_numRateCats ;
   uint rateCategIndex = 0 ;
+  _previousExponentVec = _exponentVec ;
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
   uint rateCateg = 0 ;
@@ -352,6 +354,7 @@ void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NN
 {
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
+  _exponentVec = _previousExponentVec ;
   if (NNImoveFlag)
   {
     BuildTreeNoAssign(as<umat>(edgeMat)-1) ;
