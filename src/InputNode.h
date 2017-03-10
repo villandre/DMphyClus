@@ -27,7 +27,7 @@ public:
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats)) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
   
-  vec GetExponentIncrementVec(const uint & numRateCats) {return vec(_dictionaryIterVec.size()*numRateCats, fill::zeros) ;}
+  fvec GetExponentIncrementVec(const uint & numRateCats) {return fvec(_dictionaryIterVec.size()*numRateCats, fill::zeros) ;}
   
   InputNode(uint & numLoci)
   {

@@ -318,7 +318,7 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   
   for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
   {
-    vec exponentVec(_numRateCats*_numLoci, fill::zeros) ;
+    fvec exponentVec(_numRateCats*_numLoci, fill::zeros) ;
     for (auto & i : _vertexVector) 
     {
       exponentVec=+i->GetExponentIncrementVec(_numRateCats) ;

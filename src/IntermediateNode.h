@@ -42,7 +42,7 @@ public:
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
   
-  vec GetExponentIncrementVec(const uint & numRateCats) {return _exponentIncrementVec ;}
+  fvec GetExponentIncrementVec(const uint & numRateCats) {return _exponentIncrementVec ;}
   
   IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
     _parent = NULL ;
@@ -50,16 +50,16 @@ public:
     _dictionaryIterVec.resize(numElements) ;
     _previousIterVec.resize(numElements) ;
     _updateFlag = false ;
-    _exponentIncrementVec = vec(numElements, fill::zeros) ;
-    _previousExponentIncrementVec = vec(numElements, fill::zeros) ;
+    _exponentIncrementVec = fvec(numElements, fill::zeros) ;
+    _previousExponentIncrementVec = fvec(numElements, fill::zeros) ;
   };
   
 protected:
 
    bool _isSolved ;
    std::vector<TreeNode *> _children ;
-   vec _exponentIncrementVec ;
-   vec _previousExponentIncrementVec ;
+   fvec _exponentIncrementVec ;
+   fvec _previousExponentIncrementVec ;
 };
 
 #endif /* INTERMEDIATENODE_H */

@@ -89,7 +89,7 @@ public:
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
-  virtual vec GetExponentIncrementVec(const uint &) = 0 ;
+  virtual fvec GetExponentIncrementVec(const uint &) = 0 ;
   
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
