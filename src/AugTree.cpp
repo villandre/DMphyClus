@@ -17,7 +17,6 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   _numRateCats = _solutionDictionary->size() ;
   
   uint numElements = _numLoci*_numRateCats ;
-  cout << "numElements: " << numElements << "\n" ;
   _exponentVec = vec(numElements, fill::zeros) ;
   _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
@@ -26,13 +25,9 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   
   umat edgeMatrixCopy(edgeMatrix) ;
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
-  cout << "Building tree... " ;
   BuildTree(edgeMatrixCopy) ;
-  cout << "Done! \n Initializing vertices... " ;
   InitializeVertices() ;
-  cout << "Done! \n Associating transProbMatrices... " ;
   AssociateTransProbMatrices(clusterMRCAs) ;
-  cout << "Done! \n" ;
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
@@ -97,14 +92,14 @@ void AugTree::BuildTreeNoAssign(const umat & edgeMatrix)
 {
   // We set the IDs (to facilitate exporting the phylogeny to R).
   for (uint i = 0 ; i < _vertexVector.size(); i++) {
-    _vertexVector[i]->RemoveChildren() ; // Might be more memory-efficient to overwrite the children... 
+    _vertexVector.at(i)->RemoveChildren() ; // Might be more memory-efficient to overwrite the children... 
   } ;
   // The vertices are all disjoint, the next loop defines their relationships
   // The iterator follows columns.
   for (umat::const_iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
   {
-    _vertexVector[*iter]->AddChild(_vertexVector[*(iter+edgeMatrix.n_rows)]) ;
-    _vertexVector[*(iter+edgeMatrix.n_rows)]->SetParent(_vertexVector[*iter]) ;
+    _vertexVector.at(*iter)->AddChild(_vertexVector.at(*(iter+edgeMatrix.n_rows))) ;
+    _vertexVector.at(*(iter+edgeMatrix.n_rows))->SetParent(_vertexVector.at(*iter)) ;
   }
 }
 
@@ -117,17 +112,13 @@ void AugTree::InitializeVertices()
     (*treeIter)->InitMapAndIterVec(_solutionDictionary) ; // The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
     treeIter++ ;
   }
-  cout << "Checking recovery... \n";
-  _vertexVector.at(0)->GetDictionaryIterVec().at(0)->second.print("Solution:") ;
 }
 
 void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats)
 {
-  cout << "Entered TrySolve... \n" ;
   if (!(vertex->IsSolved()))
   {
     vertex->CopyIterVec() ;
-    cout << "Copied iterVec... \n" ;
     if (!vertex->CanSolve())
     {
       for (auto & i : vertex->GetChildren())
@@ -142,9 +133,8 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
       childTransMatIndex = _withinMatListIndex ;
     }
     solInDictionary = vertex->UpdateDictionaryIter(_solutionDictionary, childTransMatIndex) ;
-    cout << "Checked if solutions are in dictionary. \n" ;
     bool allSolved = std::all_of(solInDictionary.begin(), solInDictionary.end(), [](bool i){ return i;}) ;
-    cout << "allSolved? " << allSolved << "\n" ;
+    
     if (!allSolved) 
     {
       uint transProbMatIndex = _betweenMatListIndex ;
@@ -152,7 +142,7 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
       {
         transProbMatIndex = _withinMatListIndex ;
       }
-      cout << "Computing solutions... " ;
+      
       if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
       {  // This junction is within a cluster. 
         vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec, _withinMatListIndex, solInDictionary) ;
@@ -161,7 +151,6 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
       {
         vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _exponentVec, _betweenMatListIndex, solInDictionary) ;
       }
-      cout << "Done! \n" ;
     }
   }
 }
@@ -370,7 +359,7 @@ void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NN
   _betweenMatListIndex = betweenMatListIndex ;
   if (NNImoveFlag)
   {
-    BuildTreeNoAssign(as<umat>(edgeMat)) ;
+    BuildTreeNoAssign(as<umat>(edgeMat)-1) ;
   }
   
   for (auto & vertex : _vertexVector)

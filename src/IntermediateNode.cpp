@@ -56,10 +56,12 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, double & expContainer, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
   vec mySolution(transProbM.n_rows, fill::ones) ;
-  for(auto & child : _children) 
+  
+  for (auto & child : _children) 
   {
-    mySolution = mySolution % transProbM*(child->GetDictionaryIterVec().at(elementNum)->second) ;
+    mySolution = mySolution % (transProbM*(child->GetDictionaryIterator(elementNum, solutionDictionary->size())->second)) ;
   }
+
   double myMax = max(mySolution) ;
   bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
   if (status)
@@ -67,9 +69,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     mySolution = mySolution/myMax ;
     expContainer = expContainer + log(myMax);
   }
-  std::pair<mapIterator, bool> insertResult = (*solutionDictionary).at(rateCategory).insert(std::pair<S,vec>(S(std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first), 
-    std::hash<S>{}(_children.at(0)->GetDictionaryIterVec().at(elementNum)->first),
-    _children.at(0)->GetWithinParentBranch(), transMatrixIndex), mySolution)) ;
+  std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,vec>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), mySolution)) ;
   _dictionaryIterVec.at(elementNum) = insertResult.first ;
   _isSolved = true ;
 }
@@ -126,12 +126,11 @@ void IntermediateNode::RemoveChild(TreeNode * childToRemove)
 
 std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType & solutionDictionary, uint & transMatIndex)
 {
-  cout << "Entered UpdateDictionaryIter... \n" ;
   std::vector<bool> foundSolution(_dictionaryIterVec.size(), false) ;
   uint rateCategIndex = 0 ;
   for (uint i = 0 ; i < _dictionaryIterVec.size(); i++)
   {
-    S newS = GetSfromVertex(i, transMatIndex) ;
+    S newS = GetSfromVertex(i, transMatIndex, solutionDictionary->size()) ;
     mapIterator solutionIter = solutionDictionary->at(rateCategIndex).find(newS) ;
     if (solutionIter != solutionDictionary->at(rateCategIndex).end()) 
     {
@@ -143,19 +142,12 @@ std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType 
   return foundSolution ;
 }
 
-S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMatIndex)
+S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMatIndex, const uint & numRateCats)
 {
-  cout << "Entered GetSfromVertex... \n" ;
-  cout << "ElementNum: " << elementNum << "\n" ;
-  cout << "transMatIndex: " << transMatIndex << "\n" ;
-  cout << "Vertex ID" << _id << "\n" ;
-  cout << "Child 0 id: " << _children.at(0)->GetId() ;
-  cout << "Iterator address" << &_children.at(0)->GetDictionaryIterVec().at(elementNum) << "\n" ;
-  
   bool childrenWithinCluster = _children.at(0)->GetWithinParentBranch() ;
   
-  return S(std::hash<S>{} (_children.at(0)->GetDictionaryIterVec().at(elementNum)->first),
-           std::hash<S>{} (_children.at(1)->GetDictionaryIterVec().at(elementNum)->first),
+  return S(std::hash<S>{} (_children.at(0)->GetDictionaryIterator(elementNum, numRateCats)->first),
+           std::hash<S>{} (_children.at(1)->GetDictionaryIterator(elementNum, numRateCats)->first),
            childrenWithinCluster,
            transMatIndex) ;
 }

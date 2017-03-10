@@ -15,7 +15,7 @@ public:
   void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, vec &, const uint &, const std::vector<bool> &) {assert(false) ;}
   void ComputeSolution(solutionDictionaryType & dictionary, const mat &, double &, const uint &, const uint &, const uint &) {assert(false) ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
-  vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/3))->second ;};
+  vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats))->second ;};
   
   void SetInput(std::vector<uvec> * inputVec) { _inputVec = inputVec ;}
   std::vector<uvec> * GetInput() { return _inputVec ;}
@@ -24,7 +24,8 @@ public:
   void CopyIterVec() {assert(false) ; }
   void RestoreIterVec() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
   std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) {assert(false) ; return std::vector<bool>(0) ;};
-  S GetSfromVertex(const uint &, const uint &) {assert(false) ;};
+  mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats)) ;}
+  S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
   
   InputNode(uint & numLoci)
   {

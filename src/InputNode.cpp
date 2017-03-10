@@ -16,8 +16,6 @@
 
 void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
 {
-  cout << "Entered InitMapAndIterVec... \n" ;
-  cout << "Inputvec size: " << _inputVec->size() << "\n" ;
   std::vector<S> hashStructVec(_inputVec->size()) ; 
   std::transform(_inputVec->begin(), _inputVec->end(), hashStructVec.begin(), [] (const uvec & inputVec) 
   {
@@ -28,7 +26,6 @@ void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
     S myStruct = S(hashedInput, hashedInput, 0, 0) ;
     return myStruct ;
   }) ;
-  cout << "Initializing map... \n" ;
   std::pair<mapIterator, bool> insertResult ;
   for (unsigned int i = 0 ; i < _inputVec->size() ; i++)
   {

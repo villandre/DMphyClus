@@ -52,9 +52,9 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   }
   solutionDictionaryType solutionDictionary = new std::vector<std::map<S, vec, classcomp>>(withinTransMatList.size()) ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
-  cout << "Building AugTree... " ;
+  
   AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, randomNumGenerator) ;
-  cout << "Done! \n Computing log-lik. \n" ;
+
   PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
   
   XPtr<AugTree> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.

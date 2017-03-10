@@ -86,9 +86,10 @@ public:
   virtual void CopyIterVec() = 0 ;
   virtual void RestoreIterVec() = 0;
   virtual std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) = 0;
-  virtual S GetSfromVertex(const uint &, const uint &) = 0;
+  virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
+  virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
-  iterVec GetDictionaryIterVec() { return _dictionaryIterVec ;}
+  
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
   void SetId(uint vertexId) {_id = vertexId ;}

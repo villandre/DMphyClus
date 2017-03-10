@@ -37,7 +37,8 @@ public:
     _updateFlag = false ;
   }
   std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) ;
-  S GetSfromVertex(const uint &, const uint &) ;
+  mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
+  S GetSfromVertex(const uint &, const uint &, const uint &) ;
   
   IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
     _parent = NULL ;  
