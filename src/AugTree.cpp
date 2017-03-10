@@ -137,12 +137,6 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     
     if (!allSolved) 
     {
-      uint transProbMatIndex = _betweenMatListIndex ;
-      if (vertex->GetChildren().at(0)->GetWithinParentBranch())
-      {
-        transProbMatIndex = _withinMatListIndex ;
-      }
-      
       if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
       {  // This junction is within a cluster. 
         vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec, _withinMatListIndex, solInDictionary) ;
@@ -160,7 +154,6 @@ void AugTree::InvalidateAll() // Assumes that the tree starts fully solved.
   for (auto & i : _vertexVector)
   {
     i->SetSolved(false) ;
-    //i->MarkKeyUndefined() ;
   }
 }
 
@@ -330,7 +323,9 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
     _exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
     rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(_exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
+  rateAveragedLogLiks.rows(0,99).print("Log-liks averaged on rates:") ;
   _logLik = sum(rateAveragedLogLiks) ;
+  cout << "Log-lik.: " << _logLik << "\n" ;
 }
 
 void AugTree::HandleSplit(uint clusMRCAtoSplit)
