@@ -18,7 +18,6 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   
   uint numElements = _numLoci*_numRateCats ;
   _exponentVec = vec(numElements, fill::zeros) ;
-  _previousExponentVec = vec(numElements, fill::zeros) ;
   _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
@@ -307,7 +306,7 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
 {
   uint numElements = _numLoci*_numRateCats ;
   uint rateCategIndex = 0 ;
-  _previousExponentVec = _exponentVec ;
+  _exponentVec.fill(0) ; // This should be reset before a likelihood computation is done, since AugTree is not being rebuilt.
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
   uint rateCateg = 0 ;
@@ -325,7 +324,7 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
     _exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
     rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(_exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
-  rateAveragedLogLiks.rows(0,99).print("Log-liks averaged on rates:") ;
+  rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
   _logLik = sum(rateAveragedLogLiks) ;
   cout << "Log-lik.: " << _logLik << "\n" ;
 }
@@ -354,7 +353,7 @@ void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NN
 {
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
-  _exponentVec = _previousExponentVec ;
+ 
   if (NNImoveFlag)
   {
     BuildTreeNoAssign(as<umat>(edgeMat)-1) ;

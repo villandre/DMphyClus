@@ -21,7 +21,6 @@ protected:
   vec _likPropVec ; // This is scaled to avoid computational zeros.
   
   vec _exponentVec ;
-  vec _previousExponentVec ;
 
   void BuildTree(const umat &) ;
   void SolveOneLevel() ;
