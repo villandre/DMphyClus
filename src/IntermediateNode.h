@@ -41,8 +41,8 @@ public:
   
   IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
     _parent = NULL ;  
-    _dictionaryIterVec.reserve(numLoci*numRates) ;
-    _previousIterVec.reserve(numLoci*numRates) ;
+    _dictionaryIterVec.resize(numLoci*numRates) ;
+    _previousIterVec.resize(numLoci*numRates) ;
     _updateFlag = false ;
   };
   

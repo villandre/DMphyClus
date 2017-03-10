@@ -111,10 +111,8 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
     } else{}
 
     convertedData <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
-    convertedData <- lapply(convertedData, FUN = function(x) {
-    names(x) <- rownames(alignment)
-        x
-    })
+    names(convertedData) <- rownames(alignment)
+    
     seqNames <- rownames(alignment)
 
     argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, withinTransMatAll = allWithinMatList, betweenTransMatAll = allBetweenMatList, DNAdataBin = convertedData)

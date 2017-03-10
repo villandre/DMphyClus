@@ -52,7 +52,9 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   }
   solutionDictionaryType solutionDictionary = new std::vector<std::map<S, vec, classcomp>>(withinTransMatList.size()) ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
+  cout << "Building AugTree... " ;
   AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, randomNumGenerator) ;
+  cout << "Done! \n Computing log-lik. \n" ;
   PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
   
   XPtr<AugTree> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
@@ -98,16 +100,16 @@ std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equiv
 SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaMat)
 {
   std::vector<std::vector<uvec>> alignmentBin ;
-  alignmentBin.resize(alignmentAlphaMat.ncol()) ;
+  alignmentBin.resize(alignmentAlphaMat.nrow()) ;
   std::vector<std::string> equivVectorAlpha = as<std::vector<std::string>>(equivVector) ;
   std::unordered_map<std::string, uvec> siteMap = defineMap(equivVectorAlpha) ;
 
-  for (uint i = 0; i < alignmentAlphaMat.ncol(); i++) // Could probably be done more elegantly, i.e. with C++11 syntax...
+  for (uint i = 0; i < alignmentAlphaMat.nrow(); i++) // Could probably be done more elegantly, i.e. with C++11 syntax...
   {
-    alignmentBin.at(i).reserve(alignmentAlphaMat.nrow()) ;
-    for (uint j = 0; j < alignmentAlphaMat.nrow(); j++) 
+    alignmentBin.at(i).reserve(alignmentAlphaMat.ncol()) ;
+    for (uint j = 0; j < alignmentAlphaMat.ncol(); j++) 
     {
-      alignmentBin.at(i).push_back(siteMap[(std::string) alignmentAlphaMat(j,i)]) ;
+      alignmentBin.at(i).push_back(siteMap[(std::string) alignmentAlphaMat(i,j)]) ;
     }
   }
   return wrap(alignmentBin) ;

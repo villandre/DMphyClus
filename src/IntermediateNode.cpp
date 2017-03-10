@@ -126,6 +126,7 @@ void IntermediateNode::RemoveChild(TreeNode * childToRemove)
 
 std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType & solutionDictionary, uint & transMatIndex)
 {
+  cout << "Entered UpdateDictionaryIter... \n" ;
   std::vector<bool> foundSolution(_dictionaryIterVec.size(), false) ;
   uint rateCategIndex = 0 ;
   for (uint i = 0 ; i < _dictionaryIterVec.size(); i++)
@@ -144,6 +145,13 @@ std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType 
 
 S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMatIndex)
 {
+  cout << "Entered GetSfromVertex... \n" ;
+  cout << "ElementNum: " << elementNum << "\n" ;
+  cout << "transMatIndex: " << transMatIndex << "\n" ;
+  cout << "Vertex ID" << _id << "\n" ;
+  cout << "Child 0 id: " << _children.at(0)->GetId() ;
+  cout << "Iterator address" << &_children.at(0)->GetDictionaryIterVec().at(elementNum) << "\n" ;
+  
   bool childrenWithinCluster = _children.at(0)->GetWithinParentBranch() ;
   
   return S(std::hash<S>{} (_children.at(0)->GetDictionaryIterVec().at(elementNum)->first),

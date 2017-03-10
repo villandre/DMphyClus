@@ -16,6 +16,8 @@
 
 void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
 {
+  cout << "Entered InitMapAndIterVec... \n" ;
+  cout << "Inputvec size: " << _inputVec->size() << "\n" ;
   std::vector<S> hashStructVec(_inputVec->size()) ; 
   std::transform(_inputVec->begin(), _inputVec->end(), hashStructVec.begin(), [] (const uvec & inputVec) 
   {
@@ -26,14 +28,15 @@ void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
     S myStruct = S(hashedInput, hashedInput, 0, 0) ;
     return myStruct ;
   }) ;
+  cout << "Initializing map... \n" ;
   std::pair<mapIterator, bool> insertResult ;
-  for (unsigned int i = 0 ; i < (*_inputVec).size() ; i++)
+  for (unsigned int i = 0 ; i < _inputVec->size() ; i++)
   {
     for (uint j = 0 ; j < solutionDictionary->size(); j++)
     {
-      std::pair<mapIterator, bool> insertResult = solutionDictionary->at(j).insert(std::pair<S,vec>(hashStructVec.at(i),conv_to<vec>::from(_inputVec->at(i)))) ;
+      insertResult = solutionDictionary->at(j).insert(std::pair<S,vec>(hashStructVec.at(i),conv_to<vec>::from(_inputVec->at(i)))) ;
     }
-    _dictionaryIterVec.at(i) = insertResult.first ; 
+    _dictionaryIterVec.push_back(insertResult.first) ;
   } // _dictionaryIterVec will point to elements in the last dictionary, but it doesn't matter, since the pointed solution is the input vector itself, which does not depend on the rate category
   
 }

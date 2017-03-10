@@ -10,12 +10,14 @@ using namespace arma ;
 
 AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, gsl_rng * RNGpoint)
 { 
-  uint numElements = alignmentBin->size()*_solutionDictionary->size() ;
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBin ;
   _numTips = alignmentBin->size() ;
   _numLoci = alignmentBin->at(0).size() ;
   _numRateCats = _solutionDictionary->size() ;
+  
+  uint numElements = _numLoci*_numRateCats ;
+  cout << "numElements: " << numElements << "\n" ;
   _exponentVec = vec(numElements, fill::zeros) ;
   _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
@@ -24,9 +26,13 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   
   umat edgeMatrixCopy(edgeMatrix) ;
   edgeMatrixCopy = edgeMatrixCopy - 1 ;
+  cout << "Building tree... " ;
   BuildTree(edgeMatrixCopy) ;
+  cout << "Done! \n Initializing vertices... " ;
   InitializeVertices() ;
+  cout << "Done! \n Associating transProbMatrices... " ;
   AssociateTransProbMatrices(clusterMRCAs) ;
+  cout << "Done! \n" ;
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
@@ -108,18 +114,27 @@ void AugTree::InitializeVertices()
   for (auto & i : *_alignmentBinReference)
   {
     (*treeIter)->SetInput(&i) ;
-    (*treeIter)->InitMapAndIterVec(_solutionDictionary) ; // The 1 is a placeholder. The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
+    (*treeIter)->InitMapAndIterVec(_solutionDictionary) ; // The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
     treeIter++ ;
   }
+  cout << "Checking recovery... \n";
+  _vertexVector.at(0)->GetDictionaryIterVec().at(0)->second.print("Solution:") ;
 }
-
-
 
 void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats)
 {
+  cout << "Entered TrySolve... \n" ;
   if (!(vertex->IsSolved()))
   {
     vertex->CopyIterVec() ;
+    cout << "Copied iterVec... \n" ;
+    if (!vertex->CanSolve())
+    {
+      for (auto & i : vertex->GetChildren())
+      {
+        TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
+      }
+    }
     std::vector<bool> solInDictionary ;
     uint childTransMatIndex = _betweenMatListIndex ;
     if (vertex->GetChildren().at(0)->GetWithinParentBranch())
@@ -127,22 +142,17 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
       childTransMatIndex = _withinMatListIndex ;
     }
     solInDictionary = vertex->UpdateDictionaryIter(_solutionDictionary, childTransMatIndex) ;
+    cout << "Checked if solutions are in dictionary. \n" ;
     bool allSolved = std::all_of(solInDictionary.begin(), solInDictionary.end(), [](bool i){ return i;}) ;
+    cout << "allSolved? " << allSolved << "\n" ;
     if (!allSolved) 
     {
-      if (!vertex->CanSolve())
-      {
-        for (auto & i : vertex->GetChildren())
-        {
-          TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
-        }
-      }
       uint transProbMatIndex = _betweenMatListIndex ;
       if (vertex->GetChildren().at(0)->GetWithinParentBranch())
       {
         transProbMatIndex = _withinMatListIndex ;
       }
-      
+      cout << "Computing solutions... " ;
       if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
       {  // This junction is within a cluster. 
         vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _exponentVec, _withinMatListIndex, solInDictionary) ;
@@ -151,6 +161,7 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
       {
         vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _exponentVec, _betweenMatListIndex, solInDictionary) ;
       }
+      cout << "Done! \n" ;
     }
   }
 }
