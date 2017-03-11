@@ -35,16 +35,13 @@ bool IntermediateNode::CanSolve()
 //   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
 // }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, const std::vector<bool> & solInDictionaryVec)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex)
 {
   uint rateCateg = 0 ;
   _exponentIncrementVec.fill(0) ; // This must be reset to 0, since AugTree persists between iterations.
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    if (!solInDictionaryVec.at(i))
-    {
-      ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), rateCateg, i, transMatIndex) ;
-    }
+    ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), rateCateg, i, transMatIndex) ;
     rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
   }
 }
@@ -56,22 +53,35 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
-  vec mySolution(transProbM.n_rows, fill::ones) ;
-  
-  for (auto & child : _children) 
+  float exponentIncrement = 0 ;
+  uint rateCateg = littleCycle(elementNum, solutionDictionary->size()) ;
+  S newS = GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()) ;
+  mapIterator solutionIter = solutionDictionary->at(rateCateg).find(newS) ;
+  if (solutionIter != solutionDictionary->at(rateCateg).end()) 
   {
-    mySolution = mySolution % (transProbM*(child->GetDictionaryIterator(elementNum, solutionDictionary->size())->second)) ;
+    _dictionaryIterVec.at(elementNum) = solutionIter ;
+    _exponentIncrementVec.at(elementNum) = solutionIter->second.second ;
   }
-
-  double myMax = max(mySolution) ;
-  bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
-  if (status)
+  else
   {
-    mySolution = mySolution/myMax ;
-    _exponentIncrementVec.at(elementNum) = log(myMax);
+    vec mySolution(transProbM.n_rows, fill::ones) ;
+    
+    for (auto & child : _children) 
+    {
+      mySolution = mySolution % (transProbM*child->GetSolution(elementNum, solutionDictionary->size())) ;
+    }
+    
+    double myMax = max(mySolution) ;
+    bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
+    if (status)
+    {
+      mySolution = mySolution/myMax ;
+      exponentIncrement = log(myMax) ;
+      _exponentIncrementVec.at(elementNum) = exponentIncrement;
+    }
+    std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,std::pair<vec,float>>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), std::pair<vec, float>(mySolution, exponentIncrement))) ;
+    _dictionaryIterVec.at(elementNum) = insertResult.first ;
   }
-  std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,vec>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), mySolution)) ;
-  _dictionaryIterVec.at(elementNum) = insertResult.first ;
   _isSolved = true ;
 }
 
@@ -125,23 +135,23 @@ void IntermediateNode::RemoveChild(TreeNode * childToRemove)
   }
 }
 
-std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType & solutionDictionary, uint & transMatIndex)
-{
-  std::vector<bool> foundSolution(_dictionaryIterVec.size(), false) ;
-  uint rateCategIndex = 0 ;
-  for (uint i = 0 ; i < _dictionaryIterVec.size(); i++)
-  {
-    S newS = GetSfromVertex(i, transMatIndex, solutionDictionary->size()) ;
-    mapIterator solutionIter = solutionDictionary->at(rateCategIndex).find(newS) ;
-    if (solutionIter != solutionDictionary->at(rateCategIndex).end()) 
-    {
-      _dictionaryIterVec.at(i) = solutionIter ;
-      foundSolution.at(i) = true ;
-    }
-    rateCategIndex = littleCycle(rateCategIndex + 1, solutionDictionary->size()) ;
-  }
-  return foundSolution ;
-}
+// std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType & solutionDictionary, uint & transMatIndex)
+// {
+//   std::vector<bool> foundSolution(_dictionaryIterVec.size(), false) ;
+//   uint rateCategIndex = 0 ;
+//   for (uint i = 0 ; i < _dictionaryIterVec.size(); i++)
+//   {
+//     S newS = GetSfromVertex(i, transMatIndex, solutionDictionary->size()) ;
+//     mapIterator solutionIter = solutionDictionary->at(rateCategIndex).find(newS) ;
+//     if (solutionIter != solutionDictionary->at(rateCategIndex).end()) 
+//     {
+//       _dictionaryIterVec.at(i) = solutionIter ;
+//       foundSolution.at(i) = true ;
+//     }
+//     rateCategIndex = littleCycle(rateCategIndex + 1, solutionDictionary->size()) ;
+//   }
+//   return foundSolution ;
+// }
 
 S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMatIndex, const uint & numRateCats)
 {

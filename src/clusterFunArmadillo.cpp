@@ -50,7 +50,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
     convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
     std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
   }
-  solutionDictionaryType solutionDictionary = new std::vector<std::map<S, vec, classcomp>>(withinTransMatList.size()) ;
+  solutionDictionaryType solutionDictionary = new solutionDictionaryTypeNoPoint(withinTransMatList.size()) ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
   
   AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, randomNumGenerator) ;

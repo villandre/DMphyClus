@@ -125,26 +125,26 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
         TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
       }
     }
-    std::vector<bool> solInDictionary ;
-    uint childTransMatIndex = _betweenMatListIndex ;
-    if (vertex->GetChildren().at(0)->GetWithinParentBranch())
-    {
-      childTransMatIndex = _withinMatListIndex ;
+    // std::vector<bool> solInDictionary ;
+    // uint childTransMatIndex = _betweenMatListIndex ;
+    // if (vertex->GetChildren().at(0)->GetWithinParentBranch())
+    // {
+    //   childTransMatIndex = _withinMatListIndex ;
+    // }
+    // solInDictionary = vertex->UpdateDictionaryIter(_solutionDictionary, childTransMatIndex) ;
+    // bool allSolved = std::all_of(solInDictionary.begin(), solInDictionary.end(), [](bool i){ return i;}) ;
+    // 
+    // if (!allSolved) 
+    // {
+    if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
+    {  // This junction is within a cluster. 
+      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex) ;
     }
-    solInDictionary = vertex->UpdateDictionaryIter(_solutionDictionary, childTransMatIndex) ;
-    bool allSolved = std::all_of(solInDictionary.begin(), solInDictionary.end(), [](bool i){ return i;}) ;
-    
-    if (!allSolved) 
+    else
     {
-      if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
-      {  // This junction is within a cluster. 
-        vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, solInDictionary) ;
-      }
-      else
-      {
-        vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, solInDictionary) ;
-      }
+      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex) ;
     }
+    // }
   }
 }
 
@@ -373,5 +373,15 @@ void AugTree::NegateAllUpdateFlags()
   for (auto & i : _vertexVector)
   {
     i->NegateFlag() ;
+  }
+}
+
+void AugTree::PrintSolutions(const uint & elementNum)
+{
+  for (auto & i : _vertexVector)
+  {
+    cout << "This is node " << i->GetId() << ".";
+    cout << "Is my supporting branch within-cluster? " << i->GetWithinParentBranch() << ".\n";
+    i->GetDictionaryIterator(elementNum, _numRateCats)->second.first.print("Solution from dictionary:") ;
   }
 }

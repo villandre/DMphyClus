@@ -14,10 +14,10 @@ public:
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, const std::vector<bool> &) ;
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &) ;
   void ComputeSolution(solutionDictionaryType &, const mat &, const uint &, const uint &, const uint &) ;
   void InvalidateSolution() ;
-  vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum)->second ;} ;
+  vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum)->second.first ;} ;
   
   void SetInput(std::vector<uvec> *) { assert(false) ;};
   std::vector<uvec> * GetInput() {assert(false) ; return NULL;} ;
@@ -38,7 +38,7 @@ public:
     }
     _updateFlag = false ;
   }
-  std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) ;
+  //std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) ;
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
   

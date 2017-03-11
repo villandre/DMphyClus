@@ -12,10 +12,10 @@ public:
   bool IsSolved() {return true ;}
   bool CanSolve() {return true ;}
   void SetSolved(bool status) {}
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, const std::vector<bool> &) {assert(false) ;}
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &) {assert(false) ;}
   void ComputeSolution(solutionDictionaryType & dictionary, const mat &, const uint &, const uint &, const uint &) {assert(false) ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
-  vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats))->second ;};
+  vec GetSolution(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats))->second.first ;};
   
   void SetInput(std::vector<uvec> * inputVec) { _inputVec = inputVec ;}
   std::vector<uvec> * GetInput() { return _inputVec ;}
@@ -23,7 +23,7 @@ public:
   void InitMapAndIterVec(solutionDictionaryType &) ;
   void CopyIterVecAndExp() {assert(false) ; }
   void RestoreIterVecAndExp() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
-  std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) {assert(false) ; return std::vector<bool>(0) ;};
+  //std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) {assert(false) ; return std::vector<bool>(0) ;};
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats)) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
   

@@ -31,7 +31,7 @@ void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
   {
     for (uint j = 0 ; j < solutionDictionary->size(); j++)
     {
-      insertResult = solutionDictionary->at(j).insert(std::pair<S,vec>(hashStructVec.at(i),conv_to<vec>::from(_inputVec->at(i)))) ;
+      insertResult = solutionDictionary->at(j).insert(std::pair<S,std::pair<vec,float>>(hashStructVec.at(i),std::pair<vec,float>(conv_to<vec>::from(_inputVec->at(i)), 0))) ;
     }
     _dictionaryIterVec.push_back(insertResult.first) ;
   } // _dictionaryIterVec will point to elements in the last dictionary, but it doesn't matter, since the pointed solution is the input vector itself, which does not depend on the rate category

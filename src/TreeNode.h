@@ -58,9 +58,10 @@ template<> struct hash<S>
 } ;
 }
 
-typedef std::vector<std::map<S, vec, classcomp>>* solutionDictionaryType ;
+typedef std::vector<std::map<S, std::pair<vec, float>, classcomp>>* solutionDictionaryType ;
+typedef std::vector<std::map<S, std::pair<vec, float>, classcomp>> solutionDictionaryTypeNoPoint ;
 typedef std::vector<vec> doubleVec ;
-typedef std::map<S, vec, classcomp>::iterator mapIterator ;
+typedef std::map<S, std::pair<vec, float>, classcomp>::iterator mapIterator ;
 typedef std::vector<mapIterator> iterVec ;
 
 class TreeNode
@@ -74,7 +75,7 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, const std::vector<bool> &) = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &) = 0 ;
   virtual void ComputeSolution(solutionDictionaryType &, const mat &, const uint &, const uint &, const uint &) = 0 ;
   virtual void InvalidateSolution() = 0;
   virtual vec GetSolution(const uint &, const uint & numRateCats) = 0;
@@ -85,7 +86,7 @@ public:
   virtual void InitMapAndIterVec(solutionDictionaryType &) = 0;
   virtual void CopyIterVecAndExp() = 0 ;
   virtual void RestoreIterVecAndExp() = 0;
-  virtual std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) = 0;
+  //virtual std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) = 0;
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   

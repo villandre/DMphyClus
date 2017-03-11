@@ -78,6 +78,7 @@ public:
   void RearrangeTreeNNI(uint, uint) ;
   
   void ComputeLoglik(List &, List &, NumericVector &) ;
+  void PrintSolutions(const uint &) ;
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
 };
