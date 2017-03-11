@@ -327,9 +327,9 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
     exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
     rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
   }
-  rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
+  //rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
   _logLik = sum(rateAveragedLogLiks) ;
-  cout << "Log-lik.: " << _logLik << "\n" ;
+  //cout << "Log-lik.: " << _logLik << "\n" ;
 }
 
 void AugTree::HandleSplit(uint clusMRCAtoSplit)
@@ -352,7 +352,7 @@ void AugTree::HandleMerge(uvec & clusMRCAstoMerge)
   }
 }
 
-void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NNImoveFlag, const int & withinMatListIndex, const int & betweenMatListIndex) 
+void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NNImoveFlag, const int & withinMatListIndex, const int & betweenMatListIndex, const IntegerVector & clusterMRCAs, bool splitMergeMove) 
 {
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
@@ -365,6 +365,10 @@ void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NN
   for (auto & vertex : _vertexVector)
   {
     vertex->RestoreIterVecAndExp() ;
+  }
+  if (splitMergeMove)
+  {
+    AssociateTransProbMatrices(as<uvec>(clusterMRCAs)) ; 
   }
 }
 

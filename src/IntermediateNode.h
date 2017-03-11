@@ -27,7 +27,6 @@ public:
   { 
     std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
     _previousExponentIncrementVec = _exponentIncrementVec ;
-    _updateFlag = true ;
   }
   void RestoreIterVecAndExp() 
   {

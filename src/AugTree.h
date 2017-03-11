@@ -44,7 +44,7 @@ public:
   std::vector<uint> GetTwoVerticesForNNI(TreeNode *, uvec &) ;
   void CopyAugTreeNonPointer(AugTree *) ;
   void CheckAndInvalidateBetweenRecursive(TreeNode *) ; 
-  void RestorePreviousConfig(const IntegerMatrix &, const bool, const int &, const int &) ;
+  void RestorePreviousConfig(const IntegerMatrix &, const bool, const int &, const int &, const IntegerVector &, bool) ;
   void NegateAllUpdateFlags() ;
   
   std::vector<TreeNode *> GetVertexVector() {return _vertexVector ;} ;
@@ -71,7 +71,6 @@ public:
   void HandleSplit(uint) ;
   void HandleMerge(uvec &) ;
   void SetLogLik(double logLik) {_logLik = logLik ;}
-  //void RearrangeNNI(const uint, const uint) ;
   void RebuildTrees(const umat &) ;
   void SetRNG(gsl_rng * myRNG) { _randomNumGenerator = myRNG ;}
   

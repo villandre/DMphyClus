@@ -26,6 +26,10 @@ struct S {
     _transMatrixIndex = (std::size_t) transMatrixIndex ;
   }
   S() {};
+  void print() const
+  {
+    cout << "S elements: " << _aHash << ", " << _otherHash << ", " << _transMatrixIndex << ", " << _withinFlag << ".\n" ;
+  }
 };
 
 struct classcomp {
@@ -48,12 +52,17 @@ template<> struct hash<S>
   typedef std::size_t result_type;
   result_type operator()(argument_type const& s) const
   {
-    std::vector<std::size_t> hashKeys ;
-    hashKeys.reserve(4) ;
     std::vector<std::size_t> allInfoForHashing{s._aHash,s._otherHash,s._transMatrixIndex,s._withinFlag} ;
     
     std::sort(allInfoForHashing.begin(), allInfoForHashing.begin()+2); // The children keys should be re-ordered, not the within-cluster indicator. This will make the function symmetrical.
-    return boost::hash_range(allInfoForHashing.begin(), allInfoForHashing.end()) ;
+    std::size_t seed = 0 ;
+    boost::hash_combine(seed, allInfoForHashing.at(0));
+    boost::hash_combine(seed, allInfoForHashing.at(1));
+    boost::hash_combine(seed, allInfoForHashing.at(2));
+    boost::hash_combine(seed, allInfoForHashing.at(3));
+    
+    return seed;
+    //return boost::hash_range(allInfoForHashing.begin(), allInfoForHashing.end()) ;
   };
 } ;
 }

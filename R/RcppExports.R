@@ -29,8 +29,8 @@ clusSplitMergeLogLik <- function(AugTreePointer, withinTransProbs, betweenTransP
     .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP, limProbs)
 }
 
-RestorePreviousConfig <- function(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove) {
-    invisible(.Call('DMphyClus_RestorePreviousConfig', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove))
+RestorePreviousConfig <- function(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove) {
+    invisible(.Call('DMphyClus_RestorePreviousConfig', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove))
 }
 
 finalDeallocate <- function(AugTreePointer) {

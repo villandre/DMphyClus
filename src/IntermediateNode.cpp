@@ -24,17 +24,6 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-// bool IntermediateNode::CanFindKey()
-// {
-//   std::vector<bool> childKeyDefined(_children.size()) ;
-//   childKeyDefined.reserve(_children.size()) ;
-//   for (auto & i : _children)
-//   {
-//     childKeyDefined.push_back(i->IsKeyDefined()) ; 
-//   }
-//   return std::all_of(childKeyDefined.begin(), childKeyDefined.end(), [](bool v) { return v; });
-// }
-
 void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex)
 {
   uint rateCateg = 0 ;
@@ -44,19 +33,31 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
     ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), rateCateg, i, transMatIndex) ;
     rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
   }
+  _isSolved = true ;
+  _updateFlag = true ;
 }
 
 // I'm using a scaling strategy to avoid computational zeros, where when the maximum value in my solution vector
 // gets too small, I factorize it out and increment _exponentContainer, whose total value is taken into
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
-// but only when they're much smallerthan the maximum, in which case, they won't affect the mean significantly.
+// but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
   float exponentIncrement = 0 ;
   uint rateCateg = littleCycle(elementNum, solutionDictionary->size()) ;
   S newS = GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()) ;
   mapIterator solutionIter = solutionDictionary->at(rateCateg).find(newS) ;
+  // if (elementNum < 9)
+  // {
+  //   newS.print() ;
+  //   cout << "TransMatrix index: " << transMatrixIndex <<  ". Node ID: " << _id << ". Within? " << _withinParentBranch << ".\n" ;
+  //   cout << "Found in dictionary? " << (solutionIter != solutionDictionary->at(rateCateg).end()) << ".\n" ;
+  //   if (solutionIter != solutionDictionary->at(rateCateg).end())
+  //   {
+  //     solutionIter->first.print() ;
+  //   }
+  // }
   if (solutionIter != solutionDictionary->at(rateCateg).end()) 
   {
     _dictionaryIterVec.at(elementNum) = solutionIter ;
@@ -82,7 +83,6 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,std::pair<vec,float>>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), std::pair<vec, float>(mySolution, exponentIncrement))) ;
     _dictionaryIterVec.at(elementNum) = insertResult.first ;
   }
-  _isSolved = true ;
 }
 
 // When a new key is computed, it is immediately added to the map, and points to a vector of zeros.

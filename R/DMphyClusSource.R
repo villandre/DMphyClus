@@ -188,7 +188,7 @@ reorderTips <- function(phylogeny, newTipOrder)
         currentValue$paraValues$clusInd <- .relabel(currentValue$paraValues$clusInd)
       }
     } else {
-      RestorePreviousConfig(currentValue$extPointer, edgeMat = matrix(0,1,1), NNImove = FALSE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
+      RestorePreviousConfig(currentValue$extPointer, edgeMat = matrix(0,1,1), NNImove = FALSE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, splitMergeMove = TRUE) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
     }
     currentValue
 }
@@ -228,7 +228,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$logPostProb <- newLogLik +  (currentValue$logPostProb - currentValue$logLik)
     currentValue$logLik <- newLogLik
   } else {
-    RestorePreviousConfig(currentValue$extPointer, edgeMat = matrix(0,1,1), NNImove = FALSE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
+    RestorePreviousConfig(currentValue$extPointer, edgeMat = matrix(0,1,1), NNImove = FALSE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, splitMergeMove = FALSE) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
   }
   currentValue
 }
@@ -337,7 +337,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$logLik <- updatedLogLik
     currentValue$paraValues$phylogeny <- newPhylo
   } else {
-    RestorePreviousConfig(currentValue$extPointer, edgeMat = currentValue$paraValues$phylogeny$edge, NNImove = TRUE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
+    RestorePreviousConfig(currentValue$extPointer, edgeMat = currentValue$paraValues$phylogeny$edge, NNImove = TRUE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, splitMergeMove = FALSE) # Function tells the C++ AugTree object to restore the old configuration, also stored in the object.
   }
   currentValue
 }
@@ -398,7 +398,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
       } 
       else
       {
-        RestorePreviousConfig(currentValue$extPointer, edgeMat = currentValue$paraValues$phylogeny$edge, NNImove = TRUE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
+        RestorePreviousConfig(currentValue$extPointer, edgeMat = currentValue$paraValues$phylogeny$edge, NNImove = TRUE, withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, splitMergeMove = FALSE)
       }
       NULL
     }

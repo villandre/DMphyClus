@@ -127,8 +127,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // RestorePreviousConfig
-void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix& edgeMat, int& withinMatListIndex, int& betweenMatListIndex, bool NNImove);
-RcppExport SEXP DMphyClus_RestorePreviousConfig(SEXP AugTreePointerSEXP, SEXP edgeMatSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP, SEXP NNImoveSEXP) {
+void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix& edgeMat, int& withinMatListIndex, int& betweenMatListIndex, bool NNImove, IntegerVector& clusterMRCAs, bool splitMergeMove);
+RcppExport SEXP DMphyClus_RestorePreviousConfig(SEXP AugTreePointerSEXP, SEXP edgeMatSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP, SEXP NNImoveSEXP, SEXP clusterMRCAsSEXP, SEXP splitMergeMoveSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type AugTreePointer(AugTreePointerSEXP);
@@ -136,7 +136,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int& >::type withinMatListIndex(withinMatListIndexSEXP);
     Rcpp::traits::input_parameter< int& >::type betweenMatListIndex(betweenMatListIndexSEXP);
     Rcpp::traits::input_parameter< bool >::type NNImove(NNImoveSEXP);
-    RestorePreviousConfig(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove);
+    Rcpp::traits::input_parameter< IntegerVector& >::type clusterMRCAs(clusterMRCAsSEXP);
+    Rcpp::traits::input_parameter< bool >::type splitMergeMove(splitMergeMoveSEXP);
+    RestorePreviousConfig(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove);
     return R_NilValue;
 END_RCPP
 }

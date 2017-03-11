@@ -280,10 +280,10 @@ double clusSplitMergeLogLik(SEXP AugTreePointer, List & withinTransProbs, List &
 
 // [[Rcpp::export]]
 
-void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix & edgeMat, int & withinMatListIndex, int & betweenMatListIndex, bool NNImove)
+void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix & edgeMat, int & withinMatListIndex, int & betweenMatListIndex, bool NNImove, IntegerVector & clusterMRCAs, bool splitMergeMove)
 {
   XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
-  pointedTree->RestorePreviousConfig(edgeMat, NNImove, withinMatListIndex, betweenMatListIndex) ;
+  pointedTree->RestorePreviousConfig(edgeMat, NNImove, withinMatListIndex, betweenMatListIndex, clusterMRCAs, splitMergeMove) ;
 }
 
 // [[Rcpp::export]]
