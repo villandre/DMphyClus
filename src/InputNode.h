@@ -24,15 +24,15 @@ public:
   void CopyIterVecAndExp() {assert(false) ; }
   void RestoreIterVecAndExp() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
   //std::vector<bool> UpdateDictionaryIter(solutionDictionaryType &, uint &) {assert(false) ; return std::vector<bool>(0) ;};
-  mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(std::floor(elementNum/numRateCats)) ;}
+  mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
   
   fvec GetExponentIncrementVec(const uint & numRateCats) {return fvec(_dictionaryIterVec.size()*numRateCats, fill::zeros) ;}
   
-  InputNode(uint & numLoci)
+  InputNode(uint & numLoci, uint & numRates)
   {
     _parent = NULL ;
-    _dictionaryIterVec.reserve(numLoci) ;
+    _dictionaryIterVec.reserve(numLoci*numRates) ;
     _updateFlag = false ;
   }
   

@@ -119,7 +119,8 @@ public:
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   iterVec _dictionaryIterVec ;
-  iterVec _previousIterVec ;
+  //iterVec _previousIterVec ;
+  std::vector<float> _iterMove ;
   bool _updateFlag ;
 };
 

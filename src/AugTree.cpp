@@ -65,13 +65,13 @@ void AugTree::BuildTree(const umat & edgeMatrix)
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
   for (uint i = 0; i < _numTips; i++) {
-    InputNode * newNode = new InputNode(_numLoci) ;
+    InputNode * newNode = new InputNode(_numLoci, _numRateCats) ;
     _vertexVector.push_back(newNode) ;
   } ;
 
   // We add the internal nodes
   for (uint i = 0 ; i < edgeMatrix.n_rows - _numTips + 1; i++) {
-    IntermediateNode * newNode = new IntermediateNode(_numLoci, _numRateCats) ;
+    IntermediateNode * newNode = new IntermediateNode(_numLoci, _numRateCats, _solutionDictionary) ;
     _vertexVector.push_back(newNode) ; 
   } ;
   // We set the IDs (to facilitate exporting the phylogeny to R).
@@ -125,17 +125,7 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
         TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
       }
     }
-    // std::vector<bool> solInDictionary ;
-    // uint childTransMatIndex = _betweenMatListIndex ;
-    // if (vertex->GetChildren().at(0)->GetWithinParentBranch())
-    // {
-    //   childTransMatIndex = _withinMatListIndex ;
-    // }
-    // solInDictionary = vertex->UpdateDictionaryIter(_solutionDictionary, childTransMatIndex) ;
-    // bool allSolved = std::all_of(solInDictionary.begin(), solInDictionary.end(), [](bool i){ return i;}) ;
-    // 
-    // if (!allSolved) 
-    // {
+    cout << "About to compute solutions! \n" ;
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
       vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex) ;
@@ -144,7 +134,6 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     {
       vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex) ;
     }
-    // }
   }
 }
 

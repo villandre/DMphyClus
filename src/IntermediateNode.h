@@ -25,14 +25,19 @@ public:
   void InitMapAndIterVec(solutionDictionaryType &) {assert(false) ;};
   void CopyIterVecAndExp() 
   { 
-    std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
+    //std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
     _previousExponentIncrementVec = _exponentIncrementVec ;
   }
   void RestoreIterVecAndExp() 
   {
     if (_updateFlag) 
     {
-      std::copy(_previousIterVec.begin(), _previousIterVec.end(), _dictionaryIterVec.begin()) ;
+      for (uint i = 0 ; 0 < _iterMove.size(); i++)
+      {
+        std::advance(_dictionaryIterVec.at(i), _iterMove.at(i)) ;
+      }
+      //std::fill(_iterMove.begin(), _iterMove.end(), 0) ;
+      //std::copy(_previousIterVec.begin(), _previousIterVec.end(), _dictionaryIterVec.begin()) ;
       _exponentIncrementVec = _previousExponentIncrementVec ;
     }
     _updateFlag = false ;
@@ -43,11 +48,18 @@ public:
   
   fvec GetExponentIncrementVec(const uint & numRateCats) {return _exponentIncrementVec ;}
   
-  IntermediateNode(uint & numLoci, uint & numRates): _isSolved(false) {
+  IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;
     int numElements = numLoci*numRates ;
     _dictionaryIterVec.resize(numElements) ;
-    _previousIterVec.resize(numElements) ;
+    uint rateCateg = 0 ;
+    for (uint i = 0 ; i < numElements ; i++)
+    {
+      _dictionaryIterVec.at(i) = solutionDictionary->at(rateCateg).begin() ;
+      rateCateg = littleCycle(rateCateg+1, solutionDictionary->size()) ;
+    }
+    _iterMove.resize(numElements) ;
+    std::fill(_iterMove.begin(), _iterMove.end(), 0) ;
     _updateFlag = false ;
     _exponentIncrementVec = fvec(numElements, fill::zeros) ;
     _previousExponentIncrementVec = fvec(numElements, fill::zeros) ;

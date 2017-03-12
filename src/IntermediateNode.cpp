@@ -5,8 +5,7 @@
 void IntermediateNode::InvalidateSolution()
 {
   _isSolved = false ;
-  //_keyDefined = false ; // If a solution is invalidated, it means something changed in lower vertice, which also invalidates the key.
-  
+ 
   if (_parent != NULL)
   { // Root has a NULL parent.
     _parent->InvalidateSolution() ;
@@ -44,22 +43,22 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
 {
+  cout << "Entered ComputeSolution! \n" ;
   float exponentIncrement = 0 ;
   uint rateCateg = littleCycle(elementNum, solutionDictionary->size()) ;
   S newS = GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()) ;
+  cout << "Looking for solution... " ;
   mapIterator solutionIter = solutionDictionary->at(rateCateg).find(newS) ;
-  // if (elementNum < 9)
-  // {
-  //   newS.print() ;
-  //   cout << "TransMatrix index: " << transMatrixIndex <<  ". Node ID: " << _id << ". Within? " << _withinParentBranch << ".\n" ;
-  //   cout << "Found in dictionary? " << (solutionIter != solutionDictionary->at(rateCateg).end()) << ".\n" ;
-  //   if (solutionIter != solutionDictionary->at(rateCateg).end())
-  //   {
-  //     solutionIter->first.print() ;
-  //   }
-  // }
+  cout << "Done! \n" ;
   if (solutionIter != solutionDictionary->at(rateCateg).end()) 
   {
+    cout << "Computing distance... " ;
+    _iterMove.at(elementNum) = std::distance(solutionIter, _dictionaryIterVec.at(elementNum)) ;
+    cout << "Done! \n" ;
+    if (elementNum < 30) 
+    {
+      cout << "(Found solution) _iterMove is: " << _iterMove.at(elementNum) << "\n" ;
+    }
     _dictionaryIterVec.at(elementNum) = solutionIter ;
     _exponentIncrementVec.at(elementNum) = solutionIter->second.second ;
   }
@@ -81,46 +80,15 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
       _exponentIncrementVec.at(elementNum) = exponentIncrement;
     }
     std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,std::pair<vec,float>>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), std::pair<vec, float>(mySolution, exponentIncrement))) ;
+    _iterMove.at(elementNum) = std::distance(insertResult.first, _dictionaryIterVec.at(elementNum)) ;
+    if (elementNum < 30) 
+    {
+      cout << "_iterMove is: " << _iterMove.at(elementNum) << "\n" ;
+    }
     _dictionaryIterVec.at(elementNum) = insertResult.first ;
+    
   }
 }
-
-// When a new key is computed, it is immediately added to the map, and points to a vector of zeros.
-// void IntermediateNode::DeriveKey(solutionDictionaryType & solutionDictionary, const uint & rateCategory, const uint & matListIndex, const uint & elementNum)
-// {
-//   std::vector<std::size_t> childrenKeysAndWithinBetweenFlag(4) ; // The hash key is also computed from the within/between status, and betweenMatListIndex or withinMatListIndex, hence +2. The tree is assumed bifurcating, hence the 4.
-//   std::vector<std::size_t> hashKeys ;
-//   hashKeys.reserve(childrenKeysAndWithinBetweenFlag.size()) ;
-//   std::transform(_children.begin(), _children.end(), childrenKeysAndWithinBetweenFlag.begin(), [& elementNum] (TreeNode * childPointer) {return childPointer->GetDictionaryIterVec().at(elementNum)->first ;}) ;
-//   childrenKeysAndWithinBetweenFlag.at(2) = (std::size_t) _children.at(0)->GetWithinParentBranch() ;
-//   childrenKeysAndWithinBetweenFlag.at(3) = matListIndex ;
-//   
-//   std::sort(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2); // The children keys should be re-ordered, not the within-cluster indicator.
-//   do {
-//     hashKeys.push_back(boost::hash_range(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end())) ;
-//   } while ( std::next_permutation(childrenKeysAndWithinBetweenFlag.begin(), childrenKeysAndWithinBetweenFlag.end()-2));
-//   bool foundSolution = false ;
-//   for(auto & hashKey : hashKeys) 
-//   {
-//     std::map<std::size_t, vec>::iterator findOutput = solutionDictionary->at(rateCategory).find(hashKey) ;
-//     if (findOutput != solutionDictionary->at(rateCategory).end()) 
-//     {
-//       _dictionaryIterVec.at(elementNum) = findOutput ;
-//       foundSolution = true ;
-//       break ;
-//     }
-//   }
-//   if (!foundSolution) 
-//   {
-//     _dictionaryIterVec.at(elementNum) = solutionDictionary->at(rateCategory).insert(std::pair<std::size_t, vec>(hashKeys[0], vec(4,fill::zeros))).first ;
-//   }
-//   _keyDefined = true ;
-//   if (_iteratorMove.at(elementNum) != UINT_MAX) // This ensures that this is not the first assignment of the iterator. 
-//   {
-//     
-//   }
-// }
-
 
 void IntermediateNode::RemoveChild(TreeNode * childToRemove)
 {
@@ -134,24 +102,6 @@ void IntermediateNode::RemoveChild(TreeNode * childToRemove)
     _children.erase(ChildIterPos) ;
   }
 }
-
-// std::vector<bool> IntermediateNode::UpdateDictionaryIter(solutionDictionaryType & solutionDictionary, uint & transMatIndex)
-// {
-//   std::vector<bool> foundSolution(_dictionaryIterVec.size(), false) ;
-//   uint rateCategIndex = 0 ;
-//   for (uint i = 0 ; i < _dictionaryIterVec.size(); i++)
-//   {
-//     S newS = GetSfromVertex(i, transMatIndex, solutionDictionary->size()) ;
-//     mapIterator solutionIter = solutionDictionary->at(rateCategIndex).find(newS) ;
-//     if (solutionIter != solutionDictionary->at(rateCategIndex).end()) 
-//     {
-//       _dictionaryIterVec.at(i) = solutionIter ;
-//       foundSolution.at(i) = true ;
-//     }
-//     rateCategIndex = littleCycle(rateCategIndex + 1, solutionDictionary->size()) ;
-//   }
-//   return foundSolution ;
-// }
 
 S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMatIndex, const uint & numRateCats)
 {
