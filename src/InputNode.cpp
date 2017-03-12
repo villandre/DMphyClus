@@ -1,6 +1,6 @@
 #include "InputNode.h"
 
-void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
+void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary, const uint & numRateCats)
 {
   std::vector<S> hashStructVec(_inputVec->size()) ; 
   std::transform(_inputVec->begin(), _inputVec->end(), hashStructVec.begin(), [] (const uvec & inputVec) 
@@ -15,10 +15,8 @@ void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary)
   std::pair<mapIterator, bool> insertResult ;
   for (unsigned int i = 0 ; i < _inputVec->size() ; i++)
   {
-    for (uint j = 0 ; j < solutionDictionary->size(); j++)
-    {
-      insertResult = solutionDictionary->at(j).insert(std::pair<S,std::pair<vec,float>>(hashStructVec.at(i),std::pair<vec,float>(conv_to<vec>::from(_inputVec->at(i)), 0))) ;
-      _dictionaryIterVec.push_back(insertResult.first) ;
-    }
+    mapContentType mapElement(numRateCats, std::pair<vec,float>(conv_to<vec>::from(_inputVec->at(i)), 0)) ;
+    insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(hashStructVec.at(i),mapElement)) ;
+    _dictionaryIterVec.push_back(insertResult.first) ;
   }
 }

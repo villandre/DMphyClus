@@ -25,12 +25,9 @@ bool IntermediateNode::CanSolve()
 
 void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex)
 {
-  uint rateCateg = 0 ;
-  _exponentIncrementVec.fill(0) ; // This must be reset to 0, since AugTree persists between iterations.
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    ComputeSolution(solutionDictionary, transProbMats.at(rateCateg), rateCateg, i, transMatIndex) ;
-    rateCateg = littleCycle(rateCateg + 1, transProbMats.size()) ;
+    ComputeSolution(solutionDictionary, transProbMats, i, transMatIndex) ;
   }
   _isSolved = true ;
   _updateFlag = true ;
@@ -41,52 +38,48 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const mat & transProbM, const uint & rateCategory, const uint & elementNum, const uint & transMatrixIndex)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex)
 {
-  cout << "Entered ComputeSolution! \n" ;
-  float exponentIncrement = 0 ;
-  uint rateCateg = littleCycle(elementNum, solutionDictionary->size()) ;
-  S newS = GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()) ;
+  S newS = GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()) ;
   cout << "Looking for solution... " ;
-  mapIterator solutionIter = solutionDictionary->at(rateCateg).find(newS) ;
+  mapIterator solutionIter = solutionDictionary->find(newS) ;
   cout << "Done! \n" ;
-  if (solutionIter != solutionDictionary->at(rateCateg).end()) 
+  if (solutionIter != solutionDictionary->end()) 
   {
     cout << "Computing distance... " ;
-    _iterMove.at(elementNum) = std::distance(solutionIter, _dictionaryIterVec.at(elementNum)) ;
+    _iterMove.at(locusNum) = std::distance(solutionIter, _dictionaryIterVec.at(locusNum)) ;
     cout << "Done! \n" ;
-    if (elementNum < 30) 
+    if (locusNum < 30) 
     {
-      cout << "(Found solution) _iterMove is: " << _iterMove.at(elementNum) << "\n" ;
+      cout << "(Found solution) _iterMove is: " << _iterMove.at(locusNum) << "\n" ;
     }
-    _dictionaryIterVec.at(elementNum) = solutionIter ;
-    _exponentIncrementVec.at(elementNum) = solutionIter->second.second ;
+    _dictionaryIterVec.at(locusNum) = solutionIter ;
   }
   else
   {
-    vec mySolution(transProbM.n_rows, fill::ones) ;
+    std::vector<std::pair<vec, float>> mySolution(transProbMatVec.size(), std::pair<vec,float>(vec(transProbMatVec.at(0).n_rows, fill::ones),0)) ;
     
     for (auto & child : _children) 
     {
-      mySolution = mySolution % (transProbM*child->GetSolution(elementNum, solutionDictionary->size())) ;
+      for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
+      {
+        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex)) ;
+        double myMax = max(mySolution.at(rateIndex).first) ;
+        bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
+        if (status)
+        {
+          mySolution.at(rateIndex).first = mySolution.at(rateIndex).first/myMax ;
+          mySolution.at(rateIndex).second = log(myMax) ;
+        }
+      }
     }
-    
-    double myMax = max(mySolution) ;
-    bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
-    if (status)
+    std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
+    _iterMove.at(locusNum) = std::distance(insertResult.first, _dictionaryIterVec.at(locusNum)) ;
+    if (locusNum < 30) 
     {
-      mySolution = mySolution/myMax ;
-      exponentIncrement = log(myMax) ;
-      _exponentIncrementVec.at(elementNum) = exponentIncrement;
+      cout << "_iterMove is: " << _iterMove.at(locusNum) << "\n" ;
     }
-    std::pair<mapIterator, bool> insertResult = solutionDictionary->at(rateCategory).insert(std::pair<S,std::pair<vec,float>>(GetSfromVertex(elementNum, transMatrixIndex, solutionDictionary->size()), std::pair<vec, float>(mySolution, exponentIncrement))) ;
-    _iterMove.at(elementNum) = std::distance(insertResult.first, _dictionaryIterVec.at(elementNum)) ;
-    if (elementNum < 30) 
-    {
-      cout << "_iterMove is: " << _iterMove.at(elementNum) << "\n" ;
-    }
-    _dictionaryIterVec.at(elementNum) = insertResult.first ;
-    
+    _dictionaryIterVec.at(locusNum) = insertResult.first ;
   }
 }
 

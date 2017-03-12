@@ -16,8 +16,8 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   _numLoci = alignmentBin->at(0).size() ;
   _numRateCats = _solutionDictionary->size() ;
   
-  uint numElements = _numLoci*_numRateCats ;
-  _likPropVec = vec(numElements, fill::zeros) ;
+  // uint numElements = _numLoci*_numRateCats ;
+  // _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
   _randomNumGenerator = RNGpoint ;
@@ -67,17 +67,17 @@ void AugTree::BuildTree(const umat & edgeMatrix)
   for (uint i = 0; i < _numTips; i++) {
     InputNode * newNode = new InputNode(_numLoci, _numRateCats) ;
     _vertexVector.push_back(newNode) ;
-  } ;
+  }
 
   // We add the internal nodes
   for (uint i = 0 ; i < edgeMatrix.n_rows - _numTips + 1; i++) {
     IntermediateNode * newNode = new IntermediateNode(_numLoci, _numRateCats, _solutionDictionary) ;
     _vertexVector.push_back(newNode) ; 
-  } ;
+  }
   // We set the IDs (to facilitate exporting the phylogeny to R).
   for (uint i = 0 ; i < _vertexVector.size(); i++) {
     _vertexVector[i]->SetId(i) ; 
-  } ;
+  }
   // The vertices are all disjoint, the next loop defines their relationships
   // The iterator follows columns.
   for (umat::const_iterator iter = edgeMatrix.begin(); iter < edgeMatrix.end()-edgeMatrix.n_rows; iter++)
@@ -108,7 +108,7 @@ void AugTree::InitializeVertices()
   for (auto & i : *_alignmentBinReference)
   {
     (*treeIter)->SetInput(&i) ;
-    (*treeIter)->InitMapAndIterVec(_solutionDictionary) ; // The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
+    (*treeIter)->InitMapAndIterVec(_solutionDictionary, _numRateCats) ; // The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
     treeIter++ ;
   }
 }
@@ -117,7 +117,6 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
 {
   if (!(vertex->IsSolved()))
   {
-    vertex->CopyIterVecAndExp() ;
     if (!vertex->CanSolve())
     {
       for (auto & i : vertex->GetChildren())
@@ -125,7 +124,6 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
         TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
       }
     }
-    cout << "About to compute solutions! \n" ;
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
       vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex) ;
@@ -296,25 +294,34 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   uint rateCategIndex = 0 ;
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
-  uint rateCateg = 0 ;
-  for (uint i = 0 ; i < numElements ; i++) {
-    _likPropVec.at(i) = dot(_vertexVector.at(_numTips)->GetSolution(i, _numRateCats), limProbs) ;
-    rateCateg = littleCycle(i+1, _numRateCats) ;
+  
+  vec likPropVec(numElements) ;
+  
+  for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 
+  {
+    for (uint rateIndex = 0 ; rateIndex < _numRateCats ; rateIndex++)
+    {
+      likPropVec.at(locusIndex+rateIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex), limProbs) ;
+    }
   }
   
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   vec rateAveragedLogLiks(_numLoci) ;
-  
-  for (uint i = 0; i < rateAveragedLogLiks.size(); i++)
+  fvec exponentVec(numElements) ;
+  for (uint locusIndex = 0; locusIndex < _numLoci; locusIndex++)
   {
-    fvec exponentVec(_numRateCats*_numLoci, fill::zeros) ;
-    for (auto & i : _vertexVector) 
+    for (uint rateIndex = 0; rateIndex < _numRateCats; rateIndex++)
     {
-      exponentVec=+i->GetExponentIncrementVec(_numRateCats) ;
+      for (auto & vertex : _vertexVector) 
+      {
+        exponentVec.at(locusIndex)=+vertex->GetExponent(locusIndex, rateIndex) ;
+      }
     }
-    double maxExponent = max(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)) ;
-    exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1) -= maxExponent ;
-    rateAveragedLogLiks[i] = log(mean(_likPropVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)%exp(exponentVec.rows(_numRateCats*i, _numRateCats*(i+1) - 1)))) + maxExponent;
+    double vectorIndex = _numRateCats*locusIndex ;
+    double endVectorIndex = _numRateCats*(locusIndex+1) - 1 ;
+    double maxExponent = max(exponentVec.rows(vectorIndex, endVectorIndex)) ;
+    exponentVec.rows(vectorIndex, endVectorIndex) -= maxExponent ;
+    rateAveragedLogLiks.at(locusIndex) = log(mean(likPropVec.rows(vectorIndex, endVectorIndex)%exp(exponentVec.rows(vectorIndex, endVectorIndex)))) + maxExponent;
   }
   //rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
   _logLik = sum(rateAveragedLogLiks) ;
@@ -371,10 +378,10 @@ void AugTree::NegateAllUpdateFlags()
 
 void AugTree::PrintSolutions(const uint & elementNum)
 {
-  for (auto & i : _vertexVector)
-  {
-    cout << "This is node " << i->GetId() << ".";
-    cout << "Is my supporting branch within-cluster? " << i->GetWithinParentBranch() << ".\n";
-    i->GetDictionaryIterator(elementNum, _numRateCats)->second.first.print("Solution from dictionary:") ;
-  }
+  // for (auto & i : _vertexVector)
+  // {
+  //   cout << "This is node " << i->GetId() << ".";
+  //   cout << "Is my supporting branch within-cluster? " << i->GetWithinParentBranch() << ".\n";
+  //   i->GetDictionaryIterator(elementNum, _numRateCats)->second.first.print("Solution from dictionary (could be rescaled):") ;
+  // }
 }

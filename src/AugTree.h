@@ -18,7 +18,7 @@ protected:
   
   std::vector<std::vector<uvec>> * _alignmentBinReference ;
   
-  vec _likPropVec ; // This is scaled to avoid computational zeros.
+  // vec _likPropVec ; // This is scaled to avoid computational zeros.
 
   void BuildTree(const umat &) ;
   void SolveOneLevel() ;
@@ -48,7 +48,6 @@ public:
   void NegateAllUpdateFlags() ;
   
   std::vector<TreeNode *> GetVertexVector() {return _vertexVector ;} ;
-  vec GetLikPropVec() const {return _likPropVec ;} ;
   std::vector<uint> GetNNIverticesWithin(TreeNode *) ;
   std::vector<uint> GetNNIverticesBetween(TreeNode *, uvec &) ;
 
