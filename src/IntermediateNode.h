@@ -23,11 +23,11 @@ public:
   
   void InitMapAndIterVec(solutionDictionaryType &, const uint &) {assert(false) ;};
   
-  void RestoreIterVecAndExp(solutionDictionaryType & solutionDictionary) 
+  void RestoreIterVecAndExp() 
   {
     if (_updateFlag) 
     {
-      _dictionaryIterVec = _previousIterVec ;
+      std::copy(_previousIterVec.begin(), _previousIterVec.end(), _dictionaryIterVec.begin()) ;
     }
     _updateFlag = false ;
   }
@@ -37,6 +37,7 @@ public:
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;
     _dictionaryIterVec.resize(numLoci) ;
+    _previousIterVec.resize(numLoci) ;
     for (uint i = 0 ; i < numLoci ; i++)
     {
       _dictionaryIterVec.at(i) = solutionDictionary->begin() ;
@@ -48,6 +49,7 @@ protected:
 
    bool _isSolved ;
    std::vector<TreeNode *> _children ;
+   iterVec _previousIterVec ;
 };
 
 #endif /* INTERMEDIATENODE_H */

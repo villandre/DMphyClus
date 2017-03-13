@@ -93,7 +93,7 @@ public:
   virtual std::vector<uvec> * GetInput() = 0 ;
   
   virtual void InitMapAndIterVec(solutionDictionaryType &, const uint &) = 0;
-  virtual void RestoreIterVecAndExp(solutionDictionaryType &) = 0;
+  virtual void RestoreIterVecAndExp() = 0;
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
@@ -117,7 +117,7 @@ public:
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   iterVec _dictionaryIterVec ;
-  iterVec _previousIterVec ;
+  
   //std::vector<float> _iterMove ;
   bool _updateFlag ;
 };
