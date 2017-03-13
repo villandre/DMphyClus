@@ -23,20 +23,17 @@ public:
   
   void InitMapAndIterVec(solutionDictionaryType &, const uint &) {assert(false) ;};
   
-  void RestoreIterVecAndExp() 
+  void RestoreIterVecAndExp(solutionDictionaryType & solutionDictionary) 
   {
     if (_updateFlag) 
     {
-      for (uint i = 0 ; 0 < _iterMove.size(); i++)
-      {
-        std::advance(_dictionaryIterVec.at(i), _iterMove.at(i)) ;
-      }
+      _dictionaryIterVec = _previousIterVec ;
     }
     _updateFlag = false ;
   }
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
- 
+  
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;
     _dictionaryIterVec.resize(numLoci) ;
@@ -44,8 +41,6 @@ public:
     {
       _dictionaryIterVec.at(i) = solutionDictionary->begin() ;
     }
-    _iterMove.resize(numLoci) ;
-    std::fill(_iterMove.begin(), _iterMove.end(), 0) ;
     _updateFlag = false ;
   };
   

@@ -8,16 +8,14 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, gsl_rng * RNGpoint)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint)
 { 
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBin ;
   _numTips = alignmentBin->size() ;
   _numLoci = alignmentBin->at(0).size() ;
-  _numRateCats = _solutionDictionary->size() ;
+  _numRateCats = numRateCats ;
   
-  // uint numElements = _numLoci*_numRateCats ;
-  // _likPropVec = vec(numElements, fill::zeros) ;
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
   _randomNumGenerator = RNGpoint ;
@@ -65,7 +63,7 @@ void AugTree::BuildTree(const umat & edgeMatrix)
   // We create the tips. Note that tip 1 should correspond to vertex 1 in the original (the one in the phylo object) edgeMatrix
 
   for (uint i = 0; i < _numTips; i++) {
-    InputNode * newNode = new InputNode(_numLoci, _numRateCats) ;
+    InputNode * newNode = new InputNode(_numLoci, _numRateCats, _solutionDictionary) ;
     _vertexVector.push_back(newNode) ;
   }
 
@@ -291,37 +289,37 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
 void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const std::vector<mat> & betweenClusTransProbs, const vec & limProbs)
 {
   uint numElements = _numLoci*_numRateCats ;
-  uint rateCategIndex = 0 ;
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
-  
   vec likPropVec(numElements) ;
-  
+  uint combinedIndex = 0 ;
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 
   {
     for (uint rateIndex = 0 ; rateIndex < _numRateCats ; rateIndex++)
     {
-      likPropVec.at(locusIndex+rateIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex), limProbs) ;
+      likPropVec.at(combinedIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex), limProbs) ;
+      combinedIndex++ ;
     }
   }
-  
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
   vec rateAveragedLogLiks(_numLoci) ;
-  fvec exponentVec(numElements) ;
+  fvec exponentVec(_numRateCats) ;
   for (uint locusIndex = 0; locusIndex < _numLoci; locusIndex++)
   {
     for (uint rateIndex = 0; rateIndex < _numRateCats; rateIndex++)
     {
-      for (auto & vertex : _vertexVector) 
+      for (uint i = _numTips ; i < _vertexVector.size() ; i++) // The first _numTips vertices are input nodes and therefore, their exponent factorization is trivially 0.
       {
-        exponentVec.at(locusIndex)=+vertex->GetExponent(locusIndex, rateIndex) ;
+        exponentVec.at(rateIndex)+=_vertexVector.at(i)->GetExponent(locusIndex, rateIndex) ;
       }
     }
+    
+    double maxExponent = max(exponentVec) ;
+    exponentVec-=maxExponent ;
+    
     double vectorIndex = _numRateCats*locusIndex ;
     double endVectorIndex = _numRateCats*(locusIndex+1) - 1 ;
-    double maxExponent = max(exponentVec.rows(vectorIndex, endVectorIndex)) ;
-    exponentVec.rows(vectorIndex, endVectorIndex) -= maxExponent ;
-    rateAveragedLogLiks.at(locusIndex) = log(mean(likPropVec.rows(vectorIndex, endVectorIndex)%exp(exponentVec.rows(vectorIndex, endVectorIndex)))) + maxExponent;
+    rateAveragedLogLiks.at(locusIndex) = log(mean(likPropVec.rows(vectorIndex, endVectorIndex)%exp(exponentVec))) + maxExponent;
   }
   //rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
   _logLik = sum(rateAveragedLogLiks) ;
@@ -360,7 +358,7 @@ void AugTree::RestorePreviousConfig(const IntegerMatrix & edgeMat, const bool NN
   
   for (auto & vertex : _vertexVector)
   {
-    vertex->RestoreIterVecAndExp() ;
+    vertex->RestoreIterVecAndExp(_solutionDictionary) ;
   }
   if (splitMergeMove)
   {

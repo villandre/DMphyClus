@@ -17,6 +17,6 @@ void InputNode::InitMapAndIterVec(solutionDictionaryType & solutionDictionary, c
   {
     mapContentType mapElement(numRateCats, std::pair<vec,float>(conv_to<vec>::from(_inputVec->at(i)), 0)) ;
     insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(hashStructVec.at(i),mapElement)) ;
-    _dictionaryIterVec.push_back(insertResult.first) ;
+    _dictionaryIterVec.at(i) = (insertResult.first) ;
   }
 }

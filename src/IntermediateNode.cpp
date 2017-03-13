@@ -40,25 +40,16 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
 void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex)
 {
+  _previousIterVec = _dictionaryIterVec ;
   S newS = GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()) ;
-  cout << "Looking for solution... " ;
   mapIterator solutionIter = solutionDictionary->find(newS) ;
-  cout << "Done! \n" ;
   if (solutionIter != solutionDictionary->end()) 
   {
-    cout << "Computing distance... " ;
-    _iterMove.at(locusNum) = std::distance(solutionIter, _dictionaryIterVec.at(locusNum)) ;
-    cout << "Done! \n" ;
-    if (locusNum < 30) 
-    {
-      cout << "(Found solution) _iterMove is: " << _iterMove.at(locusNum) << "\n" ;
-    }
     _dictionaryIterVec.at(locusNum) = solutionIter ;
   }
   else
   {
     std::vector<std::pair<vec, float>> mySolution(transProbMatVec.size(), std::pair<vec,float>(vec(transProbMatVec.at(0).n_rows, fill::ones),0)) ;
-    
     for (auto & child : _children) 
     {
       for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
@@ -74,11 +65,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
       }
     }
     std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
-    _iterMove.at(locusNum) = std::distance(insertResult.first, _dictionaryIterVec.at(locusNum)) ;
-    if (locusNum < 30) 
-    {
-      cout << "_iterMove is: " << _iterMove.at(locusNum) << "\n" ;
-    }
+    
     _dictionaryIterVec.at(locusNum) = insertResult.first ;
   }
 }

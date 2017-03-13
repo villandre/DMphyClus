@@ -20,14 +20,18 @@ public:
   std::vector<uvec> * GetInput() { return _inputVec ;}
   
   void InitMapAndIterVec(solutionDictionaryType &, const uint &) ;
-  void RestoreIterVecAndExp() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
+  void RestoreIterVecAndExp(solutionDictionaryType &) {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
   
-  InputNode(uint & numLoci, uint & numRates)
+  InputNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary)
   {
     _parent = NULL ;
-    _dictionaryIterVec.reserve(numLoci*numRates) ;
+    _dictionaryIterVec.resize(numLoci) ;
+    for (uint i = 0 ; i < numLoci ; i++)
+    {
+      _dictionaryIterVec.at(i) = solutionDictionary->begin() ;
+    }
     _updateFlag = false ;
   }
   

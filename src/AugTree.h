@@ -30,7 +30,7 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, gsl_rng *) ;
+  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *) ;
   
   void BuildTreeNoAssign(const umat &) ;
   void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &)  ;

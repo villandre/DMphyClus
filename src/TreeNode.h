@@ -71,7 +71,7 @@ typedef std::vector<std::pair<vec, float>> mapContentType ;
 typedef std::map<S, mapContentType, classcomp>* solutionDictionaryType ;
 typedef std::map<S, mapContentType, classcomp> solutionDictionaryTypeNoPoint ;
 typedef std::vector<vec> doubleVec ;
-typedef std::map<S, mapContentType, classcomp>::iterator mapIterator ;
+typedef std::map<S, mapContentType, classcomp>::const_iterator mapIterator ;
 typedef std::vector<mapIterator> iterVec ;
 
 class TreeNode
@@ -93,7 +93,7 @@ public:
   virtual std::vector<uvec> * GetInput() = 0 ;
   
   virtual void InitMapAndIterVec(solutionDictionaryType &, const uint &) = 0;
-  virtual void RestoreIterVecAndExp() = 0;
+  virtual void RestoreIterVecAndExp(solutionDictionaryType &) = 0;
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
@@ -102,7 +102,7 @@ public:
   void SetId(uint vertexId) {_id = vertexId ;}
   uint GetId() {return _id ;}
   void NegateFlag() {_updateFlag = false ;} 
-  vec GetSolution(const uint & locusNum, const uint & rateCat) {return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;} 
+  vec GetSolution(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;} 
   uint GetExponent(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).second ;}
   
   bool GetWithinParentBranch() {return _withinParentBranch ;}
@@ -117,8 +117,8 @@ public:
   TreeNode * _parent ;
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   iterVec _dictionaryIterVec ;
-  //iterVec _previousIterVec ;
-  std::vector<float> _iterMove ;
+  iterVec _previousIterVec ;
+  //std::vector<float> _iterMove ;
   bool _updateFlag ;
 };
 
