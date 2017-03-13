@@ -46,10 +46,6 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
   if (solutionIter != solutionDictionary->end()) 
   {
     _dictionaryIterVec.at(locusNum) = solutionIter ;
-    // if ((_id == 6) && (locusNum < 10))
-    // {
-    //   solutionIter->second.at(0).first.print("Found solution:") ;
-    // }
   }
   else
   {
@@ -71,10 +67,6 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
     
     _dictionaryIterVec.at(locusNum) = insertResult.first ;
-    // if ((_id == 6) && (locusNum < 10))
-    // {
-    // _dictionaryIterVec.at(locusNum)->second.at(0).first.print("New solution:") ;
-    // }
   }
 }
 

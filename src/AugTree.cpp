@@ -321,9 +321,8 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
     double endVectorIndex = _numRateCats*(locusIndex+1) - 1 ;
     rateAveragedLogLiks.at(locusIndex) = log(mean(likPropVec.rows(vectorIndex, endVectorIndex)%exp(exponentVec))) + maxExponent;
   }
-  //rateAveragedLogLiks.rows(0,29).print("Log-liks averaged on rates:") ;
+  
   _logLik = sum(rateAveragedLogLiks) ;
-  //cout << "Log-lik.: " << _logLik << "\n" ;
 }
 
 void AugTree::HandleSplit(uint clusMRCAtoSplit)

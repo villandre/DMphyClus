@@ -103,7 +103,7 @@ public:
   uint GetId() {return _id ;}
   void NegateFlag() {_updateFlag = false ;} 
   vec GetSolution(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;} 
-  uint GetExponent(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).second ;}
+  float GetExponent(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).second ;}
   
   bool GetWithinParentBranch() {return _withinParentBranch ;}
   
