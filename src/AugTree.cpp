@@ -8,7 +8,7 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, const uint & numThreads)
 { 
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBin ;
@@ -25,6 +25,17 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices() ;
   AssociateTransProbMatrices(clusterMRCAs) ;
+  /*
+   * This will start the ioService processing loop. All tasks 
+   * assigned with ioService.post() will start executing. 
+   */
+  boost::asio::io_service::work work(_ioService);
+  /*
+   * This will add 2 threads to the thread pool. (You could just put it in a for loop)
+   */
+  _threadpool.create_thread(
+    boost::bind(&boost::asio::io_service::run, &ioService)
+  );
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 

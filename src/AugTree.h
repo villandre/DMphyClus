@@ -1,3 +1,6 @@
+#include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
 #include "TreeNode.h"
 
 using namespace arma ;
@@ -6,6 +9,8 @@ using namespace Rcpp ;
 class AugTree
 {
 protected:
+  boost::asio::io_service _ioService;
+  boost::thread_group _threadpool;
   double _logLik ;
   std::vector<TreeNode *> _vertexVector ;
   solutionDictionaryType _solutionDictionary ;
@@ -30,7 +35,7 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *) ;
+  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, const uint &) ;
   
   void BuildTreeNoAssign(const umat &) ;
   void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &)  ;

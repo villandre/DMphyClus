@@ -53,7 +53,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   solutionDictionaryType solutionDictionary = new solutionDictionaryTypeNoPoint ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
   
-  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator) ;
+  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator, numOpenMP) ;
 
   PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
   
