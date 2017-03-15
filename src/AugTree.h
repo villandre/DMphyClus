@@ -1,6 +1,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
 #include "TreeNode.h"
 
 using namespace arma ;
@@ -11,6 +12,8 @@ class AugTree
 protected:
   boost::asio::io_service _ioService;
   boost::thread_group _threadpool;
+  boost::mutex _mutex ;
+  
   double _logLik ;
   std::vector<TreeNode *> _vertexVector ;
   solutionDictionaryType _solutionDictionary ;
@@ -82,6 +85,12 @@ public:
   
   void ComputeLoglik(List &, List &, NumericVector &) ;
   void PrintSolutions(const uint &) ;
+  
+  void EndIOserviceAndJoinAll()
+  {
+    _ioService.stop();
+    _threadpool.join_all();
+  }
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
 };

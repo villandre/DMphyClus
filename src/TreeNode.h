@@ -6,6 +6,9 @@
 #include <unordered_map>
 #include <gsl/gsl_rng.h>
 #include <algorithm>
+#include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
 
 using namespace arma ;
 
@@ -85,8 +88,8 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &) = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service &, boost::mutex &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
   virtual void InvalidateSolution() = 0;
   
   virtual void SetInput(std::vector<uvec> *) = 0 ;

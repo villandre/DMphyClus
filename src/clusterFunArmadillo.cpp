@@ -36,7 +36,7 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int & numThreads, List & alignmentBin, uint & numTips, uint & numLoci, uint & withinMatListIndex, uint & betweenMatListIndex)
 {
   //omp_set_num_threads(numOpenMP) ;
   std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransMatList) ;
@@ -53,7 +53,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   solutionDictionaryType solutionDictionary = new solutionDictionaryTypeNoPoint ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
   
-  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator, numOpenMP) ;
+  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator, numThreads) ;
 
   PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
   
@@ -294,4 +294,5 @@ void finalDeallocate(SEXP AugTreePointer) // We need to explicitly deallocate th
   gsl_rng_free(pointedTree->GetRandomNumGenerator()) ;
   delete pointedTree->GetSolutionDictionary() ;
   delete pointedTree->GetAlignmentBinReference() ;
+  pointedTree->EndIOserviceAndJoinAll() ;
 }

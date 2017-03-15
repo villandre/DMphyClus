@@ -243,8 +243,8 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     }
     clusMRCAs <- sapply(cladeMRCAsAndTest, function(x) x$clusMRCA)
    
-    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
-    manualDeallocation(logLikAndPointer$solutionPointer) # Automatic garbage collection is disabled, hence the need for this.
+    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numThreads = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
+    finalDeallocate(logLikAndPointer$solutionPointer) # Automatic garbage collection is disabled, hence the need for this.
     logLikAndPointer$logLik
 }
 #' @useDynLib DMphyClus

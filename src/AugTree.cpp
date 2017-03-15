@@ -31,11 +31,14 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
    */
   boost::asio::io_service::work work(_ioService);
   /*
-   * This will add 2 threads to the thread pool. (You could just put it in a for loop)
+   * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
    */
-  _threadpool.create_thread(
-    boost::bind(&boost::asio::io_service::run, &ioService)
+  for (uint i = 0; i < numThreads; i++)
+  {
+    _threadpool.create_thread(
+    boost::bind(&boost::asio::io_service::run, &_ioService)
   );
+  }
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
@@ -135,11 +138,11 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
-      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex) ;
+      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _ioService, _mutex) ;
     }
     else
     {
-      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex) ;
+      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _ioService, _mutex) ;
     }
   }
 }

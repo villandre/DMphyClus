@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // logLikCpp
-List logLikCpp(IntegerMatrix& edgeMat, NumericVector& clusterMRCAs, NumericVector& limProbsVec, List& withinTransMatList, List& betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex);
-RcppExport SEXP DMphyClus_logLikCpp(SEXP edgeMatSEXP, SEXP clusterMRCAsSEXP, SEXP limProbsVecSEXP, SEXP withinTransMatListSEXP, SEXP betweenTransMatListSEXP, SEXP numOpenMPSEXP, SEXP alignmentBinSEXP, SEXP numTipsSEXP, SEXP numLociSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP) {
+List logLikCpp(IntegerMatrix& edgeMat, NumericVector& clusterMRCAs, NumericVector& limProbsVec, List& withinTransMatList, List& betweenTransMatList, int& numThreads, List& alignmentBin, uint& numTips, uint& numLoci, uint& withinMatListIndex, uint& betweenMatListIndex);
+RcppExport SEXP DMphyClus_logLikCpp(SEXP edgeMatSEXP, SEXP clusterMRCAsSEXP, SEXP limProbsVecSEXP, SEXP withinTransMatListSEXP, SEXP betweenTransMatListSEXP, SEXP numThreadsSEXP, SEXP alignmentBinSEXP, SEXP numTipsSEXP, SEXP numLociSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -17,13 +17,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector& >::type limProbsVec(limProbsVecSEXP);
     Rcpp::traits::input_parameter< List& >::type withinTransMatList(withinTransMatListSEXP);
     Rcpp::traits::input_parameter< List& >::type betweenTransMatList(betweenTransMatListSEXP);
-    Rcpp::traits::input_parameter< int >::type numOpenMP(numOpenMPSEXP);
-    Rcpp::traits::input_parameter< List >::type alignmentBin(alignmentBinSEXP);
-    Rcpp::traits::input_parameter< uint >::type numTips(numTipsSEXP);
-    Rcpp::traits::input_parameter< uint >::type numLoci(numLociSEXP);
-    Rcpp::traits::input_parameter< uint >::type withinMatListIndex(withinMatListIndexSEXP);
-    Rcpp::traits::input_parameter< uint >::type betweenMatListIndex(betweenMatListIndexSEXP);
-    rcpp_result_gen = Rcpp::wrap(logLikCpp(edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, betweenTransMatList, numOpenMP, alignmentBin, numTips, numLoci, withinMatListIndex, betweenMatListIndex));
+    Rcpp::traits::input_parameter< int& >::type numThreads(numThreadsSEXP);
+    Rcpp::traits::input_parameter< List& >::type alignmentBin(alignmentBinSEXP);
+    Rcpp::traits::input_parameter< uint& >::type numTips(numTipsSEXP);
+    Rcpp::traits::input_parameter< uint& >::type numLoci(numLociSEXP);
+    Rcpp::traits::input_parameter< uint& >::type withinMatListIndex(withinMatListIndexSEXP);
+    Rcpp::traits::input_parameter< uint& >::type betweenMatListIndex(betweenMatListIndexSEXP);
+    rcpp_result_gen = Rcpp::wrap(logLikCpp(edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, betweenTransMatList, numThreads, alignmentBin, numTips, numLoci, withinMatListIndex, betweenMatListIndex));
     return rcpp_result_gen;
 END_RCPP
 }
