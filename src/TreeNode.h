@@ -89,7 +89,7 @@ public:
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
   virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service &, boost::mutex &) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
+  virtual bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
   virtual void InvalidateSolution() = 0;
   
   virtual void SetInput(std::vector<uvec> *) = 0 ;
@@ -107,7 +107,6 @@ public:
   void NegateFlag() {_updateFlag = false ;} 
   vec GetSolution(const uint & locusNum, const uint & rateCat, boost::mutex & myMutex) 
   {
-    boost::mutex::scoped_lock scoped_lock(myMutex) ;
     return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;
   } 
   vec GetSolutionNoMutex(const uint & locusNum, const uint & rateCat) 

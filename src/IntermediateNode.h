@@ -15,7 +15,7 @@ public:
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
   void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service &, boost::mutex &) ;
-  void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) ;
+  bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) ;
   void InvalidateSolution() ;
   
   void SetInput(std::vector<uvec> *) { assert(false) ;};

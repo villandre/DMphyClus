@@ -2,6 +2,9 @@
 #include <boost/functional/hash.hpp>
 #include <boost/phoenix/bind/bind_member_function.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/future.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/thread/lock_guard.hpp> 
 #include "IntermediateNode.h"
 
 
@@ -28,12 +31,26 @@ bool IntermediateNode::CanSolve()
 
 void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, boost::asio::io_service & ioService, boost::mutex & myMutex)
 {
+  cout << "Computing solutions for node " << _id << endl ; 
   std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
+  std::vector<boost::unique_future<bool>> pending_data;
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    ioService.post(boost::bind(&IntermediateNode::ComputeSolution, this, solutionDictionary, std::cref(transProbMats), std::cref(i), std::cref(transMatIndex), std::ref(myMutex)));
+    typedef boost::packaged_task<bool> task_t;
+    
+    boost::shared_ptr<task_t> task = boost::make_shared<task_t>(
+      boost::bind(&IntermediateNode::ComputeSolution, this, solutionDictionary, std::cref(transProbMats), std::cref(i), std::cref(transMatIndex), std::ref(myMutex)));
+    
+    boost::unique_future<bool> fut = task->get_future();
+    
+    pending_data.push_back(std::move(fut));
+    ioService.post(boost::bind(&task_t::operator(), task));
+    
+    //ioService.post(boost::bind(&IntermediateNode::ComputeSolution, this, solutionDictionary, std::cref(transProbMats), std::cref(i), std::cref(transMatIndex), std::ref(myMutex)));
     //ComputeSolution(solutionDictionary, transProbMats, i, transMatIndex, myMutex) ;
   }
+  boost::wait_for_all(pending_data.begin(), pending_data.end()); 
+  cout << "Done! \n" ;
   _isSolved = true ;
   _updateFlag = true ;
 }
@@ -43,13 +60,17 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
-void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::mutex & myMutex)
+bool IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::mutex & myMutex)
 {
   S newS = GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()) ;
-  mapIterator solutionIter = solutionDictionary->find(newS) ;
+  mapIterator solutionIter ;
+  {
+    boost::lock_guard<boost::mutex> lock(myMutex);
+    solutionIter = solutionDictionary->find(newS) ;
+  }
   if (solutionIter != solutionDictionary->end()) 
   {
-    boost::mutex::scoped_lock scoped_lock(myMutex) ;
+    boost::lock_guard<boost::mutex> lock(myMutex);
     _dictionaryIterVec.at(locusNum) = solutionIter ;
   }
   else
@@ -59,7 +80,10 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     {
       for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
       {
-        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex, myMutex)) ;
+        {
+          boost::lock_guard<boost::mutex> lock(myMutex);
+          mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex, myMutex)) ;
+        }
         double myMax = max(mySolution.at(rateIndex).first) ;
         bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
         if (status)
@@ -69,10 +93,13 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
         }
       }
     }
-    boost::mutex::scoped_lock scoped_lock(myMutex) ;
-    std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
-    _dictionaryIterVec.at(locusNum) = insertResult.first ;
+    {
+      boost::lock_guard<boost::mutex> lock(myMutex);
+      std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
+      _dictionaryIterVec.at(locusNum) = insertResult.first ;
+    }
   }
+  return true ;
 }
 
 void IntermediateNode::RemoveChild(TreeNode * childToRemove)

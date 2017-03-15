@@ -25,20 +25,16 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   BuildTree(edgeMatrixCopy) ;
   InitializeVertices() ;
   AssociateTransProbMatrices(clusterMRCAs) ;
-  /*
-   * This will start the ioService processing loop. All tasks 
-   * assigned with ioService.post() will start executing. 
-   */
-  boost::asio::io_service::work work(_ioService);
-  /*
-   * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
-   */
-  for (uint i = 0; i < numThreads; i++)
-  {
-    _threadpool.create_thread(
-    boost::bind(&boost::asio::io_service::run, &_ioService)
-  );
-  }
+  
+  // /*
+  //  * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
+  //  */
+  // for (uint i = 0; i < numThreads; i++)
+  // {
+  //   _threadpool.create_thread(
+  //   boost::bind(&boost::asio::io_service::run, &_ioService)
+  // );
+  // }
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
@@ -303,16 +299,27 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
 void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const std::vector<mat> & betweenClusTransProbs, const vec & limProbs)
 {
   uint numElements = _numLoci*_numRateCats ;
+  /*
+   * This will start the ioService processing loop. All tasks 
+   * assigned with ioService.post() will start executing. 
+   */
+  boost::asio::io_service::work work(_ioService);
+  for (uint i = 0; i < 2; i++)
+  {
+    _threadpool.create_thread(
+    boost::bind(&boost::asio::io_service::run, &_ioService)
+  );
+  }
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
+  _threadpool.join_all() ;
   vec likPropVec(numElements, fill::zeros) ;
   
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 
   {
     for (uint rateIndex = 0 ; rateIndex < _numRateCats ; rateIndex++)
     {
-      likPropVec.at(locusIndex*_numRateCats + rateIndex) = dot(_vertexVector.at(_numTips)->GetSolutionNoMutex(locusIndex, rateIndex), limProbs) ; 
-      //combinedIndex++ ;
+      likPropVec.at(locusIndex*_numRateCats + rateIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex, _mutex), limProbs) ; 
     }
   }
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.
