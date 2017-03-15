@@ -105,7 +105,15 @@ public:
   void SetId(uint vertexId) {_id = vertexId ;}
   uint GetId() {return _id ;}
   void NegateFlag() {_updateFlag = false ;} 
-  vec GetSolution(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;} 
+  vec GetSolution(const uint & locusNum, const uint & rateCat, boost::mutex & myMutex) 
+  {
+    boost::mutex::scoped_lock scoped_lock(myMutex) ;
+    return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;
+  } 
+  vec GetSolutionNoMutex(const uint & locusNum, const uint & rateCat) 
+  {
+    return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;
+  } 
   float GetExponent(const uint & locusNum, const uint & rateCat) { return _dictionaryIterVec.at(locusNum)->second.at(rateCat).second ;}
   
   bool GetWithinParentBranch() {return _withinParentBranch ;}

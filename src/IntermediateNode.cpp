@@ -59,7 +59,7 @@ void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     {
       for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
       {
-        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex)) ;
+        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex, myMutex)) ;
         double myMax = max(mySolution.at(rateIndex).first) ;
         bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
         if (status)

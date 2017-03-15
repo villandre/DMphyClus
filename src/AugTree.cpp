@@ -306,12 +306,12 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   
   TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
   vec likPropVec(numElements, fill::zeros) ;
-  //uint combinedIndex = 0 ;
+  
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 
   {
     for (uint rateIndex = 0 ; rateIndex < _numRateCats ; rateIndex++)
     {
-      likPropVec.at(locusIndex*_numRateCats + rateIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex), limProbs) ;
+      likPropVec.at(locusIndex*_numRateCats + rateIndex) = dot(_vertexVector.at(_numTips)->GetSolutionNoMutex(locusIndex, rateIndex), limProbs) ; 
       //combinedIndex++ ;
     }
   }
