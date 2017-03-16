@@ -8,13 +8,14 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, const uint & numThreads)
-{ 
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, unsigned int & numThreads, boost::asio::io_service * ioService, boost::asio::io_service::work * myWork) : _workObject(myWork), _ioService(ioService)
+{
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBin ;
   _numTips = alignmentBin->size() ;
   _numLoci = alignmentBin->at(0).size() ;
   _numRateCats = numRateCats ;
+  _numThreads = numThreads ;
   
   _withinMatListIndex = withinMatListIndex ;
   _betweenMatListIndex = betweenMatListIndex ;
@@ -26,15 +27,15 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   InitializeVertices() ;
   AssociateTransProbMatrices(clusterMRCAs) ;
   
-  // /*
-  //  * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
-  //  */
-  // for (uint i = 0; i < numThreads; i++)
-  // {
-  //   _threadpool.create_thread(
-  //   boost::bind(&boost::asio::io_service::run, &_ioService)
-  // );
-  // }
+  /*
+   * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
+   */
+  for (uint i = 0; i < numThreads; i++)
+  {
+    _threadpool.create_thread(
+    boost::bind(&boost::asio::io_service::run, _ioService)
+  );
+  }
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
@@ -121,7 +122,7 @@ void AugTree::InitializeVertices()
   }
 }
 
-void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats)
+void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats, boost::barrier & myBarrier)
 {
   if (!(vertex->IsSolved()))
   {
@@ -129,16 +130,16 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     {
       for (auto & i : vertex->GetChildren())
       {
-        TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
+        TrySolve(i, withinTransProbMats, betweenTransProbMats, myBarrier) ;
       }
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
-      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _ioService, _mutex) ;
+      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _ioService, _mutex, myBarrier) ;
     }
     else
     {
-      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _ioService, _mutex) ;
+      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _ioService, _mutex, myBarrier) ;
     }
   }
 }
@@ -298,21 +299,11 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
 
 void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const std::vector<mat> & betweenClusTransProbs, const vec & limProbs)
 {
+  boost::barrier myBarrier(_numThreads) ; // The +1 is for the main instruction thread.
   uint numElements = _numLoci*_numRateCats ;
-  /*
-   * This will start the ioService processing loop. All tasks 
-   * assigned with ioService.post() will start executing. 
-   */
-  boost::asio::io_service::work work(_ioService);
-  for (uint i = 0; i < 2; i++)
-  {
-    _threadpool.create_thread(
-    boost::bind(&boost::asio::io_service::run, &_ioService)
-  );
-  }
   
-  TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
-  _threadpool.join_all() ;
+  TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, myBarrier) ;
+  
   vec likPropVec(numElements, fill::zeros) ;
   
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 

@@ -10,9 +10,12 @@ using namespace Rcpp ;
 class AugTree
 {
 protected:
-  boost::asio::io_service _ioService;
+  boost::asio::io_service * _ioService;
   boost::thread_group _threadpool;
   boost::mutex _mutex ;
+  boost::asio::io_service::work * _workObject ;
+  //boost::barrier * _barrier ;
+  unsigned int _numThreads ;
   
   double _logLik ;
   std::vector<TreeNode *> _vertexVector ;
@@ -38,10 +41,10 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, const uint &) ;
+  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, unsigned int &, boost::asio::io_service *, boost::asio::io_service::work *) ;
   
   void BuildTreeNoAssign(const umat &) ;
-  void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &)  ;
+  void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &, boost::barrier &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &, const vec &, const uint &) ;
   
@@ -70,6 +73,10 @@ public:
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;}
   uint GetWithinMatListIndex() {return _withinMatListIndex ;}
   uint GetBetweenMatListIndex() {return _betweenMatListIndex ;}
+  boost::asio::io_service::work * GetWorkIO() {return _workObject ;}
+  boost::asio::io_service * GetIOservice() {return _ioService ;}
+  unsigned int GetNumThreads() {return _numThreads ;}
+  
   void InvalidateBetweenSolutions() ;
   void InvalidateAllSolutions() ;
  
@@ -83,12 +90,14 @@ public:
   
   void RearrangeTreeNNI(uint, uint) ;
   
-  void ComputeLoglik(List &, List &, NumericVector &) ;
+  //void ComputeLoglik(List &, List &, NumericVector &) ;
   void PrintSolutions(const uint &) ;
   
   void EndIOserviceAndJoinAll()
   {
-    _ioService.stop();
+    _ioService->stop();
+    delete _ioService ;
+    delete _workObject ;
     _threadpool.join_all();
   }
   

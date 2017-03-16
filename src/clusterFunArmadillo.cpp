@@ -36,7 +36,7 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int & numThreads, List & alignmentBin, uint & numTips, uint & numLoci, uint & withinMatListIndex, uint & betweenMatListIndex)
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, unsigned int & numThreads, List & alignmentBin, uint & numTips, uint & numLoci, uint & withinMatListIndex, uint & betweenMatListIndex)
 {
   //omp_set_num_threads(numOpenMP) ;
   std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransMatList) ;
@@ -46,6 +46,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   std::vector<std::vector<uvec>> alignmentBinRecast = as<std::vector<std::vector<uvec>>>(alignmentBin) ;
   std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>> ;
   convertedBinData->resize(alignmentBinRecast.size()) ;
+  
   for (uint i = 0 ; i < alignmentBinRecast.size() ; i++) {
     convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
     std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
@@ -53,7 +54,10 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   solutionDictionaryType solutionDictionary = new solutionDictionaryTypeNoPoint ;
   gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
   
-  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator, numThreads) ;
+  boost::asio::io_service * srv = new boost::asio::io_service;
+  boost::asio::io_service::work * myWork = new boost::asio::io_service::work(*srv);
+  
+  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator, numThreads, srv, myWork) ;
 
   PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
   

@@ -9,6 +9,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
+#include <boost/thread/barrier.hpp>
 
 using namespace arma ;
 
@@ -88,7 +89,7 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service &, boost::mutex &) = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) = 0 ;
   virtual bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
   virtual void InvalidateSolution() = 0;
   

@@ -14,7 +14,7 @@ public:
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service &, boost::mutex &) ;
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) ;
   bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) ;
   void InvalidateSolution() ;
   

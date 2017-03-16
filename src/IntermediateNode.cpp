@@ -2,9 +2,9 @@
 #include <boost/functional/hash.hpp>
 #include <boost/phoenix/bind/bind_member_function.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/future.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/thread/lock_guard.hpp> 
+//#include <boost/thread/future.hpp>
+//#include <boost/make_shared.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include "IntermediateNode.h"
 
 
@@ -29,28 +29,18 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, boost::asio::io_service & ioService, boost::mutex & myMutex)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, boost::asio::io_service * ioService, boost::mutex & myMutex, boost::barrier & aBarrier)
 {
-  cout << "Computing solutions for node " << _id << endl ; 
+  cout << "Computing solutions for node " << _id << endl ;
+  
   std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
-  std::vector<boost::unique_future<bool>> pending_data;
+
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    typedef boost::packaged_task<bool> task_t;
-    
-    boost::shared_ptr<task_t> task = boost::make_shared<task_t>(
-      boost::bind(&IntermediateNode::ComputeSolution, this, solutionDictionary, std::cref(transProbMats), std::cref(i), std::cref(transMatIndex), std::ref(myMutex)));
-    
-    boost::unique_future<bool> fut = task->get_future();
-    
-    pending_data.push_back(std::move(fut));
-    ioService.post(boost::bind(&task_t::operator(), task));
-    
-    //ioService.post(boost::bind(&IntermediateNode::ComputeSolution, this, solutionDictionary, std::cref(transProbMats), std::cref(i), std::cref(transMatIndex), std::ref(myMutex)));
+    ioService->post(boost::bind(&IntermediateNode::ComputeSolution, this, boost::ref(solutionDictionary), boost::cref(transProbMats), i, boost::cref(transMatIndex), boost::ref(myMutex))); // Why must i be copied? Passing a reference results in an error!
     //ComputeSolution(solutionDictionary, transProbMats, i, transMatIndex, myMutex) ;
   }
-  boost::wait_for_all(pending_data.begin(), pending_data.end()); 
-  cout << "Done! \n" ;
+  // Wait for all threads to be done to cross this point!
   _isSolved = true ;
   _updateFlag = true ;
 }

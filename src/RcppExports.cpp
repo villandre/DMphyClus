@@ -7,7 +7,7 @@
 using namespace Rcpp;
 
 // logLikCpp
-List logLikCpp(IntegerMatrix& edgeMat, NumericVector& clusterMRCAs, NumericVector& limProbsVec, List& withinTransMatList, List& betweenTransMatList, int& numThreads, List& alignmentBin, uint& numTips, uint& numLoci, uint& withinMatListIndex, uint& betweenMatListIndex);
+List logLikCpp(IntegerMatrix& edgeMat, NumericVector& clusterMRCAs, NumericVector& limProbsVec, List& withinTransMatList, List& betweenTransMatList, unsigned int& numThreads, List& alignmentBin, uint& numTips, uint& numLoci, uint& withinMatListIndex, uint& betweenMatListIndex);
 RcppExport SEXP DMphyClus_logLikCpp(SEXP edgeMatSEXP, SEXP clusterMRCAsSEXP, SEXP limProbsVecSEXP, SEXP withinTransMatListSEXP, SEXP betweenTransMatListSEXP, SEXP numThreadsSEXP, SEXP alignmentBinSEXP, SEXP numTipsSEXP, SEXP numLociSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -17,7 +17,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector& >::type limProbsVec(limProbsVecSEXP);
     Rcpp::traits::input_parameter< List& >::type withinTransMatList(withinTransMatListSEXP);
     Rcpp::traits::input_parameter< List& >::type betweenTransMatList(betweenTransMatListSEXP);
-    Rcpp::traits::input_parameter< int& >::type numThreads(numThreadsSEXP);
+    Rcpp::traits::input_parameter< unsigned int& >::type numThreads(numThreadsSEXP);
     Rcpp::traits::input_parameter< List& >::type alignmentBin(alignmentBinSEXP);
     Rcpp::traits::input_parameter< uint& >::type numTips(numTipsSEXP);
     Rcpp::traits::input_parameter< uint& >::type numLoci(numLociSEXP);
