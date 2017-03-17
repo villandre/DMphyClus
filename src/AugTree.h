@@ -94,10 +94,15 @@ public:
   
   void EndIOserviceAndJoinAll()
   {
-    _ioService->stop();
-    delete _ioService ;
+    std::cout << "Deleting work object..." << endl ;
     delete _workObject ;
+    std::cout << "Ending ioservice..." << endl ;
+    _ioService->stop();
+    std::cout << "Joining threads..." << endl ;
     _threadpool.join_all();
+    std::cout << "Deleting ioservice... " << endl ;
+    delete _ioService ;
+    std::cout << "Done!" << endl ;
   }
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
