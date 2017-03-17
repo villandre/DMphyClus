@@ -6,10 +6,7 @@
 #include <unordered_map>
 #include <gsl/gsl_rng.h>
 #include <algorithm>
-#include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/barrier.hpp>
 
 using namespace arma ;
 

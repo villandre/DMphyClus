@@ -17,3 +17,5 @@ AugTree.o
 InputNode.o
 IntermediateNode.o
 Forest.o
+Forest.cpp
+Forest.h

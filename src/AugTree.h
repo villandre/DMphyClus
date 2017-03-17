@@ -3,6 +3,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include "TreeNode.h"
+#include "threadpool.h"
 
 using namespace arma ;
 using namespace Rcpp ;
@@ -10,11 +11,7 @@ using namespace Rcpp ;
 class AugTree
 {
 protected:
-  boost::asio::io_service * _ioService;
-  boost::thread_group _threadpool;
-  boost::mutex _mutex ;
-  boost::asio::io_service::work * _workObject ;
-  //boost::barrier * _barrier ;
+  threadpool_t * _threadpool ;
   unsigned int _numThreads ;
   
   double _logLik ;

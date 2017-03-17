@@ -30,12 +30,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   /*
    * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
    */
-  for (uint i = 0; i < numThreads; i++)
-  {
-    _threadpool.create_thread(
-    boost::bind(&boost::asio::io_service::run, _ioService)
-  );
-  }
+  _threadpool = threadpool_create(numThreads, 50000, 0) ;
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
