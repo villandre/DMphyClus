@@ -14,7 +14,6 @@ protected:
   boost::thread_group _threadpool;
   boost::mutex _mutex ;
   boost::asio::io_service::work * _workObject ;
-  //boost::barrier * _barrier ;
   unsigned int _numThreads ;
   
   double _logLik ;
@@ -44,7 +43,7 @@ public:
   AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, unsigned int &, boost::asio::io_service *, boost::asio::io_service::work *) ;
   
   void BuildTreeNoAssign(const umat &) ;
-  void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &, boost::barrier &)  ;
+  void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &, const uint &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &, const vec &, const uint &) ;
   

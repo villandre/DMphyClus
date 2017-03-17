@@ -89,7 +89,7 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) = 0 ;
+  
   virtual bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
   virtual void InvalidateSolution() = 0;
   
@@ -100,6 +100,8 @@ public:
   virtual void RestoreIterVecAndExp() = 0;
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
+  
+  virtual void SetUpdate(bool) = 0 ;
   
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}

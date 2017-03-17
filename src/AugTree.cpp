@@ -122,7 +122,7 @@ void AugTree::InitializeVertices()
   }
 }
 
-void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats, boost::barrier & myBarrier)
+void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats, const uint & locusNum)
 {
   if (!(vertex->IsSolved()))
   {
@@ -130,16 +130,21 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     {
       for (auto & i : vertex->GetChildren())
       {
-        TrySolve(i, withinTransProbMats, betweenTransProbMats, myBarrier) ;
+        TrySolve(i, withinTransProbMats, betweenTransProbMats, locusNum) ;
       }
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
-      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _ioService, _mutex, myBarrier) ;
+      vertex->ComputeSolution(_solutionDictionary, withinTransProbMats, locusNum, _withinMatListIndex, _mutex) ;
     }
     else
     {
-      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _ioService, _mutex, myBarrier) ;
+      vertex->ComputeSolution(_solutionDictionary, betweenTransProbMats, locusNum, _betweenMatListIndex, _mutex) ;
+    }
+    if (locusNum == _numLoci)
+    {
+      vertex->SetSolved(true) ;
+      vertex->SetUpdate(true) ;
     }
   }
 }
@@ -299,11 +304,11 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
 
 void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const std::vector<mat> & betweenClusTransProbs, const vec & limProbs)
 {
-  boost::barrier myBarrier(_numThreads) ; // The +1 is for the main instruction thread.
   uint numElements = _numLoci*_numRateCats ;
   
-  TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, myBarrier) ;
-  
+  for (uint locusNum = 0 ; locusNum < _numLoci ; locusNum++) {
+    TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, locusNum) ;
+  }
   vec likPropVec(numElements, fill::zeros) ;
   
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 

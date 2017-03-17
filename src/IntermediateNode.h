@@ -14,7 +14,7 @@ public:
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) ;
+  
   bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) ;
   void InvalidateSolution() ;
   
@@ -33,6 +33,8 @@ public:
   }
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
+  
+  void SetUpdate(bool state) { _updateFlag = state ;}
   
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;

@@ -12,7 +12,7 @@ public:
   bool IsSolved() {return true ;}
   bool CanSolve() {return true ;}
   void SetSolved(bool status) {}
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) {assert(false) ;}
+  
   bool ComputeSolution(solutionDictionaryType & dictionary, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) {assert(false) ; return true ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
   
@@ -23,6 +23,8 @@ public:
   void RestoreIterVecAndExp() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
+  
+  void SetUpdate(bool state) { assert(false) ;}
   
   InputNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary)
   {
