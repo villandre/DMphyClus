@@ -141,7 +141,7 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     {
       vertex->ComputeSolution(_solutionDictionary, betweenTransProbMats, locusNum, _betweenMatListIndex, _mutex) ;
     }
-    if (locusNum == _numLoci)
+    if (locusNum == _numLoci-1)
     {
       vertex->SetSolved(true) ;
       vertex->SetUpdate(true) ;
