@@ -309,6 +309,7 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   for (uint locusNum = 0 ; locusNum < _numLoci ; locusNum++) {
     TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, locusNum) ;
   }
+  // WAit here...
   vec likPropVec(numElements, fill::zeros) ;
   
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 
