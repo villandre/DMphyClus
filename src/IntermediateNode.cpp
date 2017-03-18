@@ -1,10 +1,5 @@
 #include <gsl/gsl_sf_gamma.h>
 #include <boost/functional/hash.hpp>
-#include <boost/phoenix/bind/bind_member_function.hpp>
-#include <boost/thread/mutex.hpp>
-//#include <boost/thread/future.hpp>
-//#include <boost/make_shared.hpp>
-#include <boost/thread/lock_guard.hpp>
 #include "IntermediateNode.h"
 
 
@@ -29,18 +24,38 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, boost::asio::io_service * ioService, boost::mutex & myMutex, boost::barrier & aBarrier)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, threadpool_t * myThreadpool, pthread_spinlock_t & mySpinlock)
 {
   cout << "Computing solutions for node " << _id << endl ;
   
   std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
-
+  
+  std::vector<mapIterator> iteratorVec(_dictionaryIterVec.size()) ;
+  auto myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), std::ref(iteratorVec), _3, std::cref(transMatIndex), transProbMats.size()) ;
+  for (uint * i = 0 ; *i < _dictionaryIterVec.size() ; (*i)++)
+  {
+    threadpool_add(myThreadpool, &myFun, (void *) i, 0) ; // We first determine which are the reading tasks...
+  }
+  pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+  pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+  pthread_mutex_lock(&mut);
+  while (_counter < _dictionaryIterVec.size()) {
+    pthread_cond_wait(&cond, &mut);
+  }
+  pthread_mutex_unlock(&mut);
+  
+  std::vector<bool> solutionFound(_dictionaryIterVec.size(), false) ;
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    ioService->post(boost::bind(&IntermediateNode::ComputeSolution, this, boost::ref(solutionDictionary), boost::cref(transProbMats), i, boost::cref(transMatIndex), boost::ref(myMutex))); // Why must i be copied? Passing a reference results in an error!
-    //ComputeSolution(solutionDictionary, transProbMats, i, transMatIndex, myMutex) ;
+    std::function<void(const uint &)> f1 = std::bind(&IntermediateNode::ComputeSolution, this, std::ref(solutionDictionary), std::cref(transProbMats), _3, std::cref(transMatIndex), std::ref(mySpinlock));
+    
+    if (iteratorVec.at(i) != solutionDictionary->end()) // This is a pure reading task ;
+    {
+    threadpool_add(myThreadpool, , NULL, 0) ; // Does the task start running right away?
+    // Queue a task that frees the memory occupied by arguments struct.
+    }
   }
-  // Wait for all threads to be done to cross this point!
+  // Wait for the task queue to be empty to cross this point!
   _isSolved = true ;
   _updateFlag = true ;
 }
@@ -50,46 +65,28 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
-bool IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::mutex & myMutex)
+
+void IntermediateNode::ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, pthread_spinlock_t & mySpinlock)
 {
-  S newS = GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()) ;
-  mapIterator solutionIter ;
+  std::vector<std::pair<vec, float>> mySolution(transProbMatVec.size(), std::pair<vec,float>(vec(transProbMatVec.at(0).n_rows, fill::ones),0)) ;
+  for (auto & child : _children) 
   {
-    boost::lock_guard<boost::mutex> lock(myMutex);
-    solutionIter = solutionDictionary->find(newS) ;
-  }
-  if (solutionIter != solutionDictionary->end()) 
-  {
-    boost::lock_guard<boost::mutex> lock(myMutex);
-    _dictionaryIterVec.at(locusNum) = solutionIter ;
-  }
-  else
-  {
-    std::vector<std::pair<vec, float>> mySolution(transProbMatVec.size(), std::pair<vec,float>(vec(transProbMatVec.at(0).n_rows, fill::ones),0)) ;
-    for (auto & child : _children) 
+    for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
     {
-      for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
       {
-        {
-          boost::lock_guard<boost::mutex> lock(myMutex);
-          mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex, myMutex)) ;
-        }
-        double myMax = max(mySolution.at(rateIndex).first) ;
-        bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
-        if (status)
-        {
-          mySolution.at(rateIndex).first = mySolution.at(rateIndex).first/myMax ;
-          mySolution.at(rateIndex).second = log(myMax) ;
-        }
+        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex)) ;
+      }
+      double myMax = max(mySolution.at(rateIndex).first) ;
+      bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
+      if (status)
+      {
+        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first/myMax ;
+        mySolution.at(rateIndex).second = log(myMax) ;
       }
     }
-    {
-      boost::lock_guard<boost::mutex> lock(myMutex);
-      std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
-      _dictionaryIterVec.at(locusNum) = insertResult.first ;
-    }
   }
-  return true ;
+  std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
+  _dictionaryIterVec.at(locusNum) = insertResult.first ;
 }
 
 void IntermediateNode::RemoveChild(TreeNode * childToRemove)
@@ -113,4 +110,16 @@ S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMa
            std::hash<S>{} (_children.at(1)->GetDictionaryIterator(elementNum, numRateCats)->first),
            childrenWithinCluster,
            transMatIndex) ;
+}
+
+void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, iterVec & iteratorVec, void* locusNum, const uint & transMatrixIndex, const uint & numRates)
+{
+  uint * locusNumber = (uint *) locusNum ;
+  S newS = GetSfromVertex(*locusNumber, transMatrixIndex, numRates) ;
+  iteratorVec.at(*locusNumber) = solutionDictionary->find(newS) ;
+  if (iteratorVec.at(*locusNumber) == solutionDictionary->end())
+  {
+    _dictionaryIterVec.at(*locusNumber) = iteratorVec.at(*locusNumber) ; // Should be thread-safe, since no two threads use the same locus number.
+  }
+  _counter++;
 }

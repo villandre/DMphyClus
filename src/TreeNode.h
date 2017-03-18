@@ -7,6 +7,7 @@
 #include <gsl/gsl_rng.h>
 #include <algorithm>
 #include <boost/bind.hpp>
+#include "threadpool.h"
 
 using namespace arma ;
 
@@ -75,6 +76,7 @@ typedef std::vector<vec> doubleVec ;
 typedef std::map<S, mapContentType, classcomp>::const_iterator mapIterator ;
 typedef std::vector<mapIterator> iterVec ;
 
+
 class TreeNode
 {
 public:
@@ -86,8 +88,8 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) = 0 ;
-  virtual bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, threadpool_t *, pthread_spinlock_t &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, pthread_spinlock_t &) = 0 ;
   virtual void InvalidateSolution() = 0;
   
   virtual void SetInput(std::vector<uvec> *) = 0 ;
@@ -98,12 +100,17 @@ public:
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
+  void ComputeSolutionWrap(void* arguments) 
+  {
+    auto f1 = std::bind(TreeNode::ComputeSolution, this, );
+    ComputeSolution(myArgs->_solutionDictionary, myArgs->_transProbMatVec, myArgs->_locusNum, myArgs->_transMatrixIndex, myArgs->_threadpool) ;
+  }
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
   void SetId(uint vertexId) {_id = vertexId ;}
   uint GetId() {return _id ;}
   void NegateFlag() {_updateFlag = false ;} 
-  vec GetSolution(const uint & locusNum, const uint & rateCat, boost::mutex & myMutex) 
+  vec GetSolution(const uint & locusNum, const uint & rateCat) 
   {
     return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;
   } 

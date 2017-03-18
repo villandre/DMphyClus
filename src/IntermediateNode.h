@@ -14,8 +14,8 @@ public:
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, boost::asio::io_service *, boost::mutex &, boost::barrier &) ;
-  bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) ;
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, threadpool_t *, pthread_spinlock_t &) ;
+  void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, pthread_spinlock_t &) ;
   void InvalidateSolution() ;
   
   void SetInput(std::vector<uvec> *) { assert(false) ;};
@@ -34,10 +34,14 @@ public:
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
   
+  void PrepareSchedule(const solutionDictionaryType &, iterVec &, void*, const uint &, const uint &) ;
+  
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;
+    _counter = 0 ;
     _dictionaryIterVec.resize(numLoci) ;
     _previousIterVec.resize(numLoci) ;
+    
     for (uint i = 0 ; i < numLoci ; i++)
     {
       _dictionaryIterVec.at(i) = solutionDictionary->begin() ;
@@ -50,6 +54,7 @@ protected:
    bool _isSolved ;
    std::vector<TreeNode *> _children ;
    iterVec _previousIterVec ;
+   std::atomic<int> _counter ;
 };
 
 #endif /* INTERMEDIATENODE_H */

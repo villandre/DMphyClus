@@ -117,7 +117,7 @@ void AugTree::InitializeVertices()
   }
 }
 
-void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats, boost::barrier & myBarrier)
+void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransProbMats, const std::vector<mat> & betweenTransProbMats)
 {
   if (!(vertex->IsSolved()))
   {
@@ -125,16 +125,16 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     {
       for (auto & i : vertex->GetChildren())
       {
-        TrySolve(i, withinTransProbMats, betweenTransProbMats, myBarrier) ;
+        TrySolve(i, withinTransProbMats, betweenTransProbMats) ;
       }
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
-      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _ioService, _mutex, myBarrier) ;
+      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _threadpool, _spinlock) ;
     }
     else
     {
-      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _ioService, _mutex, myBarrier) ;
+      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _threadpool, _spinlock) ;
     }
   }
 }

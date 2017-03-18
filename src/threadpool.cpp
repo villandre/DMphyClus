@@ -41,7 +41,7 @@ struct threadpool_t {
   pthread_mutex_t lock;
   pthread_cond_t notify;
   pthread_t *threads;
-  threadpool_task_t *queue;
+  threadpool_task_t *queue ;
   int thread_count;
   int queue_size;
   int head;
@@ -50,6 +50,7 @@ struct threadpool_t {
   int shutdown;
   int started;
   int threadID;
+  bool readQueue;
   pthread_spinlock_t ID_spin;
 };
 
@@ -82,7 +83,7 @@ static void *threadpool_thread(void *threadpool) {
     if((pool->shutdown == immediate_shutdown) || ((pool->shutdown == graceful_shutdown) && (pool->count == 0)))
       break;
     
-    // Grab next task
+    // Grab next task Modify this to determine which queue takes the task.
     // [CALVIN] TODO: Refactor this, Kinda ugly and I feel his list structure is slightly broken.
     task.function = pool->queue[pool->head].function;
     task.argument = pool->queue[pool->head].argument;

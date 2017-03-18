@@ -298,5 +298,5 @@ void finalDeallocate(SEXP AugTreePointer) // We need to explicitly deallocate th
   gsl_rng_free(pointedTree->GetRandomNumGenerator()) ;
   delete pointedTree->GetSolutionDictionary() ;
   delete pointedTree->GetAlignmentBinReference() ;
-  pointedTree->EndIOserviceAndJoinAll() ;
+  pointedTree->DestroyThreads() ;
 }

@@ -12,6 +12,7 @@ class AugTree
 {
 protected:
   threadpool_t * _threadpool ;
+  pthread_spinlock_t _spinlock ;
   unsigned int _numThreads ;
   
   double _logLik ;
@@ -26,8 +27,6 @@ protected:
   
   std::vector<std::vector<uvec>> * _alignmentBinReference ;
   
-  // vec _likPropVec ; // This is scaled to avoid computational zeros.
-
   void BuildTree(const umat &) ;
   void SolveOneLevel() ;
   void InitializeFromDictionary() ;
@@ -41,7 +40,7 @@ public:
   AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, unsigned int &, boost::asio::io_service *, boost::asio::io_service::work *) ;
   
   void BuildTreeNoAssign(const umat &) ;
-  void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &, boost::barrier &)  ;
+  void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &)  ;
   void NearestNeighbourSwap() ;
   void SolveRoot(solutionDictionaryType &, const mat &, const mat &, const vec &, const uint &) ;
   
@@ -70,8 +69,7 @@ public:
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;}
   uint GetWithinMatListIndex() {return _withinMatListIndex ;}
   uint GetBetweenMatListIndex() {return _betweenMatListIndex ;}
-  boost::asio::io_service::work * GetWorkIO() {return _workObject ;}
-  boost::asio::io_service * GetIOservice() {return _ioService ;}
+  
   unsigned int GetNumThreads() {return _numThreads ;}
   
   void InvalidateBetweenSolutions() ;
@@ -90,12 +88,10 @@ public:
   //void ComputeLoglik(List &, List &, NumericVector &) ;
   void PrintSolutions(const uint &) ;
   
-  void EndIOserviceAndJoinAll()
+  void DestroyThreads()
   {
-    _ioService->stop();
-    delete _ioService ;
-    delete _workObject ;
-    _threadpool.join_all();
+    // Anything to do before destroying the threads?
+    threadpool_destroy(_threadpool, 0) ;
   }
   
   ~AugTree() {deallocate_container(_vertexVector) ;};
