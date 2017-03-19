@@ -9,7 +9,7 @@ class AugTree
 {
 protected:
   ThreadPool * _threadpool ;
-  std::atomic_flag _lock ;
+  //std::atomic_flag _lock ;
   unsigned int _numThreads ;
   
   double _logLik ;
