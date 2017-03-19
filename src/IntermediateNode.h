@@ -34,7 +34,7 @@ public:
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
   
-  void PrepareSchedule(const solutionDictionaryType &, iterVec &, void*, const uint &, const uint &) ;
+  void PrepareSchedule(const solutionDictionaryType & solutionDictionary, iterVec & iteratorVec, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates) ;
   
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;

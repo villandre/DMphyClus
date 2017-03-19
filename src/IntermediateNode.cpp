@@ -31,13 +31,13 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
   std::vector<mapIterator> iteratorVec(_dictionaryIterVec.size()) ;
   std::function<void(void)> myFun ;
   
-  for (uint * i = 0 ; *i < _dictionaryIterVec.size() ; (*i)++)
+  for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
     myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), std::ref(iteratorVec), std::cref(i), std::cref(transMatIndex), transProbMats.size()) ;
     myThreadpool->AddJob(myFun) ;
   }
   // Wait here...
-  myThreadpool->WaitAll() ;
+  myThreadpool->WaitAll() ; 
   
   // The following section should not be parallelized, as it involves writing to the dictionary.
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
@@ -103,13 +103,12 @@ S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMa
            transMatIndex) ;
 }
 
-void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, iterVec & iteratorVec, void* locusNum, const uint & transMatrixIndex, const uint & numRates)
+void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, iterVec & iteratorVec, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates)
 {
-  uint * locusNumber = (uint *) locusNum ;
-  S newS = GetSfromVertex(*locusNumber, transMatrixIndex, numRates) ;
-  iteratorVec.at(*locusNumber) = solutionDictionary->find(newS) ;
-  if (iteratorVec.at(*locusNumber) == solutionDictionary->end())
+  S newS = GetSfromVertex(locusNum, transMatrixIndex, numRates) ;
+  iteratorVec.at(locusNum) = solutionDictionary->find(newS) ;
+  if (iteratorVec.at(locusNum) == solutionDictionary->end())
   {
-    _dictionaryIterVec.at(*locusNumber) = iteratorVec.at(*locusNumber) ; // Should be thread-safe, since no two threads use the same locus number.
+    _dictionaryIterVec.at(locusNum) = iteratorVec.at(locusNum) ; // Should be thread-safe, since no two threads use the same locus number.
   }
 }
