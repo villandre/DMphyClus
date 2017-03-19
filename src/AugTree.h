@@ -1,7 +1,4 @@
-#include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
 #include "TreeNode.h"
 #include "ThreadpoolOther.h"
 
