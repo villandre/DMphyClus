@@ -36,7 +36,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 typedef struct threadpool_t threadpool_t;
 threadpool_t *threadpool_create(int thread_count, int queue_size, int flags);
-int threadpool_add(threadpool_t *pool, void (*routine)(void *), void *arg, int flags);
+int threadpool_add(threadpool_t *pool, void (*function)(void *), void *argument, int flags);
 int threadpool_destroy(threadpool_t *pool, int flags);
 int threadpool_free(threadpool_t *pool);
 

@@ -14,7 +14,7 @@ public:
   bool IsSolved() {return _isSolved ;};
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, ThreadPool *, std::atomic_flag &) ;
+  void ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool) ;
   void ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) ;
   void InvalidateSolution() ;
   

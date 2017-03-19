@@ -24,10 +24,8 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool, std::atomic_flag & mySpinlock)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool)
 {
-  cout << "Computing solutions for node " << _id << endl ;
-  
   std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
   
   std::vector<mapIterator> iteratorVec(_dictionaryIterVec.size()) ;
