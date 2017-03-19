@@ -89,7 +89,7 @@ public:
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
   virtual void ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool) = 0 ;
-  virtual void ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) = 0 ;
   virtual void InvalidateSolution() = 0;
   
   virtual void SetInput(std::vector<uvec> *) = 0 ;

@@ -15,7 +15,7 @@ public:
   bool CanSolve() ;
   void SetSolved(bool status) {_isSolved = status ;};
   void ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool) ;
-  void ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) ;
+  void ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) ;
   void InvalidateSolution() ;
   
   void SetInput(std::vector<uvec> *) { assert(false) ;};
@@ -34,7 +34,7 @@ public:
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) ;
   
-  void PrepareSchedule(const solutionDictionaryType & solutionDictionary, iterVec & iteratorVec, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates) ;
+  void PrepareSchedule(const solutionDictionaryType & solutionDictionary, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates) ;
   
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;

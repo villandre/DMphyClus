@@ -28,12 +28,11 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 {
   std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
   
-  std::vector<mapIterator> iteratorVec(_dictionaryIterVec.size()) ;
   std::function<void(void)> myFun ;
   
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), std::ref(iteratorVec), std::cref(i), std::cref(transMatIndex), transProbMats.size()) ;
+    myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), i, transMatIndex, transProbMats.size()) ;
     myThreadpool->AddJob(myFun) ;
   }
   // Wait here...
@@ -42,9 +41,9 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
   // The following section should not be parallelized, as it involves writing to the dictionary.
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    if (iteratorVec.at(i) == solutionDictionary->end()) // The task involves reading from/writing to the dictionary, which means it should be done serially (is there any way to parallelize this?).  ;
+    if (_dictionaryIterVec.at(i) == solutionDictionary->end()) // The task involves reading from/writing to the dictionary, which means it should be done serially (is there any way to parallelize this?).  ;
     {
-      ComputeSolution(iteratorVec.at(i), solutionDictionary, transProbMats, i, transMatIndex) ;
+      ComputeSolution(solutionDictionary, transProbMats, i, transMatIndex) ;
     }
   }
   _isSolved = true ;
@@ -57,7 +56,7 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
 
-void IntermediateNode::ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex)
 {
   std::vector<std::pair<vec, float>> mySolution(transProbMatVec.size(), std::pair<vec,float>(vec(transProbMatVec.at(0).n_rows, fill::ones),0)) ;
   for (auto & child : _children) 
@@ -103,12 +102,8 @@ S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMa
            transMatIndex) ;
 }
 
-void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, iterVec & iteratorVec, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates)
+void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates)
 {
   S newS = GetSfromVertex(locusNum, transMatrixIndex, numRates) ;
-  iteratorVec.at(locusNum) = solutionDictionary->find(newS) ;
-  if (iteratorVec.at(locusNum) == solutionDictionary->end())
-  {
-    _dictionaryIterVec.at(locusNum) = iteratorVec.at(locusNum) ; // Should be thread-safe, since no two threads use the same locus number.
-  }
+  _dictionaryIterVec.at(locusNum) = solutionDictionary->find(newS) ;
 }

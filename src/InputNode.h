@@ -13,7 +13,7 @@ public:
   bool CanSolve() {return true ;}
   void SetSolved(bool status) {}
   void ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool) {assert(false) ;}
-  void ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) {assert(false) ;} //Solution is known, this should not get called.
+  void ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) {assert(false) ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
   
   void SetInput(std::vector<uvec> * inputVec) { _inputVec = inputVec ;}
