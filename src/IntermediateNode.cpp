@@ -112,5 +112,4 @@ void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDi
   {
     _dictionaryIterVec.at(*locusNumber) = iteratorVec.at(*locusNumber) ; // Should be thread-safe, since no two threads use the same locus number.
   }
-  _counter++;
 }

@@ -130,11 +130,11 @@ void AugTree::TrySolve(TreeNode * vertex, const std::vector<mat> & withinTransPr
     }
     if (vertex->GetChildren().at(0)->GetWithinParentBranch()) 
     {  // This junction is within a cluster. 
-      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _threadpool, _spinlock) ;
+      vertex->ComputeSolutions(_solutionDictionary, withinTransProbMats, _withinMatListIndex, _threadpool) ;
     }
     else
     {
-      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _threadpool, _spinlock) ;
+      vertex->ComputeSolutions(_solutionDictionary, betweenTransProbMats, _betweenMatListIndex, _threadpool) ;
     }
   }
 }
@@ -294,10 +294,9 @@ void AugTree::CheckAndInvalidateBetweenRecursive(TreeNode * currentVertex)
 
 void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const std::vector<mat> & betweenClusTransProbs, const vec & limProbs)
 {
-  boost::barrier myBarrier(_numThreads) ; // The +1 is for the main instruction thread.
   uint numElements = _numLoci*_numRateCats ;
   
-  TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, myBarrier) ;
+  TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs) ;
   
   vec likPropVec(numElements, fill::zeros) ;
   
@@ -305,7 +304,7 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   {
     for (uint rateIndex = 0 ; rateIndex < _numRateCats ; rateIndex++)
     {
-      likPropVec.at(locusIndex*_numRateCats + rateIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex, _mutex), limProbs) ; 
+      likPropVec.at(locusIndex*_numRateCats + rateIndex) = dot(_vertexVector.at(_numTips)->GetSolution(locusIndex, rateIndex), limProbs) ; 
     }
   }
   // Now, we must average likelihoods across rate categories for each locus, log the output, and sum the resulting logs.

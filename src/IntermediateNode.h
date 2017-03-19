@@ -38,7 +38,6 @@ public:
   
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;
-    _counter = 0 ;
     _dictionaryIterVec.resize(numLoci) ;
     _previousIterVec.resize(numLoci) ;
     
@@ -54,7 +53,6 @@ protected:
    bool _isSolved ;
    std::vector<TreeNode *> _children ;
    iterVec _previousIterVec ;
-   std::atomic<int> _counter ;
 };
 
 #endif /* INTERMEDIATENODE_H */

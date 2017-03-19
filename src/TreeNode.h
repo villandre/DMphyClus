@@ -100,11 +100,6 @@ public:
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
   virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
   
-  void ComputeSolutionWrap(void* arguments) 
-  {
-    auto f1 = std::bind(TreeNode::ComputeSolution, this, );
-    ComputeSolution(myArgs->_solutionDictionary, myArgs->_transProbMatVec, myArgs->_locusNum, myArgs->_transMatrixIndex, myArgs->_threadpool) ;
-  }
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
   void SetId(uint vertexId) {_id = vertexId ;}
