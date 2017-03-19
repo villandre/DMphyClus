@@ -7,7 +7,7 @@
 #include <gsl/gsl_rng.h>
 #include <algorithm>
 #include <boost/bind.hpp>
-#include "threadpool.h"
+#include "ThreadpoolOther.h"
 
 using namespace arma ;
 
@@ -88,8 +88,8 @@ public:
   virtual bool IsSolved() = 0;
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
-  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, threadpool_t *, pthread_spinlock_t &) = 0 ;
-  virtual void ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, pthread_spinlock_t &) = 0 ;
+  virtual void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, ThreadPool *, std::atomic_flag &) = 0 ;
+  virtual void ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) = 0 ;
   virtual void InvalidateSolution() = 0;
   
   virtual void SetInput(std::vector<uvec> *) = 0 ;

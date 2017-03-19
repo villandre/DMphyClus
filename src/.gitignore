@@ -19,3 +19,5 @@ IntermediateNode.o
 Forest.o
 Forest.cpp
 Forest.h
+threadpool.h
+threadpool.cpp

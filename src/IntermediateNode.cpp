@@ -24,38 +24,31 @@ bool IntermediateNode::CanSolve()
   return std::all_of(childDefined.begin(), childDefined.end(), [](bool v) { return v; });
 }
 
-void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, threadpool_t * myThreadpool, pthread_spinlock_t & mySpinlock)
+void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMats, const uint & transMatIndex, ThreadPool * myThreadpool, std::atomic_flag & mySpinlock)
 {
   cout << "Computing solutions for node " << _id << endl ;
   
   std::copy(_dictionaryIterVec.begin(), _dictionaryIterVec.end(), _previousIterVec.begin()) ;
   
   std::vector<mapIterator> iteratorVec(_dictionaryIterVec.size()) ;
-  auto myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), std::ref(iteratorVec), _3, std::cref(transMatIndex), transProbMats.size()) ;
+  std::function<void(void)> myFun ;
+  
   for (uint * i = 0 ; *i < _dictionaryIterVec.size() ; (*i)++)
   {
-    threadpool_add(myThreadpool, &myFun, (void *) i, 0) ; // We first determine which are the reading tasks...
+    myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), std::ref(iteratorVec), std::cref(i), std::cref(transMatIndex), transProbMats.size()) ;
+    myThreadpool->AddJob(myFun) ;
   }
-  pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-  pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-  pthread_mutex_lock(&mut);
-  while (_counter < _dictionaryIterVec.size()) {
-    pthread_cond_wait(&cond, &mut);
-  }
-  pthread_mutex_unlock(&mut);
+  // Wait here...
+  myThreadpool->WaitAll() ;
   
-  std::vector<bool> solutionFound(_dictionaryIterVec.size(), false) ;
+  // The following section should not be parallelized, as it involves writing to the dictionary.
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
-    std::function<void(const uint &)> f1 = std::bind(&IntermediateNode::ComputeSolution, this, std::ref(solutionDictionary), std::cref(transProbMats), _3, std::cref(transMatIndex), std::ref(mySpinlock));
-    
-    if (iteratorVec.at(i) != solutionDictionary->end()) // This is a pure reading task ;
+    if (iteratorVec.at(i) == solutionDictionary->end()) // The task involves reading from/writing to the dictionary, which means it should be done serially (is there any way to parallelize this?).  ;
     {
-    threadpool_add(myThreadpool, , NULL, 0) ; // Does the task start running right away?
-    // Queue a task that frees the memory occupied by arguments struct.
+      ComputeSolution(iteratorVec.at(i), solutionDictionary, transProbMats, i, transMatIndex) ;
     }
   }
-  // Wait for the task queue to be empty to cross this point!
   _isSolved = true ;
   _updateFlag = true ;
 }
@@ -66,7 +59,7 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
 
-void IntermediateNode::ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, pthread_spinlock_t & mySpinlock)
+void IntermediateNode::ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex)
 {
   std::vector<std::pair<vec, float>> mySolution(transProbMatVec.size(), std::pair<vec,float>(vec(transProbMatVec.at(0).n_rows, fill::ones),0)) ;
   for (auto & child : _children) 

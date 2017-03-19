@@ -12,8 +12,8 @@ public:
   bool IsSolved() {return true ;}
   bool CanSolve() {return true ;}
   void SetSolved(bool status) {}
-  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, threadpool_t *, pthread_spinlock_t &) {assert(false) ;}
-  void ComputeSolution(solutionDictionaryType & dictionary, const std::vector<mat> &, const uint &, const uint &, pthread_spinlock_t &) {assert(false) ;} //Solution is known, this should not get called.
+  void ComputeSolutions(solutionDictionaryType &, const std::vector<mat> &, const uint &, ThreadPool *, std::atomic_flag &) {assert(false) ;}
+  void ComputeSolution(mapIterator & solutionIter, solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex) {assert(false) ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
   
   void SetInput(std::vector<uvec> * inputVec) { _inputVec = inputVec ;}

@@ -3,7 +3,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include "TreeNode.h"
-#include "threadpool.h"
+#include "ThreadpoolOther.h"
 
 using namespace arma ;
 using namespace Rcpp ;
@@ -11,8 +11,8 @@ using namespace Rcpp ;
 class AugTree
 {
 protected:
-  threadpool_t * _threadpool ;
-  pthread_spinlock_t _spinlock ;
+  ThreadPool * _threadpool ;
+  std::atomic_flag _lock ;
   unsigned int _numThreads ;
   
   double _logLik ;
@@ -37,7 +37,7 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, unsigned int &, boost::asio::io_service *, boost::asio::io_service::work *) ;
+  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, const unsigned int &) ;
   
   void BuildTreeNoAssign(const umat &) ;
   void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &)  ;
@@ -91,7 +91,8 @@ public:
   void DestroyThreads()
   {
     // Anything to do before destroying the threads?
-    threadpool_destroy(_threadpool, 0) ;
+    _threadpool->JoinAll() ;
+    delete _threadpool ;
   }
   
   ~AugTree() {deallocate_container(_vertexVector) ;};

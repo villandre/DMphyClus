@@ -8,7 +8,7 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, unsigned int & numThreads, boost::asio::io_service * ioService, boost::asio::io_service::work * myWork) : _workObject(myWork), _ioService(ioService)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, const unsigned int & numThreads): _lock(ATOMIC_FLAG_INIT)
 {
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBin ;
@@ -30,7 +30,7 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   /*
    * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
    */
-  _threadpool = threadpool_create(numThreads, 50000, 0) ;
+  _threadpool = new ThreadPool(numThreads) ; 
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
