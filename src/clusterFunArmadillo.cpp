@@ -1,12 +1,9 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 //#include <gperftools/profiler.h>
-#include <omp.h>
 #include <iostream>
 #include <string>
-#include <algorithm>
 #include "AugTree.h"
-#include <limits>
 #include <gsl/gsl_rng.h>
 
 
@@ -38,7 +35,6 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, unsigned int & numThreads, List & alignmentBin, uint & numTips, uint & numLoci, uint & withinMatListIndex, uint & betweenMatListIndex)
 {
-  //omp_set_num_threads(numOpenMP) ;
   std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransMatList) ;
   std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransMatList) ;
   vec limProbsVals = as<vec>(limProbsVec) ;
@@ -120,7 +116,6 @@ SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaM
 
 double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex, NumericVector & limProbs) 
 {
-  //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
   {
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
@@ -145,7 +140,6 @@ double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, 
 
 double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
 {
-  //omp_set_num_threads(numOpenMP) ; 
   if (!(AugTreePointer == NULL)) 
   {
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
@@ -171,7 +165,6 @@ double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs
 
 List withinClusNNIlogLik(SEXP AugTreePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
-  //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
   {
     std::vector<uint> vertexIndexForNNI ;
@@ -210,7 +203,6 @@ List withinClusNNIlogLik(SEXP AugTreePointer, IntegerMatrix & edgeMat, List & wi
 
 List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
-  //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
   {
     std::vector<uint> vertexIndexForNNI ;
@@ -249,7 +241,6 @@ List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & b
 
 double clusSplitMergeLogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP, NumericVector & limProbs) 
 {
-  //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL))
   {
     XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
