@@ -8,7 +8,7 @@
 using namespace Rcpp ;
 using namespace arma ;
 
-AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, unsigned int & numThreads, boost::asio::io_service * ioService, boost::asio::io_service::work * myWork) : _workObject(myWork), _ioService(ioService)
+AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, unsigned int & numThreads)
 {
   _solutionDictionary = solutionDictionary ;
   _alignmentBinReference = alignmentBin ;
@@ -28,14 +28,9 @@ AugTree::AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector
   AssociateTransProbMatrices(clusterMRCAs) ;
   
   /*
-   * This will add numThreads threads to the thread pool. I wonder if the master thread should also perform some work...
+   * This will add numThreads threads to the thread pool.
    */
-  for (uint i = 0; i < numThreads; i++)
-  {
-    _threadpool.create_thread(
-    boost::bind(&boost::asio::io_service::run, _ioService)
-  );
-  }
+  _threadpool = new ThreadPool(numThreads) ;
 }
 
 void AugTree::AssociateTransProbMatrices(const uvec & clusterMRCAs) 
@@ -307,9 +302,11 @@ void AugTree::ComputeLoglik(const std::vector<mat> & withinClusTransProbs, const
   uint numElements = _numLoci*_numRateCats ;
   
   for (uint locusNum = 0 ; locusNum < _numLoci ; locusNum++) {
-    TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, locusNum) ;
+    std::function<void()> myFun = boost::bind(&AugTree::TrySolve, this, std::cref(_vertexVector[_numTips]), withinClusTransProbs, betweenClusTransProbs, locusNum) ;
+    _threadpool->AddJob(myFun) ;
+    //TrySolve(_vertexVector[_numTips], withinClusTransProbs, betweenClusTransProbs, locusNum) ;
   }
-  // WAit here...
+  _threadpool->WaitAll() ;
   vec likPropVec(numElements, fill::zeros) ;
   
   for (uint locusIndex = 0 ; locusIndex < _numLoci ; locusIndex++) 

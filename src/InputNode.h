@@ -13,7 +13,7 @@ public:
   bool CanSolve() {return true ;}
   void SetSolved(bool status) {}
   
-  bool ComputeSolution(solutionDictionaryType & dictionary, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) {assert(false) ; return true ;} //Solution is known, this should not get called.
+  void ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::shared_mutex & myMutex) {assert(false) ;} //Solution is known, this should not get called.
   void InvalidateSolution() {assert(false) ;}
   
   void SetInput(std::vector<uvec> * inputVec) { _inputVec = inputVec ;}

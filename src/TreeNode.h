@@ -3,13 +3,10 @@
 #include <boost/functional/hash.hpp>
 #include <assert.h>
 #include <RcppArmadillo.h>
-#include <unordered_map>
 #include <gsl/gsl_rng.h>
 #include <algorithm>
-#include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/barrier.hpp>
+#include <boost/thread.hpp>
 
 using namespace arma ;
 
@@ -90,7 +87,7 @@ public:
   virtual bool CanSolve() = 0;
   virtual void SetSolved(bool) = 0;
   
-  virtual bool ComputeSolution(solutionDictionaryType &, const std::vector<mat> &, const uint &, const uint &, boost::mutex &) = 0 ;
+  virtual void ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::shared_mutex & myMutex) = 0 ;
   virtual void InvalidateSolution() = 0;
   
   virtual void SetInput(std::vector<uvec> *) = 0 ;
@@ -108,8 +105,9 @@ public:
   void SetId(uint vertexId) {_id = vertexId ;}
   uint GetId() {return _id ;}
   void NegateFlag() {_updateFlag = false ;} 
-  vec GetSolution(const uint & locusNum, const uint & rateCat, boost::mutex & myMutex) 
+  vec GetSolution(const uint & locusNum, const uint & rateCat, boost::shared_mutex & myMutex) 
   {
+    boost::shared_lock<boost::shared_mutex> lock(myMutex);
     return _dictionaryIterVec.at(locusNum)->second.at(rateCat).first ;
   } 
   vec GetSolutionNoMutex(const uint & locusNum, const uint & rateCat) 

@@ -1,8 +1,7 @@
-#include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include "TreeNode.h"
+#include "ThreadPoolOther.h"
 
 using namespace arma ;
 using namespace Rcpp ;
@@ -10,11 +9,9 @@ using namespace Rcpp ;
 class AugTree
 {
 protected:
-  boost::asio::io_service * _ioService;
-  boost::thread_group _threadpool;
-  boost::mutex _mutex ;
-  boost::asio::io_service::work * _workObject ;
+  boost::shared_mutex _mutex ;
   unsigned int _numThreads ;
+  ThreadPool * _threadpool ;
   
   double _logLik ;
   std::vector<TreeNode *> _vertexVector ;
@@ -40,8 +37,7 @@ protected:
   void AddEdgeRecursion(umat &, uint &, TreeNode *) ;
   
 public:
-  AugTree(const umat &, const uvec &, std::vector<std::vector<uvec>> *, solutionDictionaryType &, const uint &, const uint &, const uint &, gsl_rng *, unsigned int &, boost::asio::io_service *, boost::asio::io_service::work *) ;
-  
+  AugTree(const umat & edgeMatrix, const uvec & clusterMRCAs, std::vector<std::vector<uvec>> * alignmentBin, solutionDictionaryType & solutionDictionary, const uint & withinMatListIndex, const uint & betweenMatListIndex, const uint & numRateCats, gsl_rng * RNGpoint, unsigned int & numThreads) ;
   void BuildTreeNoAssign(const umat &) ;
   void TrySolve(TreeNode *, const std::vector<mat> &, const std::vector<mat> &, const uint &)  ;
   void NearestNeighbourSwap() ;
@@ -72,8 +68,6 @@ public:
   solutionDictionaryType GetSolutionDictionary() { return _solutionDictionary ;}
   uint GetWithinMatListIndex() {return _withinMatListIndex ;}
   uint GetBetweenMatListIndex() {return _betweenMatListIndex ;}
-  boost::asio::io_service::work * GetWorkIO() {return _workObject ;}
-  boost::asio::io_service * GetIOservice() {return _ioService ;}
   unsigned int GetNumThreads() {return _numThreads ;}
   
   void InvalidateBetweenSolutions() ;
@@ -92,17 +86,10 @@ public:
   //void ComputeLoglik(List &, List &, NumericVector &) ;
   void PrintSolutions(const uint &) ;
   
-  void EndIOserviceAndJoinAll()
+  void DestroyThreads()
   {
-    std::cout << "Deleting work object..." << endl ;
-    delete _workObject ;
-    std::cout << "Ending ioservice..." << endl ;
-    _ioService->stop();
-    std::cout << "Joining threads..." << endl ;
-    _threadpool.join_all();
-    std::cout << "Deleting ioservice... " << endl ;
-    delete _ioService ;
-    std::cout << "Done!" << endl ;
+    _threadpool->JoinAll() ;
+    delete _threadpool ;
   }
   
   ~AugTree() {deallocate_container(_vertexVector) ;};

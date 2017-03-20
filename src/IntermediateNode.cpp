@@ -50,18 +50,18 @@ bool IntermediateNode::CanSolve()
 // account when computing the likelihood in Forest::ComputeLikelihood.
 // Under this strategy, some elements of the L vector may take value 0 before the scaling is applied, 
 // but only when they're much smaller than the maximum, in which case, they won't affect the mean significantly.
-bool IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::mutex & myMutex)
+void IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictionary, const std::vector<mat> & transProbMatVec, const uint & locusNum, const uint & transMatrixIndex, boost::shared_mutex & myMutex)
 {
   _previousIterVec.at(locusNum) = _dictionaryIterVec.at(locusNum) ;
   S newS = GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()) ;
   mapIterator solutionIter ;
   {
-    boost::lock_guard<boost::mutex> lock(myMutex);
+    boost::shared_lock<boost::shared_mutex> lock(myMutex);
     solutionIter = solutionDictionary->find(newS) ;
   }
+  
   if (solutionIter != solutionDictionary->end()) 
   {
-    boost::lock_guard<boost::mutex> lock(myMutex);
     _dictionaryIterVec.at(locusNum) = solutionIter ;
   }
   else
@@ -71,10 +71,8 @@ bool IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
     {
       for (uint rateIndex = 0 ; rateIndex < mySolution.size() ; rateIndex++)
       {
-        {
-          boost::lock_guard<boost::mutex> lock(myMutex);
-          mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex, myMutex)) ;
-        }
+        mySolution.at(rateIndex).first = mySolution.at(rateIndex).first % (transProbMatVec.at(rateIndex)*child->GetSolution(locusNum, rateIndex, myMutex)) ;
+        
         double myMax = max(mySolution.at(rateIndex).first) ;
         bool status = myMax < 1e-150 ; // To account for computational zeros... Will only work with bifurcating trees though.
         if (status)
@@ -84,13 +82,18 @@ bool IntermediateNode::ComputeSolution(solutionDictionaryType & solutionDictiona
         }
       }
     }
+    std::pair<mapIterator, bool> insertResult ;
     {
-      boost::lock_guard<boost::mutex> lock(myMutex);
-      std::pair<mapIterator, bool> insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
-      _dictionaryIterVec.at(locusNum) = insertResult.first ;
+      // get upgradable access
+      boost::upgrade_lock<boost::shared_mutex> lock(myMutex);
+      
+      // get exclusive access
+      boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(lock);
+      // now we have exclusive access
+      insertResult = solutionDictionary->insert(std::pair<S,mapContentType>(GetSfromVertex(locusNum, transMatrixIndex, transProbMatVec.size()), mapContentType(mySolution))) ;
     }
+    _dictionaryIterVec.at(locusNum) = insertResult.first ;
   }
-  return true ;
 }
 
 void IntermediateNode::RemoveChild(TreeNode * childToRemove)
