@@ -233,7 +233,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   currentValue
 }
 
-.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll) {
+.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL) {
 
   if (is.matrix(withinTransMatAll[[1]])) {
     numGammaCat <- length(withinTransMatAll) ## We only have one set of substitution rate matrices.
@@ -256,7 +256,15 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves)
 
     paraVec <- currentValue$paraValues
-    c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
+    output <- c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
+    if (!is.null(intermediateDirectory))
+    {
+      if ((x %% saveFrequency) == 0) {
+        filename <- paste(intermediateDirectory, "/simResults", digest(list(.performStepPhylo, x)), "iter", x, ".Rdata", sep = "")
+        save(output, file = filename, compress = TRUE)
+      }
+    }
+    output
   })
   setTxtProgressBar(pb = progress, value = 1)
   close(con = progress)
@@ -279,51 +287,6 @@ reorderTips <- function(phylogeny, newTipOrder)
     logNumer - logDenum
 }
 
-.introduceMultiPhyloWithDist <-  function(phylogeny, clusInd) {
-    if (is.null(phylogeny$tip.label)) {
-        toSplit <- as.character(1:ape::Ntip(phylogeny))
-    } else {
-        toSplit <- phylogeny$tip.label
-    }
-    nodeListCut <- split(x = toSplit, f = clusInd)
-    keepIndices <- vapply(nodeListCut, FUN = function(x) {length(x) > 2}, FUN.VALUE = c(Logical = TRUE))
-    nodeListCut <- nodeListCut[keepIndices]
-    newPhylo <- phylogeny
-    internalFun <- function(seqsInClusInd) {
-        multiTips <- which(newPhylo$tip.label %in% seqsInClusInd)
-        mrcaNode <- ape::getMRCA(phy = newPhylo, tip = multiTips)
-        distsToMRCA <- as.vector(ape::dist.nodes(newPhylo)[mrcaNode, match(seqsInClusInd, newPhylo$tip.label)])
-        newPhylo$tip.label[multiTips] <- "removeMe"
-        newTree <- ape::stree(length(seqsInClusInd), tip.label = seqsInClusInd)
-        newTree$edge.length <- distsToMRCA
-        incrementedTree <- ape::reorder.phylo(suppressWarnings(ape::bind.tree(x = newPhylo, y = newTree, where = mrcaNode)))
-        newPhylo <<- ape::reorder.phylo(ape::drop.tip(phy = incrementedTree, tip = which(incrementedTree$tip.label == "removeMe")))
-    }
-    lapply(nodeListCut, FUN = internalFun)
-    ape::reorder.phylo(newPhylo)
-}
-
-.dataBinSubset <- function(DNAdataBin, keepLociNums, keepSeqNamesOrNums) {
-    DNAdataBinSub <- DNAdataBin
-    if (!missing(keepLociNums)) {
-        DNAdataBinSub <- DNAdataBin[keepLociNums]
-    } else{}
-    if (!missing(keepSeqNamesOrNums)) {
-        if (class(keepSeqNamesOrNums) == "character") {
-            if (is.null(colnames(DNAdataBin[[1]]))) {
-                stop("Matrices in DNAdataBin should have named columns. \n")
-            } else {
-                keepVec <- match(keepSeqNamesOrNums, colnames(DNAdataBinSub[[1]]))
-                DNAdataBinSub <- lapply(DNAdataBinSub, FUN = function(x) {
-                    x[,keepVec]
-                })
-            }
-        } else{}
-    }
-    DNAdataBinSub
-}
-
-## DNAdataMultiBin is a list of lists of matrices. Outer list has # elements = # rate categories. The next level has # elements = #loci, the inner level is a matrix with # rows = # states and # col. = number of tips.
 .updateBetweenPhylo <- function(currentValue, limProbs, withinTransMatList, betweenTransMatList, numMovesNNI, numLikThreads, DNAdataBin) {
     
   updatedPhyloAndLogLik <- betweenClusNNIlogLik(AugTreePointer = currentValue$extPointer, numMovesNNI = numMovesNNI, numOpenMP = numLikThreads, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, edgeMat = currentValue$paraValues$phylogeny$edge, withinTransProbs = withinTransMatList, betweenTransProbs = betweenTransMatList, limProbs = limProbs)

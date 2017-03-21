@@ -40,6 +40,8 @@
 #' along branches in the supporting phylogeny. See details
 #' @param withinClusTransMatList Same as betweenClusTransMatList, but for the
 #' within-cluster phylogenies
+#' @param intermediateDirectory Directory where intermediate results will be saved. If left unspecified, intermediate results will not be saved.
+#' @param saveFrequency Defaults to 20. Determines the frequency at which intermediate outputs will be saved. Does not apply if intermediateDirectory is left unspecified.
 #'
 #' @details It is possible to supply transition probability matrices directly to the function
 #' by specifying values for betweenClusTransMatList and withinClusTransMatList. Since estimating
@@ -62,7 +64,7 @@
 #' }
 #' @export
 
-DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar, Qmatrix, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList, withinClusTransMatList) {
+DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar, Qmatrix, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList, withinClusTransMatList, intermediateDirectory = NULL, saveFrequency = 20) {
 
     .checkInput(startingValues = startingValues, Qmatrix = Qmatrix, alignment = alignment, limProbs = limProbs, shiftForAlpha = shiftForAlpha)
     if (!is.null(rownames(alignment))) { ## The tip ordering in the starting phylogeny should match the order of the rows in the alignment.
@@ -115,7 +117,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
     
     seqNames <- rownames(alignment)
 
-    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, withinTransMatAll = allWithinMatList, betweenTransMatAll = allBetweenMatList, DNAdataBin = convertedData)
+    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, withinTransMatAll = allWithinMatList, betweenTransMatAll = allBetweenMatList, DNAdataBin = convertedData, intermediateDirectory = intermediateDirectory, saveFrequency = saveFrequency)
 
     chainResult <- do.call(".DMphyClusCore", args = argsForDMcore)
 
