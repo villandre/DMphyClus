@@ -30,15 +30,20 @@ void IntermediateNode::ComputeSolutions(solutionDictionaryType & solutionDiction
   
   std::function<void(void)> myFun ;
   
-  for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
+  unsigned int currentIndex = 0 ;
+  unsigned int incrementSize = floor(_dictionaryIterVec.size()/myThreadpool->GetPoolSize()) ;
+  for (unsigned int i = 0 ; i < myThreadpool->GetPoolSize() - 1 ; i++)
   {
-    myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), i, transMatIndex, transProbMats.size()) ;
+    uint endpoint = currentIndex+incrementSize ;
+    myFun = std::bind(&IntermediateNode::PrepareSchedule, this, std::cref(solutionDictionary), currentIndex,  endpoint, transMatIndex, transProbMats.size()) ;
     myThreadpool->AddJob(myFun) ;
+    currentIndex = endpoint ;
   }
+  PrepareSchedule(solutionDictionary, currentIndex, _dictionaryIterVec.size(), transMatIndex, transProbMats.size()) ; // My scheduling thread also does some work!
   // Wait here...
   myThreadpool->WaitAll() ; 
   
-  // The following section should not be parallelized, as it involves writing to the dictionary.
+  // The following section should not be parallelized, as it involves writing to the dictionary. Perhaps it can be with the appropriate mutex...
   for (uint i = 0 ; i < _dictionaryIterVec.size() ; i++)
   {
     if (_dictionaryIterVec.at(i) == solutionDictionary->end()) // The task involves reading from/writing to the dictionary, which means it should be done serially (is there any way to parallelize this?).  ;
@@ -102,8 +107,10 @@ S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMa
            transMatIndex) ;
 }
 
-void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates)
+void IntermediateNode::PrepareSchedule(const solutionDictionaryType & solutionDictionary, const unsigned int & locusStart, const unsigned int & locusEnd, const uint & transMatrixIndex, const uint & numRates)
 {
-  S newS = GetSfromVertex(locusNum, transMatrixIndex, numRates) ;
-  _dictionaryIterVec.at(locusNum) = solutionDictionary->find(newS) ;
+  for (unsigned int i = locusStart ; i < locusEnd ; i++)
+  {
+    _dictionaryIterVec.at(i) = solutionDictionary->find(GetSfromVertex(i, transMatrixIndex, numRates)) ;
+  }
 }

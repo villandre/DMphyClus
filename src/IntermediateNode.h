@@ -32,9 +32,9 @@ public:
     _updateFlag = false ;
   }
   mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
-  S GetSfromVertex(const uint &, const uint &, const uint &) ;
+  S GetSfromVertex(const uint & elementNum, const uint & transMatIndex, const uint & numRateCats);
   
-  void PrepareSchedule(const solutionDictionaryType & solutionDictionary, const uint & locusNum, const uint & transMatrixIndex, const uint & numRates) ;
+  void PrepareSchedule(const solutionDictionaryType & solutionDictionary, const unsigned int & locusStart, const unsigned int & locusEnd, const uint & transMatrixIndex, const uint & numRates) ;
   
   IntermediateNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary): _isSolved(false) {
     _parent = NULL ;

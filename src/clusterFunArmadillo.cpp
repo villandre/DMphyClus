@@ -38,7 +38,7 @@ List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVec
   std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransMatList) ;
   std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransMatList) ;
   vec limProbsVals = as<vec>(limProbsVec) ;
-  
+  cout << "Number of threads that can be run concurrently: " << std::thread::hardware_concurrency() << endl ;
   std::vector<std::vector<uvec>> alignmentBinRecast = as<std::vector<std::vector<uvec>>>(alignmentBin) ;
   std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>> ;
   convertedBinData->resize(alignmentBinRecast.size()) ;

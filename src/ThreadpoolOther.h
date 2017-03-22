@@ -106,6 +106,7 @@ public:
       });
     }
   }
+  unsigned int GetPoolSize() {return _threads.size() ;} 
   
 private:
   /**

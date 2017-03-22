@@ -98,7 +98,7 @@ public:
   virtual void InitMapAndIterVec(solutionDictionaryType &, const uint &) = 0;
   virtual void RestoreIterVecAndExp() = 0;
   virtual mapIterator GetDictionaryIterator(const uint &, const uint &) = 0 ;
-  virtual S GetSfromVertex(const uint &, const uint &, const uint &) = 0;
+  virtual S GetSfromVertex(const uint & elementNum, const uint & transMatIndex, const uint & numRateCats) = 0;
   
   TreeNode * GetParent() {return _parent ;}
   void SetParent(TreeNode * vertexParentPoint) {_parent = vertexParentPoint ;}
