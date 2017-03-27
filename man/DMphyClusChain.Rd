@@ -9,8 +9,9 @@ DMphyClusChain(numIters, numLikThreads = 1, numMovesNNIbetween = 1,
   numSamplesForTransMat = 1e+05, meanBetweenBranchVec, meanWithinBranchVec,
   limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1,
   numGammaCat = 3, discGammaPar, Qmatrix, shapeForAlpha, scaleForAlpha,
-  shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList,
-  withinClusTransMatList)
+  shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL,
+  withinClusTransMatList = NULL, intermediateDirectory = NULL,
+  saveFrequency = 20, initialParaValues = NULL)
 }
 \arguments{
 \item{numIters}{number of iterations for the MCMC sampler}
@@ -71,6 +72,10 @@ along branches in the supporting phylogeny. See details}
 
 \item{withinClusTransMatList}{Same as betweenClusTransMatList, but for the
 within-cluster phylogenies}
+
+\item{intermediateDirectory}{Directory where intermediate results will be saved. If left unspecified, intermediate results will not be saved.}
+
+\item{saveFrequency}{Defaults to 20. Determines the frequency at which intermediate outputs will be saved. Does not apply if intermediateDirectory is left unspecified.}
 }
 \value{
 A list with two components:

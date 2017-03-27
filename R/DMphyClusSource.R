@@ -233,15 +233,24 @@ reorderTips <- function(phylogeny, newTipOrder)
   currentValue
 }
 
-.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL) {
+.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL) {
 
   if (is.matrix(withinTransMatAll[[1]])) {
     numGammaCat <- length(withinTransMatAll) ## We only have one set of substitution rate matrices.
   } else{
     numGammaCat <- length(withinTransMatAll[[1]])
   }
-
-  currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+  DNAdataBin <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
+  names(DNAdataBin) <- rownames(alignment)
+  
+  if (is.null(initialParaValues))
+  {
+    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+  } 
+  else
+  {
+    currentValue <- initializeFromParameters(initialParaValues, withinTransMatAll, betweenTransMatAll, limProbs, numLikThreads, DNAdataBin = DNAdataBin, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+  }
 
   cat("Launching chain... \n \n")
 
@@ -272,6 +281,13 @@ reorderTips <- function(phylogeny, newTipOrder)
   finalDeallocate(currentValue$extPointer)
   rm(currentValue) # Probably not needed... Once the function is done running, currentValue should go out of scope, and the destructor for AugTree should get called.
   longOut
+}
+
+initializeFromParameters <- function(initialParaValues, withinTransMatAll, betweenTransMatAll, limProbs, numLikThreads, DNAdataBin, alphaMin, shapeForAlpha, scaleForAlpha)
+{
+  currentValue$paraValues <- initialParaValues
+  currentValue$logLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
+  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
 }
 
 .relabel <- function(xVector) {
@@ -439,3 +455,118 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
 .checkArgumentsLogLikFromSplitPhylo <- function() {}
 
 .checkArgumentsLogLikFromClusInd <- function() {}
+
+dataReduction <- function(alignment, phylogeny = NULL, clusIndReference, method = "mcquitty", model = "TN93", gammaValue, limProbs, mode = c("cutpoint", "dunn")[1])
+{
+  cutpoint <- getCutpointForDataReduction(startingPhylo = phylogeny, startingClusInd = clusIndReference, alignment = alignment, method = method, model = model, gammaValue = gammaValue, limProbs = limProbs)
+  locusVec <- 1:ncol(alignment)
+  repeat
+  {
+    originalLength <- length(locusVec)
+    lapply(locusVec, FUN = function(locus) {
+      locusVecTry <- setdiff(locusVec, locus)
+      if (mode == "cutpoint")
+      {
+        removeLocus <- checkDataReductionCut(cutpoint = cutpoint, alignment = alignment[,locusVecTry], clusIndReference = clusIndReference, method = method, model = model, gammaValue = gammaValue, limProbs = limProbs)
+      }
+      else
+      {
+        removeLocus <- checkDataReductionDunn(alignment = alignment[,locusVecTry], clusIndReference = clusIndReference, method = method, model = model, gammaValue = gammaValue, limProbs = limProbs, cutpointStart = cutpoint)
+      }
+      if (removeLocus)
+      {
+        locusVec <<- locusVecTry
+      }
+    })
+    if (length(locusVec) == originalLength)
+    {
+      break
+    }
+  }
+  alignment[,locusVec]
+}
+
+getCutpointForDataReduction <- function(startingPhylo, startingClusInd, alignment, method = "mcquitty", model = "TN93", gammaValue, limProbs)
+{
+  if (!missing(startingPhylo)) 
+  {
+    distMatrix <- as.dist(cophenetic.phylo(startingPhylo))
+  }
+  else
+  {
+    distMatrix <- ape::dist.dna(x = alignment, model = model, gamma = gammaValue, pairwise.deletion = TRUE, base.freq = limProbs)
+  }
+  dendro <- hclust(d = distMatrix, method = method)
+  
+  if (!missing(startingPhylo)) 
+  {
+    cutpoint <- getCutpointKnownPhylo(startingPhylo, startingClusInd, dendro)
+  }
+  else
+  {
+    cutpoint <- getCutpointFromDunn(alignment, dendro, cutpointsToTry, distMatrix)
+  }
+  cutpoint
+}
+
+getCutpointKnownPhylo <- function(startingClusInd, dendrogram, startDist)
+{
+  funToOptim <- function(x)
+  {
+    myClusters <- cutree(tree = dendro, h = x)
+    -adjustedRandIndex(myClusters[names(startingClusInd)], startingClusInd)
+  }
+  optimResults <- optim(par = startDist, fn = funToOptim)
+  optimResults$par
+}
+
+checkDataReductionCut <- function(cutpoint, alignment, clusIndReference, method = "mcquitty", model = "TN93", gammaValue, limProbs)
+{
+  clusIndReference <- sort(clusIndReference)
+  distMatrix <- ape::dist.dna(x = alignment, model = model, gamma = gammaValue, pairwise.deletion = TRUE, base.freq = limProbs)
+  dendro <- hclust(d = distMatrix, method = method)
+  clusIndNew <- cutree(dendro, h = cutpoint)
+  clusIndNew <- clusIndNew[names(clusIndReference)]
+  boolClusIndNew <- (clusIndNew[1:(length(clusIndNew)-1)] == clusIndNew[2:length(clusIndNew)])
+  boolClusIndRef <- (clusIndRef[1:(length(clusIndRef)-1)] == clusIndRef[2:length(clusIndRef)])
+  all(boolClusIndNew == boolClusIndRef)
+}
+
+getCutpointKnownPhylo <- function(startingClusInd, dendrogram, startDist)
+{
+  funToOptim <- function(x)
+  {
+    myClusters <- cutree(tree = dendro, h = x)
+    -mclust::adjustedRandIndex(myClusters[names(startingClusInd)], startingClusInd)
+  }
+  optimResults <- optim(par = startDist, fn = funToOptim)
+  optimResults$par
+}
+
+checkDataReductionDunn <- function(alignment, clusIndReference, method = "mcquitty", model = "TN93", gammaValue, limProbs, cutpointStart)
+{
+  clusIndReference <- sort(clusIndReference)
+  distMatrix <- ape::dist.dna(x = alignment, model = model, gamma = gammaValue, pairwise.deletion = TRUE, base.freq = limProbs)
+  dendro <- hclust(d = distMatrix, method = method)
+  cutpoint <- getCutpointFromDunn(alignment = alignment, dendro = dendro, cutpointStart = cutpointStart, distMatrix = distMatrix)
+  clusIndNew <- cutree(dendro, h = cutpoint)
+  clusIndNew <- clusIndNew[names(clusIndReference)]
+  boolClusIndNew <- (clusIndNew[1:(length(clusIndNew)-1)] == clusIndNew[2:length(clusIndNew)])
+  boolClusIndRef <- (clusIndRef[1:(length(clusIndRef)-1)] == clusIndRef[2:length(clusIndRef)])
+  all(boolClusIndNew == boolClusIndRef)
+}
+
+getCutpointFromDunn <- function(alignment, dendro, cutpointStart, distMatrix)
+{
+  if (class(distMatrix) == "dist")
+  {
+    distMatrix <- as.matrix(distMatrix)
+  }
+  funToOptim <- function(x)
+  {
+    clusters <- cutree(dendro, h = x)
+    MCMCpack::dunn(distance = distMatrix, clusters = clusters)
+  }
+  optimResults <- optim(par = cutpointStart, fn = funToOptim)
+  optimResults$par
+}
