@@ -101,7 +101,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         cat("Estimating transition probability matrices for branches in the within-cluster phylogenies... ")
         allWithinMatList <- lapply(meanWithinBranchVec, FUN = function(x) {
             rateValue <- 1/x
-            outputTransMatList(QmatScaled = Qmatrix, numGammaCat = 3, gammaShape = discGammaPar, numReplicates = numSamplesForTransMat, distRanFun = rexp, rate = rateValue)
+            outputTransMatList(QmatScaled = Qmatrix, numGammaCat = numGammaCat, gammaShape = discGammaPar, numReplicates = numSamplesForTransMat, distRanFun = rexp, rate = rateValue)
         })
         cat("Done! \n \n")
     } else{
