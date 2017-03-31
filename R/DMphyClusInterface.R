@@ -64,7 +64,7 @@
 #' }
 #' @export
 
-DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar, Qmatrix, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL, withinClusTransMatList = NULL, intermediateDirectory = NULL, saveFrequency = 20, initialParaValues = NULL) {
+DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, coefVarForTransMat = 1, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar = NULL, Qmatrix = NULL, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL, withinClusTransMatList = NULL, intermediateDirectory = NULL, saveFrequency = 20, initialParaValues = NULL) {
 
     .checkInput(startingValues = startingValues, Qmatrix = Qmatrix, alignment = alignment, limProbs = limProbs, shiftForAlpha = shiftForAlpha)
     if (!is.null(rownames(alignment))) { ## The tip ordering in the starting phylogeny should match the order of the rows in the alignment.
@@ -89,9 +89,9 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         } else{}
         cat("Estimating transition probability matrices for branches in the supporting phylogeny... ")
         allBetweenMatList <- lapply(meanBetweenBranchVec, FUN = function(x) {
-            lNormMu <- log(x) - 0.3 ## 0.3 is HARD-CODED!
-            lNormSigma <- sqrt((log(x)-lNormMu)*2)
-            outputTransMatList(QmatScaled = Qmatrix, numGammaCat = 3, gammaShape = discGammaPar, numReplicates = numSamplesForTransMat, distRanFun = rlnorm, meanlog = lNormMu, sdlog = lNormSigma)
+            lNormMu <- log(x) - log(coefVarForTransMat^2+1)/2
+            lNormSigma <- sqrt(log(coefVarForTransMat^2+1))
+            outputTransMatList(QmatScaled = Qmatrix, numGammaCat = numGammaCat, gammaShape = discGammaPar, numReplicates = numSamplesForTransMat, distRanFun = rlnorm, meanlog = lNormMu, sdlog = lNormSigma)
         })
         cat("Done! \n \n")
     } else {
@@ -117,7 +117,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
     chainResult <- do.call(".DMphyClusCore", args = argsForDMcore)
 
     MAPclusInd <- chainResult[[which.max(sapply(chainResult, function(x) x$logPostProb))]]$clusInd
-    list(chain = chainResult, MAPestimate = MAPclusInd, simulationParameters = list(numIters = numIters, numLikThreads = numLikThreads, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, alignment = alignment, startingValues = startingValues, limProbs = limProbs, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, numGammaCat = numGammaCat, discGammaPar = discGammaPar, Qmatrix = Qmatrix, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, shiftForAlpha = shiftForAlpha, poisRateNumClus = poisRateNumClus, betweenClusTransMatList = allBetweenMatList, withinClusTransMatList = allWithinMatList, intermediateDirectory = intermediateDirectory, saveFrequency = saveFrequency))
+    list(chain = chainResult, MAPestimate = MAPclusInd, simulationParameters = list(numIters = numIters, numLikThreads = numLikThreads, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, alignment = alignment, startingValues = startingValues, limProbs = limProbs, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, numGammaCat = numGammaCat, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, shiftForAlpha = shiftForAlpha, poisRateNumClus = poisRateNumClus, betweenClusTransMatList = allBetweenMatList, withinClusTransMatList = allWithinMatList, intermediateDirectory = intermediateDirectory, saveFrequency = saveFrequency, discGammaPar = discGammaPar, Qmatrix = Qmatrix))
 }
 
 #' Log-prior probability for a cluster assignment indices vector.
@@ -243,104 +243,6 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
     manualDeallocation(logLikAndPointer$solutionPointer) # Automatic garbage collection is disabled, hence the need for this.
     logLikAndPointer$logLik
-}
-
-#' Cluster an alignment with DM-PhyClus (experimental).
-#'
-#' Implementation of the DM-PhyClus method described in Villandr\'{e} et al. 2017 (?).
-#'
-#' @param numItersInitialRun number of iterations for the MCMC sampler for the data reduction round.
-#' @param numItersFinalRun number of iterations for the MCMC sampler for the inference round.
-#' @param numLikThreads number of openMP threads for log-likelihood evaluations
-#' @param numMovesNNIbetween number of nearest-neighbour interchange moves
-#' used in proposing transitions in the space of between-cluster phylogenies
-#' @param numMovesNNIwithin number of nearest-neighbour interchange moves used
-#' in proposing transitions in the space of within-cluster phylogenies
-#' @param alignment matrix of characters. When using DNA data, all nucleotides
-#' and ambiguities should be coded with small letters, following the IUPAC standard
-#' @param startingValues list of starting values for the model parameters: elements
-#'named phylogeny, clusInd, and alpha are required
-#' @param numSamplesForTransMat number of random values used in Monte Carlo estimation
-#' of the transition probability matrices
-#' @param meanWithinBranchVec vector of positive numerical values giving a range of
-#' potential mean branch lengths in the within-cluster phylogenies
-#' @param meanBetweenBranchVec vector of positive numerical values giving a range of
-#' potential mean branch lengths in the between-cluster phylogeny
-#' @param limProbs vector of numerical values, with named elements, giving the limiting
-#' probabilities for all states
-#' @param clusPhyloUpdateProp number between 0 and 1 indicating the proportion of
-#' within-cluster phylogenies to update in each MCMC iteration
-#' @param numSplitMergeMoves the number of times the algorithm should try to split or
-#' merge clusters in each MCMC iteration
-#' @param numGammaCat number of among-loci substitution rate variation categories
-#' @param discGammaPar value of the the discrete gamma distribution parameter tuning
-#' among-sites rate variation
-#' @param Qmatrix substitution rate matrix with rows and columns names corresponding
-#' to states in the alignment
-#' @param shapeForAlpha shape parameter of the gamma distribution used as a prior for
-#' the Dirichlet concentration parameter
-#' @param scaleForAlpha scale parameter of the gamma distribution used as a prior for
-#' the Dirichlet concentration parameter
-#' @param shiftForAlpha minimum value the Dirichlet concentration parameter can take
-#' @param poisRateNumClus Poisson parameter for the number of clusters distribution;
-#' if left unspecified, it is set equal to the number of clusters in the startingValues
-#' @param betweenClusTransMatList list of lists of potential transition rate matrices
-#' along branches in the supporting phylogeny. See details
-#' @param withinClusTransMatList same as betweenClusTransMatList, but for the
-#' within-cluster phylogenies
-#' @param intermediateDirectory directory where intermediate results will be saved. If left unspecified, intermediate results will not be saved.
-#' @param saveFrequency defaults to 20. Determines the frequency at which intermediate outputs will be saved. Does not apply if intermediateDirectory is left unspecified.
-#' @param reductionMode method used to perform data reduction. Defaults to "cutpoint". See details.
-#' @param hclustMethod used in data reduction. Defaults to "mcquitty". See details.
-#' @param distModel used in data reduction. Defaults to "TN93". See details.
-#' @param gammaValueForReduction used in data reduction. Defaults to "TN93". See details.
-#' @details This function is essentially like DMphyClusChain, but is meant to be used with large alignments whose analysis may be difficult due to time constraints. It uses certain heuristics to take out loci that may not be essential for the clustering.
-#'
-#' @return A list with two components:
-#' \itemize{
-#'  \item{chain:} {list with each element itself a list giving the sampled parameter values.
-#' betweenTransMatListIndex and withinTransMatListIndex correspond to the index of the assumed mean
-#' branch length in meanBetweenBranchVec and meanWithinBranchVec, respectively}
-#'  \item{MAPestimate:}{ vector giving the maximum posterior probability cluster membership indices estimate}
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' INPUT_AN_EXAMPLE()
-#' }
-#' @export
-
-DMphyClusChainWithReduce <- function(numItersInitialRun, numItersFinalRun, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar, Qmatrix, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL, withinClusTransMatList = NULL, intermediateDirectory = NULL, saveFrequency = 20, cutpointStart, reductionMode = "cutpoint", hclustMethod = "mcquitty", distModel = "TN93", gammaValueForReduction)
-{
-  myArgs <- as.list(match.call())
-  basicArgsForDMphyClus <- myArgs
-  basicArgsForDMphyClus <- basicArgsForDMphyClus[-match(c("reductionMode", "hclustMethod", "distModel", "gammaValueForReduce", "numItersInitialRun", "numItersFinalRun"), names(basicArguments))]
-  argsForInitialRun <- basicArguments
-  argsForInitialRun$numIters <- numItersInitialRun
-  argsForInitialRun$intermediateDirectory <- NULL
-  
-  cat("Optimizing log-Post. prob. \n")
-  DMphyClusOutInitial <- do.call("DMphyClusChain", args = argsForInitialRun)
-  
-  cat("Done! \n Original alignment has ", ncol(alignment), " loci. \n Reducing dataset... \n ")
-  
-  newAlignment <- dataReduction(alignment = alignment, clusIndReference = DMphyClusOutInitial$MAPestimate, method = hclustMethod, model = distModel, gammaValue = gammaValueForReduction, limProbs = parasForDMphyClusShortChain$limProbs, mode = reductionMode)
-  cat("Done! New alignment has ", ncol(newAlignment), " loci. \n")
-  
-  MAPposition <- which.max(sapply(DMphyClusOutInitial$chain, FUN = function(x) x$logPostProb))
-  logLikAndlogPostProbPos <- match(c("logLik", "logPostProb"), names(DMphyClusOut$chain[[MAPposition]]))
-  MAPvaluesFromInitRun <- DMphyClusOut$chain[[MAPposition]][-logLikAndlogPostProbPos]
-  
-  argsForFinalRun <- argsForInitialRun
-  argsForFinalRun$numIters <- numItersFinalRun
-  argsForFinalRun$initialParaValues <- MAPvaluesFromInitRun
-  argsForFinalRun$intermediateDirectory <- intermediateDirectory
-  argsForFinalRun$saveFrequency <- saveFrequency
-  argsForFinalRun$withinClusTransMatList <- DMphyClusOutInitial$simulationParameters$withinClusTransMatList
-  argsForFinalRun$betweenClusTransMatList <- DMphyClusOutInitial$simulationParameters$betweenClusTransMatList
-  
-  cat("Starting final run... \n \n")
-  do.call("DMphyClusChain", args = argsForFinalRun)
 }
 
 #' @useDynLib DMphyClus

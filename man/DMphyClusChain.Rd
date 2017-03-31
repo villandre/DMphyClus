@@ -8,10 +8,11 @@ DMphyClusChain(numIters, numLikThreads = 1, numMovesNNIbetween = 1,
   numMovesNNIwithin = 1, alignment, startingValues,
   numSamplesForTransMat = 1e+05, meanBetweenBranchVec, meanWithinBranchVec,
   limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1,
-  numGammaCat = 3, discGammaPar, Qmatrix, shapeForAlpha, scaleForAlpha,
-  shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL,
-  withinClusTransMatList = NULL, intermediateDirectory = NULL,
-  saveFrequency = 20, initialParaValues = NULL)
+  numGammaCat = 3, discGammaPar = NULL, Qmatrix = NULL, shapeForAlpha,
+  scaleForAlpha, shiftForAlpha = 0, poisRateNumClus,
+  betweenClusTransMatList = NULL, withinClusTransMatList = NULL,
+  intermediateDirectory = NULL, saveFrequency = 20,
+  initialParaValues = NULL)
 }
 \arguments{
 \item{numIters}{number of iterations for the MCMC sampler}

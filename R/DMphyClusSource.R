@@ -67,7 +67,7 @@ reorderTips <- function(phylogeny, newTipOrder)
         if (length(seqsInCluster) > 1) {
           return(ape::getMRCA(currentValue$paraValues$phylogeny, seqsInCluster))
         }
-        match(seqsInCluster, currentValue$paraValues$tip.label)
+        match(seqsInCluster, currentValue$paraValues$phylogeny$tip.label)
       })
     }
     logLikAndPointer <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
@@ -428,7 +428,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
     } else{}
 
     ## Qmatrix should have named rows...
-    if (!missing(Qmatrix)) {
+    if (!is.null(Qmatrix)) {
       test <- !is.null(rownames(Qmatrix))
       if (!test) {
         warning("The Q matrix does not have row names. Assuming that the row order matches that of the elements of limProbs... \n")
