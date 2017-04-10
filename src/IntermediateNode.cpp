@@ -87,8 +87,8 @@ S IntermediateNode::GetSfromVertex(const uint & elementNum, const uint & transMa
 {
   bool childrenWithinCluster = _children.at(0)->GetWithinParentBranch() ;
   
-  return S(std::hash<S>{} (_children.at(0)->GetDictionaryIterator(elementNum, numRateCats)->first),
-           std::hash<S>{} (_children.at(1)->GetDictionaryIterator(elementNum, numRateCats)->first),
+  return S(std::hash<S>{} (_children.at(0)->GetDictionaryIterator(elementNum)->first),
+           std::hash<S>{} (_children.at(1)->GetDictionaryIterator(elementNum)->first),
            childrenWithinCluster,
            transMatIndex) ;
 }

@@ -37,3 +37,11 @@ finalDeallocate <- function(AugTreePointer) {
     invisible(.Call('DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', AugTreePointer))
 }
 
+getMaxMapSizeEstimate <- function(allowedSizeInMegs, numRateCats) {
+    .Call('DMphyClus_getMaxMapSizeEstimate', PACKAGE = 'DMphyClus', allowedSizeInMegs, numRateCats)
+}
+
+checkAndCullMap <- function(AugTreePointer, allowedNumberOfElements, cullProportion) {
+    invisible(.Call('DMphyClus_checkAndCullMap', PACKAGE = 'DMphyClus', AugTreePointer, allowedNumberOfElements, cullProportion))
+}
+

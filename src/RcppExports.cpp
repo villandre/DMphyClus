@@ -152,3 +152,27 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// getMaxMapSizeEstimate
+double getMaxMapSizeEstimate(double& allowedSizeInMegs, unsigned int& numRateCats);
+RcppExport SEXP DMphyClus_getMaxMapSizeEstimate(SEXP allowedSizeInMegsSEXP, SEXP numRateCatsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double& >::type allowedSizeInMegs(allowedSizeInMegsSEXP);
+    Rcpp::traits::input_parameter< unsigned int& >::type numRateCats(numRateCatsSEXP);
+    rcpp_result_gen = Rcpp::wrap(getMaxMapSizeEstimate(allowedSizeInMegs, numRateCats));
+    return rcpp_result_gen;
+END_RCPP
+}
+// checkAndCullMap
+void checkAndCullMap(SEXP AugTreePointer, unsigned int& allowedNumberOfElements, float& cullProportion);
+RcppExport SEXP DMphyClus_checkAndCullMap(SEXP AugTreePointerSEXP, SEXP allowedNumberOfElementsSEXP, SEXP cullProportionSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type AugTreePointer(AugTreePointerSEXP);
+    Rcpp::traits::input_parameter< unsigned int& >::type allowedNumberOfElements(allowedNumberOfElementsSEXP);
+    Rcpp::traits::input_parameter< float& >::type cullProportion(cullProportionSEXP);
+    checkAndCullMap(AugTreePointer, allowedNumberOfElements, cullProportion);
+    return R_NilValue;
+END_RCPP
+}

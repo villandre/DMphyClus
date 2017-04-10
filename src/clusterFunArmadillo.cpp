@@ -1,14 +1,13 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 //#include <gperftools/profiler.h>
-#include <omp.h>
+//#include <omp.h>
 #include <iostream>
 #include <string>
 #include <algorithm>
 #include "AugTree.h"
-#include <limits>
+//#include <limits>
 #include <gsl/gsl_rng.h>
-
 
 // [[Rcpp::plugins(openmp)]]
 
@@ -294,4 +293,54 @@ void finalDeallocate(SEXP AugTreePointer) // We need to explicitly deallocate th
   gsl_rng_free(pointedTree->GetRandomNumGenerator()) ;
   delete pointedTree->GetSolutionDictionary() ;
   delete pointedTree->GetAlignmentBinReference() ;
+}
+
+// [[Rcpp::export]]
+
+double getMaxMapSizeEstimate(double & allowedSizeInMegs, unsigned int & numRateCats)
+{
+  double numberElements = (allowedSizeInMegs*1e6)/(sizeof(S) + sizeof(mapContentType)*numRateCats + 16)  ; // This is a very rough estimate. I assume that the binary search tree implementation has two 8 bytes pointers, hence 16...
+  return floor(numberElements) ;
+}
+
+// [[Rcpp::export]]
+void checkAndCullMap(SEXP AugTreePointer, unsigned int & allowedNumberOfElements, float & cullProportion)
+{
+  XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+  std::size_t dictionarySize = pointedTree->GetSolutionDictionary()->size() ;
+  
+  if (dictionarySize > allowedNumberOfElements)
+  {
+    cout << "Culling map... Current map size: " << dictionarySize << "." << endl ;
+    float numElementsToRemove = std::ceil(allowedNumberOfElements*cullProportion) ;
+    std::vector<mapIterator> solutionsPointedTo ;
+    solutionsPointedTo.reserve(pointedTree->GetVertexVector().size()*pointedTree->GetNumLoci()) ;
+    std::vector<mapIterator> nonPointedSolutions ;
+    std::vector<mapIterator> iteratorsInMap ;
+    iteratorsInMap.reserve(pointedTree->GetSolutionDictionary()->size()) ;
+    
+    for (mapIterator i = pointedTree->GetSolutionDictionary()->begin(); i != pointedTree->GetSolutionDictionary()->end(); i++)
+    {
+      iteratorsInMap.push_back(i) ;
+    }
+    
+    for (auto & aNode : pointedTree->GetVertexVector())
+    {
+      for (int locusNum = 0 ; locusNum < pointedTree->GetNumLoci() ; locusNum++)
+      {
+        solutionsPointedTo.push_back(aNode->GetDictionaryIterator(locusNum)) ;
+      }
+    }
+    unsigned int counter = 0 ;
+    for (auto & i : iteratorsInMap)
+    {
+      if (std::find(solutionsPointedTo.begin(), solutionsPointedTo.end(), i) == solutionsPointedTo.end())
+      {
+        pointedTree->GetSolutionDictionary()->erase(i) ;
+        counter++ ;
+        if (counter == numElementsToRemove) break ;
+      }
+    }
+    cout << "New map size: " << pointedTree->GetSolutionDictionary()->size() << endl ;
+  }
 }

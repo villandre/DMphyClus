@@ -21,7 +21,7 @@ public:
   
   void InitMapAndIterVec(solutionDictionaryType &, const uint &) ;
   void RestoreIterVecAndExp() {} // Solutions for input nodes are trivial and never change. It follows that a restore should not do anything.
-  mapIterator GetDictionaryIterator(const uint & elementNum, const uint & numRateCats) {return _dictionaryIterVec.at(elementNum) ;}
+  mapIterator GetDictionaryIterator(const uint & elementNum) {return _dictionaryIterVec.at(elementNum) ;}
   S GetSfromVertex(const uint &, const uint &, const uint &) {assert(false) ;};
   
   InputNode(uint & numLoci, uint & numRates, solutionDictionaryType & solutionDictionary)
