@@ -64,6 +64,13 @@ public:
   uint GetBetweenMatListIndex() {return _betweenMatListIndex ;}
   void InvalidateBetweenSolutions() ;
   void InvalidateAllSolutions() ;
+  void ReInitMap() 
+  {
+    for (unsigned int i = 0 ; i < _numTips ; i++)
+    {
+      _vertexVector.at(i)->InitMapAndIterVec(_solutionDictionary, _numRateCats) ; // The map will have containers for the input nodes, but since their solutions are known from the start, we just need to put them in the map verbatim.
+    }
+  }
  
   void SetBetweenMatListIndex(const uint & index) {_betweenMatListIndex = index ;}
   void SetWithinMatListIndex(const uint & index) {_withinMatListIndex = index ;}

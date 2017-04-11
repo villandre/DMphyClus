@@ -313,34 +313,18 @@ void checkAndCullMap(SEXP AugTreePointer, unsigned int & allowedNumberOfElements
   {
     cout << "Culling map... Current map size: " << dictionarySize << "." << endl ;
     float numElementsToRemove = std::ceil(allowedNumberOfElements*cullProportion) ;
-    std::vector<mapIterator> solutionsPointedTo ;
-    solutionsPointedTo.reserve(pointedTree->GetVertexVector().size()*pointedTree->GetNumLoci()) ;
-    std::vector<mapIterator> nonPointedSolutions ;
-    std::vector<mapIterator> iteratorsInMap ;
-    iteratorsInMap.reserve(pointedTree->GetSolutionDictionary()->size()) ;
-    
-    for (mapIterator i = pointedTree->GetSolutionDictionary()->begin(); i != pointedTree->GetSolutionDictionary()->end(); i++)
+    mapIterator myIterator = pointedTree->GetSolutionDictionary()->begin() ;
+    if (cullProportion < 1)
     {
-      iteratorsInMap.push_back(i) ;
+      std::advance(myIterator, numElementsToRemove) ;
     }
-    
-    for (auto & aNode : pointedTree->GetVertexVector())
+    else
     {
-      for (int locusNum = 0 ; locusNum < pointedTree->GetNumLoci() ; locusNum++)
-      {
-        solutionsPointedTo.push_back(aNode->GetDictionaryIterator(locusNum)) ;
-      }
+      myIterator = pointedTree->GetSolutionDictionary()->end() ;
     }
-    unsigned int counter = 0 ;
-    for (auto & i : iteratorsInMap)
-    {
-      if (std::find(solutionsPointedTo.begin(), solutionsPointedTo.end(), i) == solutionsPointedTo.end())
-      {
-        pointedTree->GetSolutionDictionary()->erase(i) ;
-        counter++ ;
-        if (counter == numElementsToRemove) break ;
-      }
-    }
-    cout << "New map size: " << pointedTree->GetSolutionDictionary()->size() << endl ;
+    pointedTree->GetSolutionDictionary()->erase(pointedTree->GetSolutionDictionary()->begin(), myIterator) ;
+    pointedTree->InvalidateAll() ;
+    pointedTree->ReInitMap() ;
+    cout << "Final map size: " << pointedTree->GetSolutionDictionary()->size() << "." << endl ;
   }
 }
