@@ -304,7 +304,7 @@ double getMaxMapSizeEstimate(double & allowedSizeInMegs, unsigned int & numRateC
 }
 
 // [[Rcpp::export]]
-void checkAndCullMap(SEXP AugTreePointer, unsigned int & allowedNumberOfElements, float & cullProportion)
+void checkAndCullMap(SEXP AugTreePointer, unsigned int & allowedNumberOfElements, float & cullProportion, List & withinTransProbs, List & betweenTransProbs, NumericVector & limProbs)
 {
   XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
   std::size_t dictionarySize = pointedTree->GetSolutionDictionary()->size() ;
@@ -325,6 +325,10 @@ void checkAndCullMap(SEXP AugTreePointer, unsigned int & allowedNumberOfElements
     pointedTree->GetSolutionDictionary()->erase(pointedTree->GetSolutionDictionary()->begin(), myIterator) ;
     pointedTree->InvalidateAll() ;
     pointedTree->ReInitMap() ;
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ; // We recompute the log-lik to re-populate the dictionary.
     cout << "Final map size: " << pointedTree->GetSolutionDictionary()->size() << "." << endl ;
   }
 }

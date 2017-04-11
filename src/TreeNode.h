@@ -118,7 +118,6 @@ public:
   bool _withinParentBranch ; // true if the parent branch has within-cluster transition probabilities.
   iterVec _dictionaryIterVec ;
   
-  //std::vector<float> _iterMove ;
   bool _updateFlag ;
 };
 

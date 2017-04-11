@@ -41,7 +41,7 @@ getMaxMapSizeEstimate <- function(allowedSizeInMegs, numRateCats) {
     .Call('DMphyClus_getMaxMapSizeEstimate', PACKAGE = 'DMphyClus', allowedSizeInMegs, numRateCats)
 }
 
-checkAndCullMap <- function(AugTreePointer, allowedNumberOfElements, cullProportion) {
-    invisible(.Call('DMphyClus_checkAndCullMap', PACKAGE = 'DMphyClus', AugTreePointer, allowedNumberOfElements, cullProportion))
+checkAndCullMap <- function(AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs) {
+    invisible(.Call('DMphyClus_checkAndCullMap', PACKAGE = 'DMphyClus', AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs))
 }
 

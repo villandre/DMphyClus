@@ -18,7 +18,7 @@
     currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
     if (!is.null(maxMapSize))
     {
-      checkAndCullMap(currentValue$extPointer, maxMapSize, cullProportion)
+      checkAndCullMap(AugTreePointer = currentValue$extPointer, allowedNumberOfElements = maxMapSize, cullProportion = cullProportion, withinTransProbs = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransProbs = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], limProbs = limProbs)
     }
     currentValue
 }

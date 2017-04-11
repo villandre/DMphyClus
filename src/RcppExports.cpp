@@ -165,14 +165,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // checkAndCullMap
-void checkAndCullMap(SEXP AugTreePointer, unsigned int& allowedNumberOfElements, float& cullProportion);
-RcppExport SEXP DMphyClus_checkAndCullMap(SEXP AugTreePointerSEXP, SEXP allowedNumberOfElementsSEXP, SEXP cullProportionSEXP) {
+void checkAndCullMap(SEXP AugTreePointer, unsigned int& allowedNumberOfElements, float& cullProportion, List& withinTransProbs, List& betweenTransProbs, NumericVector& limProbs);
+RcppExport SEXP DMphyClus_checkAndCullMap(SEXP AugTreePointerSEXP, SEXP allowedNumberOfElementsSEXP, SEXP cullProportionSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type AugTreePointer(AugTreePointerSEXP);
     Rcpp::traits::input_parameter< unsigned int& >::type allowedNumberOfElements(allowedNumberOfElementsSEXP);
     Rcpp::traits::input_parameter< float& >::type cullProportion(cullProportionSEXP);
-    checkAndCullMap(AugTreePointer, allowedNumberOfElements, cullProportion);
+    Rcpp::traits::input_parameter< List& >::type withinTransProbs(withinTransProbsSEXP);
+    Rcpp::traits::input_parameter< List& >::type betweenTransProbs(betweenTransProbsSEXP);
+    Rcpp::traits::input_parameter< NumericVector& >::type limProbs(limProbsSEXP);
+    checkAndCullMap(AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs);
     return R_NilValue;
 END_RCPP
 }
