@@ -248,7 +248,7 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
     }
     clusMRCAs <- sapply(cladeMRCAsAndTest, function(x) x$clusMRCA)
    
-    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment))
+    logLikAndPointer <- logLikCpp(edgeMat = phylogeny$edge, clusterMRCAs = clusMRCAs, limProbsVec = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numOpenMP = numLikThreads, alignmentBin = alignmentBin, numTips = ape::Ntip(phylogeny), numLoci = ncol(alignment), withinMatListIndex = 5, betweenMatListIndex = 5) ## The 5's are placeholders. It doesn't matter here what those indices are. They are used in a MCMC setting to restore a previous configuration.
     manualDeallocation(logLikAndPointer$solutionPointer) # Automatic garbage collection is disabled, hence the need for this.
     logLikAndPointer$logLik
 }
