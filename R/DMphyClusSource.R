@@ -46,7 +46,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue
 }
 
-.initCurrentValue <- function(startingValues, DNAdataBin, betweenTransMatAll, withinTransMatAll, limProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin) {
+.initCurrentValue <- function(startingValues, DNAdataBin, betweenTransMatAll, withinTransMatAll, limProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin, poisRateNumClus) {
     currentValue <- list()
     startingValues$phylogeny$node.label <- NULL
 
@@ -80,7 +80,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$alignmentBinPointer <- logLikAndPointer$alignmentBinPointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
-    currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
+    currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(length(currentValue$clusterCounts), lambda = poisRateNumClus, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
     currentValue
 }
 
@@ -249,7 +249,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   
   if (is.null(initialParaValues))
   {
-    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, poisRateNumClus = poisRateNumClus)
   } 
   else
   {
