@@ -60,8 +60,16 @@ reorderTips <- function(phylogeny, newTipOrder)
       startingValues$clusInd[numberPosClusInd] <- paste(startingValues$clusInd[numberPosClusInd], "unique", sep = "")
     } else{}
     currentValue$paraValues <- startingValues ## Initializing starting values. Note that the cluster indices are initialized in the wrapper function onePolyaIter.
-    currentValue$paraValues$betweenMatListIndex <- ceiling(length(betweenTransMatAll)/2)
-    currentValue$paraValues$withinMatListIndex <- ceiling(length(withinTransMatAll)/2)
+    currentValue$paraValues$betweenMatListIndex <- startingValues$betweenMatListIndex
+    if (is.null(startingValues$betweenMatListIndex))
+    {
+      currentValue$paraValues$betweenMatListIndex <- ceiling(length(betweenTransMatAll)/2)
+    }
+    currentValue$paraValues$withinMatListIndex <- startingValues$withinMatListIndex
+    if (is.null(startingValues$withinMatListIndex))
+    {
+      currentValue$paraValues$withinMatListIndex <- ceiling(length(withinTransMatAll)/2)
+    }
     currentValue$paraValues$clusInd <- startingValues$clusInd[startingValues$phylogeny$tip.label]
 
     if (max(currentValue$paraValues$clusInd) == 1) {
