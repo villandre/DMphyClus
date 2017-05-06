@@ -401,7 +401,7 @@ getNNIbetweenPhylo <- function(phylogeny, clusterMRCAs, numMovesNNI) {
 
 .checkInput <- function(startingValues, Qmatrix, alignment, limProbs, shiftForAlpha) {
     ## Check if all necessary starting values are defined...
-    test <- all(names(startingValues) %in% c("alpha", "clusInd", "phylogeny"))
+    test <- all(c("alpha", "clusInd", "phylogeny") %in% names(startingValues))
     if (!test) {
         cat("Missing elements in startingValue list: ", paste(setdiff(c("alpha", "clusInd", "phylogeny"), names(startingValues)), sep = ", "),"\n")
         stop()
