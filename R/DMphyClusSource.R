@@ -94,7 +94,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue
 }
 
-.performSplit <- function(currentValue, numSplits, clusNumber, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
+.performSplit <- function(currentValue, numMoves, clusNumber, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
 
   currentPhylo <- currentValue$paraValues$phylogeny ## This is merely an alias. It won't be modified, so it won't be copied.
   
@@ -121,11 +121,12 @@ reorderTips <- function(phylogeny, newTipOrder)
   ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
   ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
   numPairsNew <- length(ancestorsGroupsPairsNew)
-  transKernRatio <- numSplits/numPairsNew
+  numSplitsNew <- sum(newCounts > 1)
+  transKernRatio <- numMoves/(numPairsNew + numSplitsNew)
   list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
-.performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numPairs) {
+.performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numMoves) {
     
   currentClusMRCAs <- currentValue$paraValues$clusterNodeIndices
   currentPhylo <- currentValue$paraValues$phylogeny
@@ -139,7 +140,12 @@ reorderTips <- function(phylogeny, newTipOrder)
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
   newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dpois(length(newCounts), lambda = poisRateNumClus, log = TRUE) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
-  transKernRatio <- numPairs/sum(newCounts>1)
+  tipAncestorsNew <- phangorn::Ancestors(currentPhylo, node = newClusMRCAs, type = "parent")
+  ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
+  ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
+  numPairsNew <- length(ancestorsGroupsPairsNew)
+  numSplitsNew <- sum(newCounts > 1)
+  transKernRatio <- numMoves/(numSplitsNew + numPairsNew)
   list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
@@ -157,33 +163,23 @@ reorderTips <- function(phylogeny, newTipOrder)
       numPairs <- 0
     }
     clustersToSplit <- names(currentValue$clusterCounts)[currentValue$clusterCounts > 1] 
-
-    if ((numPairs > 0) & (length(clustersToSplit) > 0)) 
-    {
-      splitMove <- runif(1)<0.5
-    }
-    else if (numPairs > 0)
-    {
-      splitMove <- FALSE
-    } 
-    else if (length(clustersToSplit) > 0)
+    numMoves <- numPairs+length(clustersToSplit)
+    selectedMove <- sample(1:numMoves, size = 1)
+    splitMove <- FALSE
+    if (selectedMove > numPairs)
     {
       splitMove <- TRUE
-    } 
-    else
-    {
-      return(currentValue) ## No move is possible in this setting, so the algorithm simply omits this step.
     }
     
     if (splitMove) 
     {
-      clusNumber <- sample(as.numeric(clustersToSplit), size = 1)
-      splitMergeResult <- .performSplit(currentValue = currentValue, numSplits = length(clustersToSplit), clusNumber = clusNumber, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
+      clusNumber <- as.numeric(clustersToSplit)[selectedMove - numPairs]
+      splitMergeResult <- .performSplit(currentValue = currentValue, numMoves = numMoves, clusNumber = clusNumber, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
     } 
     else
     {
-      pairToSelect <- sample.int(n = numPairs, size = 1)
-      splitMergeResult <- .performMerge(currentValue = currentValue, clusMRCAsToMerge = ancestorsGroupsPairs[[pairToSelect]], DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, numPairs = numPairs)
+      pairToSelect <- selectedMove
+      splitMergeResult <- .performMerge(currentValue = currentValue, clusMRCAsToMerge = ancestorsGroupsPairs[[pairToSelect]], DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, numMoves = numMoves)
     }
     MHratio <- splitMergeResult$transKernRatio*exp(splitMergeResult$logPostProb - currentValue$logPostProb)
     
