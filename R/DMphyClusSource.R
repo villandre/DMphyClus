@@ -255,7 +255,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   currentValue
 }
 
-.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL, maxMapSize = NULL, cullProportion = NULL) {
+.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL, maxMapSize = NULL, cullProportion = NULL, numClusters = NULL) {
 
   if (is.matrix(withinTransMatAll[[1]])) {
     numGammaCat <- length(withinTransMatAll) ## We only have one set of substitution rate matrices.
@@ -264,10 +264,13 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   DNAdataBin <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
   names(DNAdataBin) <- rownames(alignment)
-  assumedNumClusters <- ceiling(max(startingValues$clusInd)*2)
+  if (is.null(numClusters))
+  {
+    numClusters <- ceiling(max(startingValues$clusInd)*2)
+  }
   if (is.null(initialParaValues))
   {
-    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, poisRateNumClus = poisRateNumClus, numClusters = assumedNumClusters)
+    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, poisRateNumClus = poisRateNumClus, numClusters = numClusters)
   } 
   else
   {
@@ -284,7 +287,7 @@ reorderTips <- function(phylogeny, newTipOrder)
       setTxtProgressBar(pb = progress, value = x/nIter)
     } else{}
 
-    currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves, maxMapSize = maxMapSize, cullProportion = cullProportion, numClusters = assumedNumClusters)
+    currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves, maxMapSize = maxMapSize, cullProportion = cullProportion, numClusters = numClusters)
 
     paraVec <- currentValue$paraValues
     output <- c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
