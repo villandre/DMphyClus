@@ -12,10 +12,10 @@
 
     currentValue <- .updateClusterPhylos(currentValue = currentValue, limProbs = limProbs, betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], numMovesNNI = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, clusPhyloUpdateProp = clusPhyloUpdateProp) ## This step updates the cluster-specific phylogenies. It is the slowest step.
     lapply(1:numSplitMergeMoves, FUN = function(x) { ## Should this be made into a recursive function call?
-        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin)
+        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin, numClusters = numClusters)
     })
 
-    currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
+    currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin, numClusters = numClusters)
     if (!is.null(maxMapSize))
     {
       checkAndCullMap(AugTreePointer = currentValue$extPointer, allowedNumberOfElements = maxMapSize, cullProportion = cullProportion, withinTransProbs = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransProbs = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], limProbs = limProbs)
@@ -33,17 +33,17 @@ reorderTips <- function(phylogeny, newTipOrder)
   phylogeny
 }
 
-.updateAlpha <- function(currentValue, shapeForAlpha, scaleForAlpha, alphaMin = 6) {
+.updateAlpha <- function(currentValue, shapeForAlpha, scaleForAlpha, alphaMin = 6, numClusters) {
     increment <- (runif(1) - 0.5)
     newAlpha <- currentValue$paraValues$alpha + increment
     newAlpha <- newAlpha + abs(newAlpha - alphaMin)*(newAlpha < alphaMin)
     newLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = newAlpha) + dgamma(newAlpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
-    currentLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
-    poisContrib <- currentValue$logPostProb - currentValue$logLik - currentLogPrior
+    currentLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
+    
     MHratio <- exp(newLogPrior - currentLogPrior)
     if (runif(1) < MHratio) {
         currentValue$paraValues$alpha <- newAlpha
-        currentValue$logPostProb <- currentValue$logLik + newLogPrior + poisContrib
+        currentValue$logPostProb <- currentValue$logLik + newLogPrior
     } else{}
     currentValue
 }
