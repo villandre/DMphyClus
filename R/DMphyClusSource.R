@@ -37,7 +37,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     increment <- (runif(1) - 0.5)
     newAlpha <- currentValue$paraValues$alpha + increment
     newAlpha <- newAlpha + abs(newAlpha - alphaMin)*(newAlpha < alphaMin)
-    newLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = newAlpha) + dgamma(newAlpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
+    newLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = newAlpha, k = numClusters) + dgamma(newAlpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
     currentLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
     
     MHratio <- exp(newLogPrior - currentLogPrior)
@@ -308,11 +308,11 @@ reorderTips <- function(phylogeny, newTipOrder)
   longOut
 }
 
-initializeFromParameters <- function(initialParaValues, withinTransMatAll, betweenTransMatAll, limProbs, numLikThreads, DNAdataBin, alphaMin, shapeForAlpha, scaleForAlpha)
+initializeFromParameters <- function(initialParaValues, withinTransMatAll, betweenTransMatAll, limProbs, numLikThreads, DNAdataBin, alphaMin, shapeForAlpha, scaleForAlpha, numClusters)
 {
   currentValue$paraValues <- initialParaValues
   currentValue$logLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin[[1]]), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
-  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
+  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
 }
 
 .relabel <- function(xVector) {
