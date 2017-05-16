@@ -116,7 +116,7 @@ SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaM
 
 // [[Rcpp::export]]
 
-double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, List & newBetweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newBetweenMatListIndex, NumericVector & limProbs) 
+double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, List & newBetweenTransProbs, uint & numOpenMP, uint & newBetweenMatListIndex, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
@@ -141,7 +141,7 @@ double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, 
 
 // [[Rcpp::export]]
 
-double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs, List & betweenTransProbs, IntegerMatrix & edgeMat, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
+double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs, List & betweenTransProbs, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ; 
   if (!(AugTreePointer == NULL)) 
@@ -167,7 +167,7 @@ double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs
 
 // [[Rcpp::export]]
 
-List withinClusNNIlogLik(SEXP AugTreePointer, IntegerMatrix & edgeMat, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
+List withinClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
@@ -206,7 +206,7 @@ List withinClusNNIlogLik(SEXP AugTreePointer, IntegerMatrix & edgeMat, List & wi
 
 // [[Rcpp::export]]
 
-List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, IntegerMatrix & edgeMat, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
+List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL)) 
@@ -245,7 +245,7 @@ List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & b
 
 // [[Rcpp::export]]
 
-double clusSplitMergeLogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, IntegerMatrix & edgeMat, uint & numOpenMP, NumericVector & limProbs) 
+double clusSplitMergeLogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, uint & numOpenMP, NumericVector & limProbs) 
 {
   //omp_set_num_threads(numOpenMP) ;
   if (!(AugTreePointer == NULL))
