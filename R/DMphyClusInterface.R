@@ -218,7 +218,8 @@ logLikFromClusInd <- function(phylogeny, betweenTransMatList, withinTransMatList
         environment(.checkArgumentsLogLikFromClusInd) <- environment()
         .checkArgumentsLogLikFromClusInd()
     } else{}
-
+    
+    alignment <- alignment[phylogeny$tip.label,]
     dataBin <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
     names(dataBin) <- rownames(alignment)
     
