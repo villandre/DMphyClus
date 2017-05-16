@@ -9,24 +9,24 @@ getConvertedAlignment <- function(equivVector, alignmentAlphaMat) {
     .Call('DMphyClus_getConvertedAlignment', PACKAGE = 'DMphyClus', equivVector, alignmentAlphaMat)
 }
 
-newBetweenTransProbsLogLik <- function(AugTreePointer, withinTransProbs, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex, limProbs) {
-    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, newBetweenTransProbs, edgeMat, numOpenMP, newBetweenMatListIndex, limProbs)
+newBetweenTransProbsLogLik <- function(AugTreePointer, withinTransProbs, newBetweenTransProbs, numOpenMP, newBetweenMatListIndex, limProbs) {
+    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, newBetweenTransProbs, numOpenMP, newBetweenMatListIndex, limProbs)
 }
 
-newWithinTransProbsLogLik <- function(AugTreePointer, newWithinTransProbs, betweenTransProbs, edgeMat, numOpenMP, newWithinMatListIndex, limProbs) {
-    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, newWithinTransProbs, betweenTransProbs, edgeMat, numOpenMP, newWithinMatListIndex, limProbs)
+newWithinTransProbsLogLik <- function(AugTreePointer, newWithinTransProbs, betweenTransProbs, numOpenMP, newWithinMatListIndex, limProbs) {
+    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, newWithinTransProbs, betweenTransProbs, numOpenMP, newWithinMatListIndex, limProbs)
 }
 
-withinClusNNIlogLik <- function(AugTreePointer, edgeMat, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs) {
-    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs)
+withinClusNNIlogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs) {
+    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs)
 }
 
-betweenClusNNIlogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP, limProbs) {
-    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, edgeMat, numMovesNNI, numOpenMP, limProbs)
+betweenClusNNIlogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, numMovesNNI, numOpenMP, limProbs) {
+    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, numMovesNNI, numOpenMP, limProbs)
 }
 
-clusSplitMergeLogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP, limProbs) {
-    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, edgeMat, numOpenMP, limProbs)
+clusSplitMergeLogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, numOpenMP, limProbs) {
+    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, numOpenMP, limProbs)
 }
 
 RestorePreviousConfig <- function(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove) {
