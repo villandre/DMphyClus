@@ -93,7 +93,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$alignmentBinPointer <- logLikAndPointer$alignmentBinPointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
-    currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(currentValue$paraValues$clusInd), lambda = poisRateNumClus) ## The starting value for log-posterior probability for the starting partition.
+    currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(currentValue$paraValues$clusInd), lambda = poisRateNumClus, log = TRUE) ## The starting value for log-posterior probability for the starting partition.
     currentValue
 }
 
@@ -118,7 +118,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   newClusInd <- shortRecursive(newClusNodes, c(clusNumber, (length(currentValue$paraValues$clusterNodeIndices)+1):length(newClusMRCAs)), currentValue$paraValues$clusInd) ## I wonder if this is more efficient than apply + <<-...
   newCounts <- table(newClusInd)
-  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(newClusInd), lambda = poisRateNumClus) ## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
+  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(newClusInd), lambda = poisRateNumClus, log = TRUE) ## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
   
   tipAncestorsNew <- phangorn::Ancestors(currentPhylo, node = newClusMRCAs, type = "parent")
   ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
@@ -142,7 +142,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
-  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(newClusInd), lambda = poisRateNumClus) ## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
+  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(newClusInd), lambda = poisRateNumClus, log = TRUE) ## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
   tipAncestorsNew <- phangorn::Ancestors(currentPhylo, node = newClusMRCAs, type = "parent")
   ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
   ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
@@ -307,7 +307,7 @@ initializeFromParameters <- function(initialParaValues, withinTransMatAll, betwe
 {
   currentValue$paraValues <- initialParaValues
   currentValue$logLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin[[1]]), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
-  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(currentValue$paraValues$clusInd), lambda = poisRateNumClus)
+  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE) + dpois(max(currentValue$paraValues$clusInd), lambda = poisRateNumClus, log = TRUE)
 }
 
 .relabel <- function(xVector) {
