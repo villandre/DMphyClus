@@ -41,7 +41,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     newAlpha <- newAlpha + abs(newAlpha - alphaMin)*(newAlpha < alphaMin)
     newLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = newAlpha) + dgamma(newAlpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
     currentLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
-    poisContrib <- currentValue$logPostProb - currentLogPrior
+    poisContrib <- currentValue$logPostProb - currentLogPrior - currentValue$logLik
     
     MHratio <- exp(newLogPrior - currentLogPrior)
     if (runif(1) < MHratio) {
