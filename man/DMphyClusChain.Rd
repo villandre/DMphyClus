@@ -13,7 +13,7 @@ DMphyClusChain(numIters, numLikThreads = 1, numMovesNNIbetween = 1,
   shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL,
   withinClusTransMatList = NULL, intermediateDirectory = NULL,
   saveFrequency = 20, initialParaValues = NULL, maxMemory = NULL,
-  cullProportion = NULL)
+  cullProportion = NULL, numClusters = NULL)
 }
 \arguments{
 \item{numIters}{number of iterations for the MCMC sampler}
@@ -82,6 +82,8 @@ within-cluster phylogenies}
 \item{maxMemory}{maximum memory size (in megs).}
 
 \item{cullProportion}{the proportion of entries that must be removed when the solution dictionary is culled.}
+
+\item{numClusters}{(experimental) the number of clusters}
 }
 \value{
 A list with two components:

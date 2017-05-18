@@ -1,21 +1,23 @@
-.performStepPhylo <- function(currentValue, limProbs, shapePriorAlpha, scalePriorAlpha, numGammaCat, betweenTransMatAll, withinTransMatAll, enableJainNeal = FALSE, currentIter, DNAdata, numNeighbours, numMovesNNIbetween = 1, numMovesNNIwithin = 1, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp = 1, alphaMin, numSplitMergeMoves, maxMapSize = NULL, cullProportion = NULL, numClusters) {
+.performStepPhylo <- function(currentValue, limProbs, shapePriorAlpha, scalePriorAlpha, numGammaCat, betweenTransMatAll, withinTransMatAll, enableJainNeal = FALSE, currentIter, DNAdata, numNeighbours, numMovesNNIbetween = 1, numMovesNNIwithin = 1, numLikThreads, DNAdataBin, poisRateNumClus, clusPhyloUpdateProp = 1, alphaMin, numSplitMergeMoves, maxMapSize = NULL, cullProportion = NULL, togglePhyloUpdates = TRUE) {
   
   if (max(currentValue$paraValues$clusInd) > 1) {
       currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = betweenTransMatAll, transMatsNoChange = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], samplingRadius = 2, betweenBool = TRUE, limProbs = limProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
     }
     
     currentValue <- .updateTransMatrix(currentValue = currentValue, allTransMatList = withinTransMatAll, transMatsNoChange = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], samplingRadius = 2, betweenBool = FALSE, limProbs = limProbs, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin)
-
-    if (max(currentValue$paraValues$clusInd) > 2) {
+    if (togglePhyloUpdates)
+    {
+      if (max(currentValue$paraValues$clusInd) > 2) {
         currentValue <- .updateBetweenPhylo(currentValue = currentValue, limProbs = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numMovesNNI = numMovesNNIbetween, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin) ## This step updates the supporting phylogeny.
-    } else{}
-
-    currentValue <- .updateClusterPhylos(currentValue = currentValue, limProbs = limProbs, betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], numMovesNNI = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, clusPhyloUpdateProp = clusPhyloUpdateProp) ## This step updates the cluster-specific phylogenies. It is the slowest step.
+      } else{}
+      
+      currentValue <- .updateClusterPhylos(currentValue = currentValue, limProbs = limProbs, betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], numMovesNNI = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, clusPhyloUpdateProp = clusPhyloUpdateProp)    ## This step updates the cluster-specific phylogenies. It is the slowest step.
+    }
     lapply(1:numSplitMergeMoves, FUN = function(x) { ## Should this be made into a recursive function call?
-        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin, numClusters = numClusters)
+        currentValue <<- .splitJoinClusterMove(currentValue = currentValue, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapePriorAlpha, scaleForAlpha = scalePriorAlpha, alphaMin = alphaMin)
     })
 
-    currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin, numClusters = numClusters)
+    currentValue <- .updateAlpha(currentValue, shapePriorAlpha, scalePriorAlpha, alphaMin = alphaMin)
     if (!is.null(maxMapSize))
     {
       checkAndCullMap(AugTreePointer = currentValue$extPointer, allowedNumberOfElements = maxMapSize, cullProportion = cullProportion, withinTransProbs = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransProbs = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], limProbs = limProbs)
@@ -33,12 +35,12 @@ reorderTips <- function(phylogeny, newTipOrder)
   phylogeny
 }
 
-.updateAlpha <- function(currentValue, shapeForAlpha, scaleForAlpha, alphaMin = 6, numClusters) {
+.updateAlpha <- function(currentValue, shapeForAlpha, scaleForAlpha, alphaMin = 6) {
     increment <- (runif(1) - 0.5)
     newAlpha <- currentValue$paraValues$alpha + increment
     newAlpha <- newAlpha + abs(newAlpha - alphaMin)*(newAlpha < alphaMin)
-    newLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = newAlpha, k = numClusters) + dgamma(newAlpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
-    currentLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
+    newLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = newAlpha) + dgamma(newAlpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
+    currentLogPrior <- clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
     
     MHratio <- exp(newLogPrior - currentLogPrior)
     if (runif(1) < MHratio) {
@@ -48,7 +50,7 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue
 }
 
-.initCurrentValue <- function(startingValues, DNAdataBin, betweenTransMatAll, withinTransMatAll, limProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin, poisRateNumClus, numClusters) {
+.initCurrentValue <- function(startingValues, DNAdataBin, betweenTransMatAll, withinTransMatAll, limProbs, numLikThreads, shapeForAlpha, scaleForAlpha, alphaMin, poisRateNumClus) {
     currentValue <- list()
     startingValues$phylogeny$node.label <- NULL
 
@@ -90,11 +92,11 @@ reorderTips <- function(phylogeny, newTipOrder)
     currentValue$alignmentBinPointer <- logLikAndPointer$alignmentBinPointer
     currentValue$clusterCounts <- as.vector(table(currentValue$paraValues$clusInd)) ## The as.vector ensures that clusterCounts behaves always as a vector, but it removes the names.
     names(currentValue$clusterCounts) <- 1:max(currentValue$paraValues$clusInd) ## This once again rests on the assumption that there is no gap in the cluster labels. This is an assumption we made before. Names are needed sometimes, although it is better to index by number, rather than by name (must require looking into an index).
-    currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)  ## The starting value for log-posterior probability for the starting partition.
+    currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)  ## The starting value for log-posterior probability for the starting partition.
     currentValue
 }
 
-.performSplit <- function(currentValue, numMoves, clusNumber, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numClusters) {
+.performSplit <- function(currentValue, numMoves, clusNumber, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
 
   currentPhylo <- currentValue$paraValues$phylogeny ## This is merely an alias. It won't be modified, so it won't be copied.
   
@@ -115,7 +117,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   newClusInd <- shortRecursive(newClusNodes, c(clusNumber, (length(currentValue$paraValues$clusterNodeIndices)+1):length(newClusMRCAs)), currentValue$paraValues$clusInd) ## I wonder if this is more efficient than apply + <<-...
   newCounts <- table(newClusInd)
-  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
+  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
   
   tipAncestorsNew <- phangorn::Ancestors(currentPhylo, node = newClusMRCAs, type = "parent")
   ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
@@ -126,7 +128,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
-.performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numMoves, numClusters) {
+.performMerge <- function(currentValue, clusMRCAsToMerge, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, tipAncestors, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numMoves) {
     
   currentClusMRCAs <- currentValue$paraValues$clusterNodeIndices
   currentPhylo <- currentValue$paraValues$phylogeny
@@ -139,7 +141,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   
   newClusInd <- replace(currentValue$paraValues$clusInd, which(currentValue$paraValues$clusInd %in% clusToMergeNumbers), min(clusToMergeNumbers)) ## New cluster takes the lowest index of the merged clusters, creating a gap.
   newCounts <- table(newClusInd)
-  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
+  newLogPostProb <- newLogLik + clusIndLogPrior(clusInd = newClusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)## Added the Poisson log-prob. to reflect a Poisson prior on the total number of clusters.
   tipAncestorsNew <- phangorn::Ancestors(currentPhylo, node = newClusMRCAs, type = "parent")
   ancestorsGroupsNew <- split(tipAncestorsNew, f = tipAncestorsNew)
   ancestorsGroupsPairsNew <- ancestorsGroupsNew[vapply(ancestorsGroupsNew, FUN = function(x) {length(x) > 1}, FUN.VALUE = c(Return = TRUE))]
@@ -149,7 +151,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   list(logLik = newLogLik, clusInd = newClusInd, counts = newCounts, logPostProb = newLogPostProb, transKernRatio = transKernRatio, clusterNodeIndices = newClusMRCAs)
 }
 
-.splitJoinClusterMove <- function(currentValue, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin, numClusters) {
+.splitJoinClusterMove <- function(currentValue, DNAdataBin, limProbs, withinTransMatList, betweenTransMatList, numLikThreads, poisRateNumClus, shapeForAlpha, scaleForAlpha, alphaMin) {
 
     if (length(currentValue$paraValues$clusterNodeIndices) > 1) 
     {
@@ -162,15 +164,10 @@ reorderTips <- function(phylogeny, newTipOrder)
     {
       numPairs <- 0
     }
-    if (max(currentValue$paraValues$clusInd) == numClusters)
-    {
-      numSplits <- 0
-    }
-    else
-    {
-      clustersToSplit <- names(currentValue$clusterCounts)[currentValue$clusterCounts > 1] 
-      numSplits <- length(clustersToSplit)
-    }
+    
+    clustersToSplit <- names(currentValue$clusterCounts)[currentValue$clusterCounts > 1] 
+    numSplits <- length(clustersToSplit)
+   
     numMoves <- numPairs+numSplits
     if (numMoves == 0)
     {
@@ -186,12 +183,12 @@ reorderTips <- function(phylogeny, newTipOrder)
     if (splitMove) 
     {
       clusNumber <- as.numeric(clustersToSplit)[selectedMove - numPairs]
-      splitMergeResult <- .performSplit(currentValue = currentValue, numMoves = numMoves, clusNumber = clusNumber, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, numClusters = numClusters)
+      splitMergeResult <- .performSplit(currentValue = currentValue, numMoves = numMoves, clusNumber = clusNumber, DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin)
     } 
     else
     {
       pairToSelect <- selectedMove
-      splitMergeResult <- .performMerge(currentValue = currentValue, clusMRCAsToMerge = ancestorsGroupsPairs[[pairToSelect]], DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, numMoves = numMoves, numClusters = numClusters)
+      splitMergeResult <- .performMerge(currentValue = currentValue, clusMRCAsToMerge = ancestorsGroupsPairs[[pairToSelect]], DNAdataBin = DNAdataBin, limProbs = limProbs, withinTransMatList = withinTransMatList, betweenTransMatList = betweenTransMatList, numLikThreads = numLikThreads, tipAncestors = tipAncestors, poisRateNumClus = poisRateNumClus, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, numMoves = numMoves)
     }
     MHratio <- splitMergeResult$transKernRatio*exp(splitMergeResult$logPostProb - currentValue$logPostProb)
     
@@ -255,7 +252,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   currentValue
 }
 
-.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL, maxMapSize = NULL, cullProportion = NULL, numClusters = NULL) {
+.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL, maxMapSize = NULL, cullProportion = NULL, togglePhyloUpdates = TRUE) {
 
   if (is.matrix(withinTransMatAll[[1]])) {
     numGammaCat <- length(withinTransMatAll) ## We only have one set of substitution rate matrices.
@@ -264,13 +261,10 @@ reorderTips <- function(phylogeny, newTipOrder)
   }
   DNAdataBin <- getConvertedAlignment(alignmentAlphaMat = alignment, equivVector = names(limProbs))
   names(DNAdataBin) <- rownames(alignment)
-  if (is.null(numClusters))
-  {
-    numClusters <- ceiling(max(startingValues$clusInd)*2)
-  }
+  
   if (is.null(initialParaValues))
   {
-    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, poisRateNumClus = poisRateNumClus, numClusters = numClusters)
+    currentValue <- .initCurrentValue(startingValues = startingValues, DNAdataBin = DNAdataBin, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, limProbs = limProbs, numLikThreads = numLikThreads, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = alphaMin, poisRateNumClus = poisRateNumClus)
   } 
   else
   {
@@ -287,7 +281,7 @@ reorderTips <- function(phylogeny, newTipOrder)
       setTxtProgressBar(pb = progress, value = x/nIter)
     } else{}
 
-    currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves, maxMapSize = maxMapSize, cullProportion = cullProportion, numClusters = numClusters)
+    currentValue <<- .performStepPhylo(currentValue = currentValue, limProbs = limProbs, shapePriorAlpha = shapeForAlpha, scalePriorAlpha = scaleForAlpha, withinTransMatAll = withinTransMatAll, betweenTransMatAll = betweenTransMatAll, currentIter = x, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, DNAdataBin = DNAdataBin, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, alphaMin = alphaMin, numSplitMergeMoves = numSplitMergeMoves, maxMapSize = maxMapSize, cullProportion = cullProportion, togglePhyloUpdates = togglePhyloUpdates)
 
     paraVec <- currentValue$paraValues
     output <- c(paraVec, list(logPostProb = currentValue$logPostProb), list(logLik = currentValue$logLik))
@@ -308,11 +302,11 @@ reorderTips <- function(phylogeny, newTipOrder)
   longOut
 }
 
-initializeFromParameters <- function(initialParaValues, withinTransMatAll, betweenTransMatAll, limProbs, numLikThreads, DNAdataBin, alphaMin, shapeForAlpha, scaleForAlpha, numClusters)
+initializeFromParameters <- function(initialParaValues, withinTransMatAll, betweenTransMatAll, limProbs, numLikThreads, DNAdataBin, alphaMin, shapeForAlpha, scaleForAlpha)
 {
   currentValue$paraValues <- initialParaValues
   currentValue$logLik <- logLikCpp(edgeMat = currentValue$paraValues$phylogeny$edge, limProbsVec = limProbs, withinTransMatList = withinTransMatAll[[currentValue$paraValues$withinMatListIndex]], betweenTransMatList = betweenTransMatAll[[currentValue$paraValues$betweenMatListIndex]], numOpenMP = numLikThreads, alignmentBin = DNAdataBin, clusterMRCAs = currentValue$paraValues$clusterNodeIndices, numTips = ape::Ntip(currentValue$paraValues$phylogeny), numLoci = length(DNAdataBin[[1]]), withinMatListIndex = currentValue$paraValues$withinMatListIndex, betweenMatListIndex = currentValue$paraValues$betweenMatListIndex)
-  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha, k = numClusters) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
+  currentValue$logPostProb <- currentValue$logLik + clusIndLogPrior(clusInd = currentValue$paraValues$clusInd, alpha = currentValue$paraValues$alpha) + dgamma(currentValue$paraValues$alpha - alphaMin, shape = shapeForAlpha, scale = scaleForAlpha, log = TRUE)
 }
 
 .relabel <- function(xVector) {

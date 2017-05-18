@@ -44,7 +44,7 @@
 #' @param saveFrequency Defaults to 20. Determines the frequency at which intermediate outputs will be saved. Does not apply if intermediateDirectory is left unspecified.
 #' @param maxMemory maximum memory size (in megs).
 #' @param cullProportion the proportion of entries that must be removed when the solution dictionary is culled. 
-#' @param numClusters (experimental) the number of clusters
+#' @param togglePhyloUpdates (experimental) should the phylogeny be updated?
 #'
 #' @details It is possible to supply transition probability matrices directly to the function
 #' by specifying values for betweenClusTransMatList and withinClusTransMatList. Since estimating
@@ -67,7 +67,7 @@
 #' }
 #' @export
 
-DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, coefVarForTransMat = 1, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar = NULL, Qmatrix = NULL, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL, withinClusTransMatList = NULL, intermediateDirectory = NULL, saveFrequency = 20, initialParaValues = NULL, maxMemory = NULL, cullProportion = NULL, numClusters = NULL) {
+DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, numMovesNNIwithin = 1, alignment, startingValues, numSamplesForTransMat = 1e5, coefVarForTransMat = 1, meanBetweenBranchVec, meanWithinBranchVec, limProbs, clusPhyloUpdateProp = 1, numSplitMergeMoves = 1, numGammaCat = 3, discGammaPar = NULL, Qmatrix = NULL, shapeForAlpha, scaleForAlpha, shiftForAlpha = 0, poisRateNumClus, betweenClusTransMatList = NULL, withinClusTransMatList = NULL, intermediateDirectory = NULL, saveFrequency = 20, initialParaValues = NULL, maxMemory = NULL, cullProportion = NULL, togglePhyloUpdates = TRUE) {
 
     .checkInput(startingValues = startingValues, Qmatrix = Qmatrix, alignment = alignment, limProbs = limProbs, shiftForAlpha = shiftForAlpha)
     if (!is.null(rownames(alignment))) { ## The tip ordering in the starting phylogeny should match the order of the rows in the alignment.
@@ -121,7 +121,7 @@ DMphyClusChain <- function(numIters, numLikThreads = 1, numMovesNNIbetween = 1, 
         poisRateNumClus <- max(startingValues$clusInd)
     } else{}
     
-    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, withinTransMatAll = allWithinMatList, betweenTransMatAll = allBetweenMatList, alignment = alignment, intermediateDirectory = intermediateDirectory, saveFrequency = saveFrequency, initialParaValues = initialParaValues, maxMapSize = maxMapSize, cullProportion = cullProportion, numClusters = numClusters)
+    argsForDMcore <- list(nIter = numIters, startingValues = startingValues, limProbs = limProbs, numMovesNNIbetween = numMovesNNIbetween, numMovesNNIwithin = numMovesNNIwithin, numLikThreads = numLikThreads, poisRateNumClus = poisRateNumClus, clusPhyloUpdateProp = clusPhyloUpdateProp, numSplitMergeMoves = numSplitMergeMoves, shapeForAlpha = shapeForAlpha, scaleForAlpha = scaleForAlpha, alphaMin = shiftForAlpha, withinTransMatAll = allWithinMatList, betweenTransMatAll = allBetweenMatList, alignment = alignment, intermediateDirectory = intermediateDirectory, saveFrequency = saveFrequency, initialParaValues = initialParaValues, maxMapSize = maxMapSize, cullProportion = cullProportion, togglePhyloUpdates = togglePhyloUpdates)
 
     chainResult <- do.call(".DMphyClusCore", args = argsForDMcore)
 
