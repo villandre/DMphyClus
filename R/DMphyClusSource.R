@@ -253,7 +253,7 @@ reorderTips <- function(phylogeny, newTipOrder)
   currentValue
 }
 
-.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL, maxMapSize = NULL, cullProportion = NULL, togglePhyloUpdates = TRUE) {
+.DMphyClusCore <- function(nIter, startingValues, limProbs, shapeForAlpha, scaleForAlpha, numMovesNNIbetween, numMovesNNIwithin, numLikThreads, alignment, poisRateNumClus, clusPhyloUpdateProp, numSplitMergeMoves, alphaMin, withinTransMatAll, betweenTransMatAll, saveFrequency, intermediateDirectory = NULL, initialParaValues = NULL, maxMapSize = NULL, cullProportion = NULL, togglePhyloUpdates = TRUE, returnIntermediateOnly = FALSE) {
 
   if (is.matrix(withinTransMatAll[[1]])) {
     numGammaCat <- length(withinTransMatAll) ## We only have one set of substitution rate matrices.
@@ -293,13 +293,21 @@ reorderTips <- function(phylogeny, newTipOrder)
         save(output, file = filename, compress = TRUE)
       }
     }
+    if (returnIntermediateOnly && ((x %% saveFrequency) != 0))
+    {
+      output <- NULL
+    }
     output
   })
   setTxtProgressBar(pb = progress, value = 1)
   close(con = progress)
   cat("\n Chain complete. \n\n\n")
   finalDeallocate(currentValue$extPointer)
-  rm(currentValue) # Probably not needed... Once the function is done running, currentValue should go out of scope, and the destructor for AugTree should get called.
+  rm(currentValue) # Probably not needed... Once the function is done running, currentValue should go out of scope, and the destructor for AugTree should get called. 
+  if (returnIntermediateOnly && !is.null(intermediateDirectory))
+  {
+    longOut <- longOut[seq(from = saveFrequency, to = length(longOut), by = saveFrequency)]
+  }
   longOut
 }
 
