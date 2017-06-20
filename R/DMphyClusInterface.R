@@ -188,7 +188,7 @@ outputTransMatList <- function(QmatScaled, numGammaCat, gammaShape, numReplicate
     gammaRates <- phangorn::discrete.gamma(k = numGammaCat, alpha = gammaShape) ## The discrete gamma rates for discrete gamma rate variation among sites.
     lapply(gammaRates, FUN = function(gammaRate) {
         ranValues <- do.call(distRanFun, args = list(n = numReplicates, ...))
-        probMatrices <- lapply(ranValues, FUN = function(x) expm::expm(QmatScaled*x*gammaRate))
+        probMatrices <- lapply(ranValues, FUN = function(x) expm::expm(QmatScaled*x*gammaRate, method = "AlMohy-Hi09"))
         Reduce(f = "+", x = probMatrices)/length(probMatrices)
     })
 }

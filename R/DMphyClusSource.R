@@ -219,8 +219,9 @@ reorderTips <- function(phylogeny, newTipOrder)
   } else{
     basicIndex <- currentValue$paraValues$withinMatListIndex
   }
-  newIndex <- basicIndex + sample(c(-samplingRadius:-1,1:samplingRadius), size = 1)
-  newIndex <- (newIndex<=0)*(length(allTransMatList) + newIndex) + (newIndex > length(allTransMatList))*(newIndex - length(allTransMatList)) + ((newIndex > 0) & (newIndex <= length(allTransMatList)))*newIndex  ## We have a circular transition kernel. If the range for allTransMatList is wide enough, the circularity should be never invoked.
+  # newIndex <- basicIndex + sample(c(-samplingRadius:-1,1:samplingRadius), size = 1)
+  # newIndex <- (newIndex<=0)*(length(allTransMatList) + newIndex) + (newIndex > length(allTransMatList))*(newIndex - length(allTransMatList)) + ((newIndex > 0) & (newIndex <= length(allTransMatList)))*newIndex  ## We have a circular transition kernel. If the range for allTransMatList is wide enough, the circularity should be never invoked.
+  newIndex <- sample.int(n = length(allTransMatList), size = 1)
   if (betweenBool) {
     betweenTransMatList <- allTransMatList[[newIndex]]
     withinTransMatList <- transMatsNoChange
