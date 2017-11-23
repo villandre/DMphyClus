@@ -24,4 +24,3 @@ This function outputs the log-prior probability for a given cluster assignment i
 clusIndLogPrior(clusInd = c(1,2,2,3,4,4,4), alpha = 1)
 }
 }
-

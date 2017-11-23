@@ -34,4 +34,3 @@ This function produces estimates of the transition probability matrices along br
 INPUT_AN_EXAMPLE()
 }
 }
-

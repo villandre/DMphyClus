@@ -1,460 +1,29 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 //#include <gperftools/profiler.h>
-#include <RcppArmadillo.h>
-#include <vector>
-#include <array>
-#include <stdexcept>
-#include <omp.h>
-#include <unordered_map>
+//#include <omp.h>
 #include <iostream>
 #include <string>
-#include <cmath>
+#include <algorithm>
+#include "AugTree.h"
+//#include <limits>
+#include <gsl/gsl_rng.h>
 
-//#include <boost/algorithm/string.hpp>
 // [[Rcpp::plugins(openmp)]]
 
 using namespace arma;
-
-class phylo { // NOTE: ONCE CODE IS DEBUGGED, YOU CAN SPEED IT UP BY USING [] or .at() FOR INDEXING.
-protected:
-    umat edge ;
-    uint Nnode ;
-    uint numTips ;
-    uint numLoci ;
-    //umat alignment ;
-    std::vector<mat> transMatVec ;
-    vec limProbs ;
-    uvec updateOrder ;
-    double logLik ;
-    std::vector<Rcpp::NumericMatrix> pruningMatVec ; // Each element of pruningMatVec comprises all the vectors at the root node used in computing the likelihood with the pruning algorithm. We get the likelihood for one rate category doing sum(log(pruningMat[[x]]%*%limProbs)). It follows that pruningMat[[x]] has one column per locus and one row per state (4 for nucleotide alignments, 20 for AA). This vector has as many elements as rate categories.
-    //mat * alignmentBinList ;
-    std::vector<mat> alignmentBinList ;
-    std::vector< std::vector<mat> > multiAlignmentBinList ;
-    uint numStates;
-    uint numRateCats;
-    std::vector<std::vector<int> > children;
-    int numOpenMPthreads ;
-    uvec childNodeInClusIndic ; // This is a vector with 0s and 1s. 1 means that the child node is at the end of an edge inside the cluster. 0 means that the child node is at the end of an edge outside a cluster. This is probably not functional and should be removed, until it's properly implemented.
-    bool internalPhyloFlag ; // This flag indicates that this is an internal phylogeny, i.e. a phylogeny that supports subphylogenies for clusters. Concretely, this implies that the configuration corresponding to cluster centroids, that are at some of the tips of this phylogeny, are vectors with as many elements as rate categories.
-
-    // Member functions:
-    // Compute the order in which nodes must be update using Felsenstein's tree-pruning algorithm.
-    void compUpdateVec() ;
-    // Output node children:
-    uvec Children(const umat &, const uint) ;
-    // Member function: The likelihood at one locus for one rate category.
-    double likOneLocusOneRate(const uint, const int, const bool) ;
-    vec getLikVec(const uint, mat &, const int) ;
-    void internalFun(const uint, mat &, const int) ;
-
-public:
-    // constructor, sets up data structures
-    phylo(const Rcpp::NumericMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool, const int, const bool) ;
-    phylo() ;
-    void logLikPhylo(const bool) ;
-    std::vector<mat> getAlignmentBin(const uint) ;
-    umat getAlignment() ;
-    uint getNnode() ;
-    uint getNumStates() ;
-    uint getNumRateCats() ;
-    uint getNumTips() ;
-    SEXP getLogLik() ;
-    SEXP getAlignmentBinSEXP() ;
-    SEXP getPruningMat() ;
-    //phylogeny() : numOpenMPthreads(4) {} ;
-} ;
-
-class phylogeny: public phylo {
-public:
-    // constructor, sets up data structures
-    phylogeny(const Rcpp::NumericMatrix &, const Rcpp::NumericMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool) ;
-    phylogeny() ; // Empty constructor
-private:
-    void convertSeq() ;
-    umat alignment ;
- };
-
-class phylogenyAlpha: public phylo {
-public:
-    // constructor, sets up data structures
-    phylogenyAlpha(const Rcpp::NumericMatrix &, const Rcpp::CharacterMatrix &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::CharacterVector &, const Rcpp::NumericVector, const bool, const bool, const int);
-    phylogenyAlpha(const Rcpp::NumericMatrix &, const Rcpp::List &, const Rcpp::NumericVector &, const Rcpp::List &, const int, const int, const int, const int, const Rcpp::NumericVector, const bool, const bool, const int) ; // This is the faster constructor, I guess, since it doesn't need to perform alignment conversion.
-    phylogenyAlpha() ; // Empty constructor
-private:
-    Rcpp::CharacterMatrix alignmentRcpp ;
-    void convertSTL() ;
-    void convertSeqAlpha() ;
-    void convertNucleoToNum(uint locusIndex) ;
-    std::vector<std::vector<std::string>> alignmentAlpha ;
-    std::vector<std::string> equivalency ; // This vector gives equivalencies between the nucleotides and numbers. This should match the rows and columns of the rate matrix, e.g. A = 1, T = 2, C = 3, G = 4;
-    void defineMap() ;
-    std::unordered_map<std::string, vec> mymap;
-};
-
-// The constructor
-
-phylo::phylo(const Rcpp::NumericMatrix & edgeMat, const Rcpp::NumericVector & limProbsVec, const Rcpp::List & transMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::NumericVector RcppChildInClusIndic, const bool returnMatIndic, const int numOfLoci, const bool internalFlag) {
-
-    mat edgeDouble = Rcpp::as<mat>(edgeMat); // The first argument (matrix) of the R function is called edgeMatrix.
-    edge = conv_to<umat>::from(edgeDouble); // edge is a matrix of unsigned integers.
-    limProbs = Rcpp::as<vec>(limProbsVec); // The second argument (numeric) of the R function is called limProbs.
-    Nnode = NnodeCons ;
-    numRateCats = numRateCatsCons ;
-    numLoci = numOfLoci ;
-    numStates = numStatesCons ;
-    numOpenMPthreads = numOpenMP ;
-    internalPhyloFlag = internalFlag ;
-    numTips = edge.n_rows + 1 - Nnode ;
-    transMatVec.resize(numRateCats) ;
-
-    for (int i = 0; i < transMatList.size() ; i++) {
-
-        transMatVec[i] = Rcpp::as<mat>(transMatList[i]) ;
-    }
-    children.resize(Nnode + numTips + 1) ;
-
-    for(uint i = 0; i < edge.n_rows; i++)
-    {
-        children[edge(i, 0)].push_back(edge(i, 1));
-    }
-    compUpdateVec() ;
-    childNodeInClusIndic = Rcpp::as<uvec>(RcppChildInClusIndic) ;
-    if (returnMatIndic) {
-
-        pruningMatVec.resize(numRateCats) ;
-        for (uint i = 0 ; i < numRateCats; i++) {
-
-            pruningMatVec[i] = Rcpp::NumericMatrix(numStates, numLoci) ;
-        }
-    } else{}
-    if (internalPhyloFlag) {
-
-        multiAlignmentBinList.resize(numRateCats) ;
-        for (uint i = 0; i < numRateCats; i++) {
-
-            multiAlignmentBinList[i].resize(numLoci) ;
-        }
-    }
-}
-
-phylogeny::phylogeny(const Rcpp::NumericMatrix & edgeMat, const Rcpp::NumericMatrix & alignmentMat, const Rcpp::NumericVector & limProbsVec, const Rcpp::List & transMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic) : phylo(edgeMat, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, alignmentMat.ncol(), returnMatIndic) {
-
-    mat alignmentDouble = Rcpp::as<mat>(alignmentMat); // The third argument (matrix) of the R function is called alignment, and so on...
-    numLoci = alignmentDouble.n_cols ;
-    alignment = conv_to<umat>::from(alignmentDouble); // edge is a matrix of unsigned integers.
-    numTips = alignment.n_rows ;
-    convertSeq() ;
-}
-
-phylogeny::phylogeny() : phylo() {} //Mostly for setting up container vectors. Doesn't seem very efficient though!
-
-phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::CharacterMatrix & alignmentAlphaMat, const Rcpp::NumericVector & limProbsVec, const Rcpp::List & transMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::CharacterVector & equivVec, const Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const int numLoci) : phylo(edgeMat, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, numLoci, internalFlag) {
-
-    alignmentRcpp = alignmentAlphaMat ;
-    equivalency = Rcpp::as<std::vector<std::string>>(equivVec) ;
-    convertSTL() ;
-    defineMap() ;
-    convertSeqAlpha() ;
-    numTips = alignmentAlphaMat.nrow() ;
-}
-
-// This is the faster constructor, that does not convert the character alignment into matrices of identity vectors, because it's provided by the user (alignmentList).
-phylogenyAlpha::phylogenyAlpha(const Rcpp::NumericMatrix & edgeMat, const Rcpp::List & alignmentList, const Rcpp::NumericVector & limProbsVec, const Rcpp::List & transMatList, const int numStatesCons, const int numRateCatsCons, const int NnodeCons, const int numOpenMP, const Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const int numLoci) : phylo(edgeMat, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, numLoci, internalFlag) {
-
-    if (!internalFlag) {
-
-        alignmentBinList.resize(numLoci) ;
-        for (int i = 0; i < numLoci ; i++) {
-
-            alignmentBinList[i] = Rcpp::as<mat>(alignmentList[i]) ;
-        }
-    } else { // Tip vectors depend on the rate category.
-
-        for (uint i = 0; i < numRateCats ; i++) {
-
-            for (int j = 0; j < numLoci ; j++) {
-
-                multiAlignmentBinList[i][j] = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(alignmentList[i])[j]) ;
-            }
-        }
-    }
-}
-
-phylo::phylo() {}
-phylogenyAlpha::phylogenyAlpha():phylo() {}
-
-void phylogenyAlpha::convertSTL() {
-
-    alignmentAlpha.resize(alignmentRcpp.ncol()) ;
-
-    for (int i = 0; i < alignmentRcpp.ncol(); i++) {
-
-        Rcpp::CharacterVector locusCol = alignmentRcpp(Rcpp::_, i) ;
-
-        alignmentAlpha[i] = Rcpp::as<std::vector<std::string>>(locusCol) ;
-
-    }
-}
-
-void phylo::compUpdateVec() {
-
-    uint numNodesTotal = numTips + Nnode ;
-    uvec updateOrderVec(Nnode, fill::zeros) ;
-    uvec numChildren(Nnode) ;
-    for (uint i = 0; (i < Nnode) ; i++) {
-
-        numChildren(i) = children[i+numTips+1].size() ;
-    }
-    uvec parentVec(numNodesTotal, fill::zeros) ;
-    for (uint i = 0; (i < edge.n_rows); i ++) {
-
-        parentVec(edge(i,1) - 1) = edge(i,0) ;
-    } // The root will have a 0, indicating it has no parent.
-    uvec countForReady(Nnode, fill::zeros) ;
-    std::vector<uint> readyForUpdate ;
-    for (uint i = 0; (i < numTips); i++) {
-
-        countForReady(parentVec(i) - numTips - 1) += 1 ;   //countForReady is only for internalNodes, hence the subtraction of (numTips + 1)
-    }
-    uint indexForUpdateVec = 0 ;
-    for (uint i = 0; (i < Nnode) ; i++) {
-
-        bool myTest = (countForReady(i) == numChildren(i)) ;
-        if (myTest) {
-
-            updateOrderVec(indexForUpdateVec) = numTips + i + 1; // We want an updateOrderVec that reflects the one produced by R.
-            indexForUpdateVec += 1 ;
-            readyForUpdate.push_back(i) ;
-        } else{} ;
-    }
-    while (readyForUpdate[0] != 0) {
-
-        uint parentOfReadyNode = parentVec(readyForUpdate[0]+numTips) ; //parentVec includes tips as well.
-        uint parentOfReadyNodeIndex = parentOfReadyNode - numTips - 1;
-        countForReady(parentOfReadyNodeIndex) += 1 ;
-        bool myTest = (countForReady(parentOfReadyNodeIndex) == numChildren(parentOfReadyNodeIndex)) ;
-        if (myTest) {
-
-            readyForUpdate.push_back(parentOfReadyNodeIndex) ;
-            updateOrderVec(indexForUpdateVec) = parentOfReadyNode ;
-            indexForUpdateVec += 1 ;
-        } else{} ;
-        readyForUpdate.erase(readyForUpdate.begin()) ;
-    }
-    updateOrder = updateOrderVec ;
-}
-
-uvec phylo::Children(const umat & edgeMat, const uint parentNum) {
-
-    uvec posVec = find(edgeMat.col(0) == parentNum) ;
-    uvec secondColumn = edgeMat.col(1) ;
-    return secondColumn.elem(posVec) ;
-}
-
-void phylogeny::convertSeq() {
-
-    alignmentBinList.resize(numLoci) ;
-    uvec firstOffset = cumsum(uvec(numTips).fill(numStates)) ;
-
-    for (uint i = 0; (i < numLoci); i++) {
-
-        mat binMatrix(numStates, numTips, fill::zeros) ; // This matrix has as many rows as sequences in the alignment, under the assumption that the alignment has one row per sequence.
-        uvec oneLocusConf = alignment.col(i) ;
-        uvec matIndices = oneLocusConf + firstOffset ;
-        matIndices(span::all) += (-(numStates + 1)) ;
-        binMatrix.elem(matIndices).ones() ;
-        alignmentBinList[i] = binMatrix ;
-    }
-}
-
-void phylogenyAlpha::convertSeqAlpha() {
-
-    alignmentBinList.resize(numLoci) ;
-    for (uint i = 0; i < numLoci; i++) {
-        convertNucleoToNum(i) ;
-    }
-}
-
-void phylogenyAlpha::defineMap() {
-
-    for (uint i = 0; i < numStates; i++) {
-
-        vec unitVec(numStates, fill::zeros) ;
-        unitVec(i) = 1 ;
-        std::string label = equivalency[i] ;
-        mymap[label] = unitVec ;
-    }
-    if (numStates == 4) { // If we have four alphanumeric states, the assumption is that we're looking at a nucleotide alignment with states "a", "t", "c", "g".
-    // Now, we handle ambiguities.
-        mymap["r"] = (mymap["a"] + mymap["g"]) ;
-        mymap["y"] = (mymap["c"] + mymap["t"]) ;
-        mymap["s"] = (mymap["c"] + mymap["g"]) ;
-        mymap["w"] = (mymap["a"] + mymap["t"]) ;
-        mymap["k"] = (mymap["g"] + mymap["t"]) ;
-        mymap["m"] = (mymap["a"] + mymap["c"]) ;
-        mymap["b"] = (mymap["c"] + mymap["g"] + mymap["t"]) ;
-        mymap["d"] = (mymap["a"] + mymap["g"] + mymap["t"]) ;
-        mymap["h"] = (mymap["a"] + mymap["c"] + mymap["t"]) ;
-        mymap["v"] = (mymap["a"] + mymap["c"] + mymap["g"]) ;
-        mymap["-"] = (mymap["a"] + mymap["t"] + mymap["c"] + mymap["g"]) ;
-        mymap["n"] = (mymap["a"] + mymap["t"] + mymap["c"] + mymap["g"]) ;
-        mymap["."] = (mymap["a"] + mymap["t"] + mymap["c"] + mymap["g"]) ;
-    } else{}
-}
-
-void phylogenyAlpha::convertNucleoToNum(uint locusIndex)  {
-
-    mat containerMat(numStates, alignmentRcpp.nrow(), fill::zeros) ;
-    std::vector<std::string> locusCol = alignmentAlpha[locusIndex] ;
-    for (uint i = 0; i < containerMat.n_cols; i++) {
-
-        containerMat.col(i) = mymap[locusCol[i]] ;
-    }
-    alignmentBinList[locusIndex] = containerMat ;
-}
-
-// Functions to modify! 
-vec phylo::getLikVec(const uint childNodeIndex, mat & nodeTipMat, const int rateIndex) {
-
-    vec likVec((nodeTipMat).n_rows) ;
-    likVec = (transMatVec[rateIndex])*((nodeTipMat).col(childNodeIndex - 1)) ; // Indices start at 0, not at 1.
-    return likVec ;
-}
-
-void phylo::internalFun(const uint parentNum, mat & nodeTipMat, const int rateIndex) {
-
-    vec likVecByChild(nodeTipMat.n_rows, fill::ones) ;
-    uint numChildren = children[parentNum].size() ;
-    uvec theChildren(numChildren) ;
-    for(uint i = 0; i < numChildren; i++) {
-
-        theChildren(i) = children[parentNum][i];
-    }
-    for (uint i = 0 ; (i < numChildren); i++) {
-
-        likVecByChild = likVecByChild % getLikVec(theChildren(i), nodeTipMat, rateIndex) ;
-    }
-
-    nodeTipMat.col(parentNum - 1) = likVecByChild ;
-}
-
-double phylo::likOneLocusOneRate(const uint locusNum, const int rateIndex, const bool returnMatIndic) {
-
-    mat nodeTipMat = zeros<mat>(numStates, edge.max()) ; // This is a matrix that stores likelihood vectors. Each vector has as many elements as potential states.
-
-    if (!internalPhyloFlag) {
-
-        nodeTipMat.cols(0, numTips-1) = alignmentBinList[locusNum] ;
-        nodeTipMat = nodeTipMat*pow(10, (double) 300/ (double) numTips) ;// To prevent the case where values fall below the minimum allowed by doubles. This scaling is taken into account at the end, when a log-lik value is computed.
-    } else {
-
-        nodeTipMat.cols(0, numTips-1) = multiAlignmentBinList[rateIndex][locusNum] ; // The alignment now depends on the rate category.
-        double myFactor =  (double) 300 / double (numTips) - (double) 300 ;
-        nodeTipMat = nodeTipMat * pow(10, myFactor) ;// To prevent the case where values fall below the minimum allowed by doubles. This scaling is taken into account at the end, when a log-lik value is computed.
-    }
-
-    for (uint i = 0; (i < updateOrder.n_rows) ; i++) {
-
-        internalFun(updateOrder(i), nodeTipMat, rateIndex) ;
-    }
-    double likForOneLocusOneRate = sum(nodeTipMat.col(numTips)%limProbs) ; // No +1 since I start at 0 instead of 1.
-
-    if (returnMatIndic) {
-        for (uint i = 0 ; i < nodeTipMat.n_rows; i++) {
-            double valueInMatrix = nodeTipMat.at(i,numTips) ;
-            pruningMatVec[rateIndex](i, locusNum) = valueInMatrix ;
-        }
-    } else{}
-
-    return likForOneLocusOneRate ;
-}
-// End: Functions to modify
-std::vector<mat> phylo::getAlignmentBin(const uint pos) {
-
-    return (alignmentBinList) ;
-}
-
-SEXP phylo::getAlignmentBinSEXP() {
-
-    std::vector<Rcpp::NumericVector> containerVec ;
-    containerVec.resize(numLoci) ;
-    for (uint i = 0 ; i< numLoci ; i++) {
-
-        Rcpp::NumericVector myVector = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(alignmentBinList[i])) ;
-        myVector.attr("dim") = Rcpp::Dimension(alignmentBinList[i].n_rows, alignmentBinList[i].n_cols);
-        containerVec[i] = myVector ;
-    }
-    return Rcpp::wrap(containerVec) ;
-}
-
-// umat phylo::getAlignment() {
-//     return alignment ;
-// }
-
-uint phylo::getNnode() {
-
-    return Nnode ;
-}
-
-uint phylo::getNumStates() {
-
-    return numStates ;
-}
-
-uint phylo::getNumRateCats() {
-
-    return numRateCats ;
-}
-
-SEXP phylo::getLogLik() {
-
-    return Rcpp::wrap(logLik) ;
-}
-
-uint phylo::getNumTips() {
-
-    return numTips ;
-}
-
-SEXP phylo::getPruningMat() {
-
-//     std::vector<Rcpp::NumericMatrix> pruningMatFixed(pruningMatVec.size()) ;
-//     for (uint i = 0 ; i < pruningMatFixed.size() ; i++) {
-//         pruningMatFixed.at(i) = pruningMatVec.at(i)*pow(10, -300) ;
-//     }
-//     return Rcpp::wrap(pruningMatFixed) ;
-    return Rcpp::wrap(pruningMatVec) ; // We can ignore the scaling as long as there's an offset when we compute the log-lik.
-}
-
-void phylo::logLikPhylo(const bool returnMatIndic) {
-
-    mat likMat(numLoci, numRateCats, fill::ones);
-//    #pragma omp parallel for
-    for (uint rateNum = 0; (rateNum < numRateCats); rateNum++) {
-
-         #pragma omp parallel for
-        for(uint locusNum = 0; locusNum < numLoci; locusNum++) {
-
-            likMat.at(locusNum, rateNum) = likOneLocusOneRate(locusNum, rateNum, returnMatIndic) ; // We applied a scaling factor that will have to be fixed.
-        }
-    }
-    vec logLikSumRate = log(sum(likMat, 1)) - (double) 300 * log(10); // The offset compensates for the scaling.
-    vec meanEffectVec = vec(numLoci).fill(log(numRateCats)) ;
-    logLik = sum(logLikSumRate - meanEffectVec)  ;
-}
+using namespace Rcpp;
 
 template<class Mat>
 void print_matrix(Mat matrix) {
 
-    //matrix.print(std::cout);
+    matrix.print(std::cout);
 }
-
 
 template<class Col>
 void print_vector(Col colvec) {
 
-    //colvec.print(std::cout);
+    colvec.print(std::cout);
 }
 
 //provide explicit instantiations of the template function for
@@ -466,419 +35,300 @@ template void print_vector<arma::vec>(arma::vec colvec);
 
 // [[Rcpp::export]]
 
-SEXP logLikCppToWrap(Rcpp::NumericMatrix & edgeMat, Rcpp::NumericMatrix & alignmentMat, Rcpp::NumericVector & limProbsVec, Rcpp::List & transMatList, int numOpenMP, SEXP & equivVector, Rcpp::CharacterMatrix & alignmentAlphaMat, Rcpp::List alignmentBin, Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag) {
+List logLikCpp(IntegerMatrix & edgeMat, NumericVector & clusterMRCAs, NumericVector & limProbsVec, List & withinTransMatList, List & betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex)
+{
+  //omp_set_num_threads(numOpenMP) ;
+  std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransMatList) ;
+  std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransMatList) ;
+  vec limProbsVals = as<vec>(limProbsVec) ;
+  
+  std::vector<std::vector<uvec>> alignmentBinRecast = as<std::vector<std::vector<uvec>>>(alignmentBin) ;
+  std::vector<std::vector<uvec>> * convertedBinData = new std::vector<std::vector<uvec>> ;
+  convertedBinData->resize(alignmentBinRecast.size()) ;
+  for (uint i = 0 ; i < alignmentBinRecast.size() ; i++) {
+    convertedBinData->at(i).resize(alignmentBinRecast.at(i).size()) ;
+    std::copy(alignmentBinRecast.at(i).begin(), alignmentBinRecast.at(i).end(), convertedBinData->at(i).begin()) ;
+  }
+  solutionDictionaryType solutionDictionary = new solutionDictionaryTypeNoPoint ;
+  gsl_rng * randomNumGenerator = gsl_rng_alloc(gsl_rng_taus) ;
+  
+  AugTree * PhylogeniesPoint1 = new AugTree(as<umat>(edgeMat), as<uvec>(clusterMRCAs), convertedBinData, solutionDictionary, withinMatListIndex, betweenMatListIndex, withinTransMatList.size(), randomNumGenerator) ;
 
-    //omp_set_dynamic(0) ; // Is it required? No... It seems to be a default setting.
-    omp_set_num_threads(numOpenMP) ;
-    bool testBool ;
-    uint numLoci ;
-    //uint numTips ;
-    mat firstMatrix ;
-    SEXP container ;
-    uint numStatesCons = limProbsVec.size() ;
-    uint numRateCatsCons = transMatList.size() ;
-    uint NnodeCons ;
+  PhylogeniesPoint1->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
+  
+  XPtr<AugTree> p(PhylogeniesPoint1, false) ; // Disabled automatic garbage collection. Tested with Valgrind, and no ensuing memory leak.
+  XPtr<std::vector<std::vector<uvec>>> alignExtPoint(convertedBinData, false) ;
+  
+  return List::create(Named("logLik") = PhylogeniesPoint1->GetLoglik(),
+                      Named("solutionPointer") = p, Named("alignmentBinPointer") = alignExtPoint) ;
+}
 
-    if (internalFlag) {
-
-        firstMatrix = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(alignmentBin[0])[0]) ;
-        numLoci = (Rcpp::as<Rcpp::List>(alignmentBin[0])).size() ;
-    } else {
-
-        firstMatrix = Rcpp::as<mat>(alignmentBin[0]) ;
-        numLoci = alignmentBin.size() ;
-    }
-    testBool = firstMatrix[0,0] == 1000 ;
-    //numTips = firstMatrix.n_cols ; // alignmentBin may not be defined, in which case a placeholder is fed to the function. This is why , if testBool is TRUE, we also need to update numTips.
-
-    if (testBool) { // 1000 is a placeholder indicating missingness. Is there a better way to do this?
-
-        if (alignmentMat(0,0) == 0) { // Again, in that case, we have a placeholder for alignmentMat, which means that alignmentAlphaMat should be defined.
-            //numTips = alignmentAlphaMat.nrow() ;
-            NnodeCons = edgeMat.nrow() - alignmentAlphaMat.nrow() + 1; // Make sure this works.
-
-            phylogenyAlpha phyloObject(edgeMat, alignmentAlphaMat, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, equivVector, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
-
-            phyloObject.logLikPhylo(returnMatIndic);
-
-            if (returnMatIndic) {
-
-                container = phyloObject.getPruningMat();
-            } else {
-
-                container = phyloObject.getLogLik();
-            }
-        } else {
-
-            NnodeCons = edgeMat.nrow() - alignmentMat.nrow() + 1 ;
-
-            phylogeny phyloObject = phylogeny(edgeMat, alignmentMat, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic) ;
-            phyloObject.logLikPhylo(returnMatIndic) ;
-            if (returnMatIndic) {
-
-                container = phyloObject.getPruningMat() ;
-            } else {
-
-                container = phyloObject.getLogLik() ;
-            }
-        }
-    } else {
-//         ProfilerStart("/home/villandre/profileOut.out") ;
-        NnodeCons = edgeMat.nrow() - firstMatrix.n_cols + 1; // Make sure this works.
-
-        phylogenyAlpha phyloObject(edgeMat, alignmentBin, limProbsVec, transMatList, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
-        //#pragma omp parallel
-        {
-        phyloObject.logLikPhylo(returnMatIndic);
-        }
-//             ProfilerStop();
-        if (returnMatIndic) {
-
-            container = phyloObject.getPruningMat();
-        } else {
-
-            container = phyloObject.getLogLik();
-        }
-    }
-
-    return container ;
+std::unordered_map<std::string, uvec> defineMap(std::vector<std::string> & equivalency) 
+{
+  uint numStates = equivalency.size() ;
+  std::unordered_map<std::string, uvec> myMap ;
+  for (uint i = 0; i < numStates; i++) 
+  {
+    uvec unitVec(numStates, fill::zeros) ;
+    unitVec(i) = 1 ;
+    std::string label = equivalency.at(i) ;
+    myMap[label] = unitVec ;
+  }
+  if (numStates == 4) 
+  { // If we have four alphanumeric states, the assumption is that we're looking at a nucleotide alignment with states "a", "t", "c", "g".
+    // Now, we handle ambiguities.
+    myMap["r"] = (myMap["a"] + myMap["g"]) ;
+    myMap["y"] = (myMap["c"] + myMap["t"]) ;
+    myMap["s"] = (myMap["c"] + myMap["g"]) ;
+    myMap["w"] = (myMap["a"] + myMap["t"]) ;
+    myMap["k"] = (myMap["g"] + myMap["t"]) ;
+    myMap["m"] = (myMap["a"] + myMap["c"]) ;
+    myMap["b"] = (myMap["c"] + myMap["g"] + myMap["t"]) ;
+    myMap["d"] = (myMap["a"] + myMap["g"] + myMap["t"]) ;
+    myMap["h"] = (myMap["a"] + myMap["c"] + myMap["t"]) ;
+    myMap["v"] = (myMap["a"] + myMap["c"] + myMap["g"]) ;
+    myMap["-"] = (myMap["a"] + myMap["t"] + myMap["c"] + myMap["g"]) ;
+    myMap["n"] = (myMap["a"] + myMap["t"] + myMap["c"] + myMap["g"]) ;
+    myMap["."] = (myMap["a"] + myMap["t"] + myMap["c"] + myMap["g"]) ;
+  }
+  return myMap ;
 }
 
 // [[Rcpp::export]]
 
-SEXP getConvertedAlignmentToWrap(Rcpp::NumericMatrix & alignmentMat, uint numStatesCons, int numOpenMP, SEXP & equivVector, Rcpp::CharacterMatrix & alignmentAlphaMat) {
+SEXP getConvertedAlignment(SEXP & equivVector, CharacterMatrix & alignmentAlphaMat)
+{
+  std::vector<std::vector<uvec>> alignmentBin ;
+  alignmentBin.resize(alignmentAlphaMat.nrow()) ;
+  std::vector<std::string> equivVectorAlpha = as<std::vector<std::string>>(equivVector) ;
+  std::unordered_map<std::string, uvec> siteMap = defineMap(equivVectorAlpha) ;
 
-    double src[] = {3, 3, 1, 2};
-    Rcpp::NumericMatrix placeholderMat(2, 2, src) ; //src is considered an iterator.
-    Rcpp::NumericVector placeholderVec = Rcpp::NumericVector::create(1000,1000) ;
-    Rcpp::List placeholderList(1) ; // This is a placeholder: 1 is an arbitrary number.
-    placeholderList[0] = Rcpp::NumericMatrix(2,2) ;
-    bool returnMatIndic = false ;
-    bool internalFlag = false ;
-    int placeholderNnodeCons = 1;
-    int placeholderNumRateCats = 4;
-
-    if (alignmentMat(0,0) == 0) {
-
-        uint numLoci = alignmentAlphaMat.ncol() ;
-        phylogenyAlpha phyloObject = phylogenyAlpha(placeholderMat, alignmentAlphaMat, placeholderVec, placeholderList, numStatesCons, placeholderNumRateCats, placeholderNnodeCons, numOpenMP, equivVector, placeholderVec, returnMatIndic, internalFlag, numLoci) ;
-
-        return phyloObject.getAlignmentBinSEXP() ;
-    } else {
-
-        phylogeny phyloObject = phylogeny(placeholderMat, alignmentMat, placeholderVec, placeholderList, numStatesCons, placeholderNumRateCats, placeholderNnodeCons, numOpenMP, placeholderVec, returnMatIndic) ;
-        return phyloObject.getAlignmentBinSEXP();
+  for (uint i = 0; i < alignmentAlphaMat.nrow(); i++) // Could probably be done more elegantly, i.e. with C++11 syntax...
+  {
+    alignmentBin.at(i).reserve(alignmentAlphaMat.ncol()) ;
+    for (uint j = 0; j < alignmentAlphaMat.ncol(); j++) 
+    {
+      alignmentBin.at(i).push_back(siteMap[(std::string) alignmentAlphaMat(i,j)]) ;
     }
+  }
+  return wrap(alignmentBin) ;
 }
-
-// When we consider tips resulting from pruning a subtree, their configurations become probabilistic and so, depends on the number of rate variation categories. We must therefore create one alignmentBin per rate category.
-//pruningMatList has as many elements as seqNumVec, that is, one element per tip to substitute. Each element of pruningMatList is itself a list with as many elements as rate categories. Finally, each element of the sub-list is a matrix with as many rows as states, and as many columns as loci.
-
-// [[Rcpp::export]]aaaa
-
-// SEXP amendBinAlignToWrap(const Rcpp::List & alignmentBinList, const Rcpp::NumericVector seqNumVec, const Rcpp::List pruningMatList, int numOpenMPthreads) {
-//
-//     //First, we recast the list of pruning matrices as a std::vector of vectors of matrices. The operation is parallelized. We then do the same for alignmentBinList.
-//     uint numRateCats = pruningMatList.size() ;
-//     uint numTipsToChange = seqNumVec.size() ;
-//     uint numLoci = alignmentBinList.size() ;
-//     uint lengthSubPruningList = Rcpp::as<Rcpp::List>(pruningMatList[0]).size() ;
-//     if (numTipsToChange != lengthSubPruningList) {
-//         throw std::invalid_argument("The number of elements in seqNumVec should match that in pruningMatList.\n");
-//     }  else{}
-//     std::vector< std::vector<Rcpp::NumericMatrix> > pruningMatVec(numRateCats) ; // Outer vector should have as many elements as rate categories. Inner vector should have as many elements as the number of tips to change.
-//     std::vector< std::vector<Rcpp::NumericMatrix> > alignmentBinVec(numRateCats) ; // Outer vector should have as many elements as rate categories. Inner vector should have as many elements as loci.
-//
-//     for (uint i = 0; i < numRateCats; i++) {
-//
-//         pruningMatVec[i].resize(numTipsToChange) ;
-//         for (uint j = 0; j < numTipsToChange; j++) {
-//
-//             Rcpp::NumericMatrix castedMatrix = Rcpp::as<Rcpp::List>(pruningMatList[i])[j] ;
-//             pruningMatVec[i][j] = castedMatrix ;
-//         }
-//     }
-//     std::vector<Rcpp::NumericMatrix> alignmentBinRecast(numLoci) ;
-//
-//     // Recasting alignmentBinList
-//
-//     for (uint i = 0; i < numLoci; i++) {
-//
-//         alignmentBinRecast.at(i) = Rcpp::as<Rcpp::NumericMatrix>(alignmentBinList[i]) ;
-//     }
-//
-//     for (uint i = 0; i < numRateCats ; i++) {
-//
-//         alignmentBinVec[i].resize(numLoci) ;
-//         alignmentBinVec[i] = alignmentBinRecast ;
-//     } // This initializes alignmentBinVec. Each element has the same value and will need to be updated iteratively.
-//
-//     for (uint i = 0; i < numRateCats; i++) {
-//
-//         for (uint j = 0; j < numTipsToChange; j++) {
-//
-//             for (uint k = 0; k < numLoci; k++) {
-//
-//                 (alignmentBinVec[i][k])(Rcpp::_, seqNumVec[j] - 1) = (pruningMatVec[i][j])(Rcpp::_, k) ; // The -1 is there to account for R starting to count indices at 1 instead of 0.
-//             }
-//         }
-//     }
-//     return Rcpp::wrap(alignmentBinVec) ;
-// }
 
 // [[Rcpp::export]]
 
-SEXP redimMultiBinByClus(Rcpp::List multiBinByClus) {
-
-    uint numClus = multiBinByClus.size() ;
-    uint numRateCats = (Rcpp::as<Rcpp::List>(multiBinByClus[0])).size() ;
-    uint numStates = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[0]))[0]).nrow() ;
-    uint numLoci = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[0]))[0]).ncol() ;
-    std::vector<std::vector<Rcpp::NumericMatrix>> outputVec(numRateCats);
-
-    for(uint i = 0; i < numRateCats ; i++) {
-
-        outputVec.at(i).resize(numLoci) ;
-        for (uint j = 0; j < numLoci; j++) {
-
-            outputVec.at(i).at(j) = Rcpp::NumericMatrix(numStates, numClus) ;
-            (outputVec.at(i).at(j)).attr( "dimnames" )  = Rcpp::List::create(R_NilValue, multiBinByClus.names()) ;
-        }
-    }
-
-    for(uint i = 0; i < numLoci ; i++) {
-
-        for (uint j = 0; j < numRateCats; j++) {
-
-            for (uint k = 0; k < numClus; k++) {
-
-               (outputVec.at(j).at(i))(Rcpp::_,k) = Rcpp::as<Rcpp::NumericMatrix>((Rcpp::as<Rcpp::List>(multiBinByClus[k]))[j])(Rcpp::_, i) ;
-            }
-        }
-    }
-    return(Rcpp::wrap(outputVec)) ;
+double newBetweenTransProbsLogLik(SEXP AugTreePointer, List & withinTransProbs, List & newBetweenTransProbs, uint & numOpenMP, uint & newBetweenMatListIndex, NumericVector & limProbs) 
+{
+  //omp_set_num_threads(numOpenMP) ;
+  if (!(AugTreePointer == NULL)) 
+  {
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(newBetweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
+    pointedTree->NegateAllUpdateFlags() ;
+    pointedTree->SetBetweenMatListIndex(newBetweenMatListIndex) ;
+    pointedTree->CheckAndInvalidateBetweenRecursive(pointedTree->GetVertexVector().at(pointedTree->GetNumTips())) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
+    
+    return pointedTree->GetLoglik() ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
 }
+
 // [[Rcpp::export]]
 
-SEXP logLikCppToWrapV(Rcpp::List & edgeMatList, Rcpp::List & alignmentMatList, Rcpp::NumericVector & limProbsVec, Rcpp::List & transMatList, int numOpenMP, SEXP & equivVector, Rcpp::List & alignmentAlphaMatList, Rcpp::List alignmentBinList, Rcpp::NumericVector childNodeInClusIndic, const bool returnMatIndic, const bool internalFlag, const bool priorBySizeTransMatBool) { // Function probably won't work with alignmentAlphaMatList...
-//     #pragma omp parallel
-//     {
-    omp_set_num_threads(numOpenMP) ;
-    bool alignmentBinListDefined ; // Indicates whether alignmentBinList is defined.
-    uint numLoci ;
-
-    mat firstMatrix ;
-    uint numEvals = edgeMatList.size() ;
-    std::vector<SEXP> container(numEvals) ;
-    std::vector<phylogenyAlpha> phylogenyAlphaContainer(numEvals) ;
-    std::vector<phylogeny> phylogenyContainer(numEvals) ;
-    bool alphaMatPlaceholderFlag = Rcpp::as<Rcpp::CharacterMatrix>(alignmentAlphaMatList[0]).nrow() == 1;
-    uint numStatesCons = limProbsVec.size() ;
-    uint numRateCatsCons ;
-    uint numTips ;
-    uint numBranches ;
-    uint NnodeCons ;
-
-    if (priorBySizeTransMatBool) {
-
-        numRateCatsCons = Rcpp::as<Rcpp::List>(transMatList[0]).size() ;
-    } else {
-
-        numRateCatsCons = transMatList.size() ;
-    }
-    Rcpp::List transMatListOneSize ;
-
-    if (internalFlag) {
-
-        firstMatrix = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(Rcpp::as<Rcpp::List>(alignmentBinList[0])[0])[0]) ;
-        numLoci = Rcpp::as<Rcpp::List>(Rcpp::as<Rcpp::List>(alignmentBinList[0])[0]).size() ;
-        alignmentBinListDefined = true ; // For sure, in that case, alignmentBinList will be defined, and alignmentMatList will be a placeholder.
-
-    } else {
-
-        firstMatrix = Rcpp::as<mat>(Rcpp::as<Rcpp::List>(alignmentBinList[0])[0]) ;
-        alignmentBinListDefined = firstMatrix[0,0] != 1000 ; // Determines if we have a placeholder for alignmentBinList (see the definition for logLikCppV in the R file).
-        if (alignmentBinListDefined) {
-
-            numLoci = Rcpp::as<Rcpp::List>(alignmentBinList[0]).size() ;
-        } else {
-
-            if (alphaMatPlaceholderFlag) {
-
-                numLoci = Rcpp::as<Rcpp::NumericMatrix>(alignmentMatList[0]).ncol() ;
-            } else {
-
-                numLoci = Rcpp::as<Rcpp::CharacterMatrix>(alignmentAlphaMatList[0]).ncol() ;
-            }
-        }
-    }
-
-    // Create objects
-    //#pragma omp parallel for if(numEvals > 7)
-    for (uint i = 0; i < numEvals; i++) {
-        numBranches  = Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i]).nrow() ;
-        //numTips = numBranches/2 + 1 ; // This only works under the assumption that trees are bifurcating! This will have to be changed if the hypothesis is dropped.
-        numTips = Rcpp::min(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i])(Rcpp::_,0)) - 1 ; // This works even when the tree is not bifurcating.
-        //NnodeCons = numTips - 1 ; // This only works under the assumption that trees are bifurcating! This will have to be changed if the hypothesis is dropped.
-
-        NnodeCons = Rcpp::max(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i])(Rcpp::_,0)) - numTips ; // This also works with multifurcating trees
-
-        if (alignmentBinListDefined) { // 1000 is a placeholder indicating missingness. Is there a better way to do this?
-
-            if (priorBySizeTransMatBool) {
-
-                long long int numTipsRecast = numTips ;
-                Rcpp::CharacterVector listNames(transMatList.size()) ;
-                listNames = transMatList.names() ;
-                std::string maxName = Rcpp::as<std::string>(listNames[transMatList.size()-1]) ;
-
-                int maxSize = std::stoi(maxName) ;
-                bool testSizeBool = (numTipsRecast <= maxSize) ;
-                numTipsRecast = numTipsRecast*testSizeBool + maxSize*(!testSizeBool) ; // This assumes that the list elements are named and ordered, i.e. the last list element is for the largest cluster size in the distribution!
-
-                transMatListOneSize = transMatList[std::to_string(numTipsRecast)] ;
-            } else{
-
-                transMatListOneSize = transMatList ;
-            }
-
-            phylogenyAlphaContainer[i] = phylogenyAlpha(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i]), Rcpp::as<Rcpp::List>(alignmentBinList[i]), limProbsVec, transMatListOneSize, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
-        } else {
-
-            if (alphaMatPlaceholderFlag) { // We have a placeholder for alignmentAlphaMat.
-
-                if (priorBySizeTransMatBool) {
-
-                    long long int numTipsRecast = numTips ;
-                    transMatListOneSize = transMatList[std::to_string(numTipsRecast)] ;
-                } else{
-
-                    transMatListOneSize = transMatList ;
-                }
-
-                phylogenyContainer[i] = phylogeny(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i]), Rcpp::as<Rcpp::NumericMatrix>(alignmentMatList[i]), limProbsVec, transMatListOneSize, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, childNodeInClusIndic, returnMatIndic) ;
-            } else {
-
-                if (priorBySizeTransMatBool) {
-
-                    long long int numTipsRecast = numTips ;
-                    transMatListOneSize = Rcpp::as<Rcpp::List>(transMatList[std::to_string(numTipsRecast)]) ; //Make sure the list labels carry over to c++
-                } else{
-
-                    transMatListOneSize = transMatList ;
-                }
-
-                phylogenyAlphaContainer[i] = phylogenyAlpha(Rcpp::as<Rcpp::NumericMatrix>(edgeMatList[i]), Rcpp::as<Rcpp::CharacterMatrix>(alignmentAlphaMatList[i]), limProbsVec, transMatListOneSize, numStatesCons, numRateCatsCons, NnodeCons, numOpenMP, equivVector, childNodeInClusIndic, returnMatIndic, internalFlag, numLoci) ;
-            }
-        }
-    }
-
-    for (int i = 0; i < edgeMatList.size(); i++) {
-
-        if (alignmentBinListDefined) { // 1000 is a placeholder indicating missingness. Is there a better way to do this?
-
-            //ProfilerStart("/home/villandre/profileOut.out") ;
-            phylogenyAlphaContainer[i].logLikPhylo(returnMatIndic) ;
-            //ProfilerStop();
-        } else {
-
-            if (alphaMatPlaceholderFlag) { // We have a placeholder for alignmentAlphaMatList
-
-                phylogenyContainer[i].logLikPhylo(returnMatIndic) ;
-            } else {
-
-                phylogenyAlphaContainer[i].logLikPhylo(returnMatIndic) ;
-            }
-        }
-    }
-//     }
-
-    for (uint i = 0; i < numEvals; i++) {
-
-        if (alignmentBinListDefined) {
-
-            if (returnMatIndic) {
-
-                container[i] = phylogenyAlphaContainer[i].getPruningMat() ;
-            } else {
-
-                container[i] = phylogenyAlphaContainer[i].getLogLik();
-            }
-
-        } else {
-
-            if (alphaMatPlaceholderFlag) { // Again, in that case, we have a placeholder for alignmentAlphaMat.
-
-                if (returnMatIndic) {
-
-                    container[i] = phylogenyContainer[i].getPruningMat();
-                } else {
-
-                    container[i] = phylogenyContainer[i].getLogLik();
-                }
-            } else {
-
-               if (returnMatIndic) {
-
-                    container[i] = phylogenyAlphaContainer[i].getPruningMat();
-                } else {
-
-                    container[i] = phylogenyAlphaContainer[i].getLogLik();
-                }
-            }
-        }
-    }
-    return Rcpp::wrap(container) ;
+double newWithinTransProbsLogLik(SEXP AugTreePointer, List & newWithinTransProbs, List & betweenTransProbs, uint & numOpenMP, uint & newWithinMatListIndex, NumericVector & limProbs) 
+{
+  //omp_set_num_threads(numOpenMP) ; 
+  if (!(AugTreePointer == NULL)) 
+  {
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(newWithinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
+    pointedTree->NegateAllUpdateFlags() ;
+    pointedTree->SetWithinMatListIndex(newWithinMatListIndex) ;
+    
+    pointedTree->InvalidateAll() ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
+    
+    return pointedTree->GetLoglik() ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
 }
 
-// [[Rcpp::export]]aa
+// [[Rcpp::export]]
 
-// double clusIndLogPrior(Rcpp::NumericVector clusInd, double alpha) { // Only works when there are no gaps in clusInd.
-//
-//     std::vector<int> clusCounts(Rcpp::max(clusInd), 0) ;
-//     int numElements = clusInd.size() ;
-//
-//     clusCounts.at(clusInd[0]-1) = 1 ;
-//
-//     arma::vec logContributions(numElements, fill::zeros) ;
-//
-//     double probNumer ;
-//     for (int i = 1; i < numElements; i++) { // It must begin at 1 instead of 0 because element 0 contributes 1 trivially.
-//        probNumer = clusCounts.at(clusInd.at(i)-1) ;
-//         if (probNumer == 0) {
-//             probNumer = alpha ;
-//         } else{}
-//         clusCounts.at(clusInd.at(i)-1) = clusCounts.at(clusInd.at(i) - 1) + 1 ;
-//         logContributions.at(i) = log(probNumer) - log(i+alpha) ;
-//     }
-//
-//     return(sum(logContributions)) ;
-// }
+List withinClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, uint & MRCAofClusForNNI, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
+{
+  //omp_set_num_threads(numOpenMP) ;
+  if (!(AugTreePointer == NULL)) 
+  {
+    std::vector<uint> vertexIndexForNNI ;
+    std::vector<uint> vertexIndexVec ;
+    
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
+    pointedTree->NegateAllUpdateFlags() ;
+    
+    vertexIndexForNNI = pointedTree->GetNNIverticesWithin(pointedTree->GetVertexVector().at(MRCAofClusForNNI - 1)) ;
+    
+    for (uint counter = 0; counter < numMovesNNI; counter++)
+    {
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(pointedTree->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      uvec placeholder(1) ;
+      placeholder.at(0) = -1 ; // Probably a better way to do this than using a placeholder...
+      vertexIndexVec = pointedTree->GetTwoVerticesForNNI(pointedTree->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), placeholder) ;
+      pointedTree->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+    }
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
+    umat newEdge = pointedTree->BuildEdgeMatrix() ; // All trees in the forest have the same hierarchy, hence the need to get the structure for only one of them.
+    
+    return List::create(Named("logLik") = pointedTree->GetLoglik(),
+                        Named("edge") = newEdge) ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
+}
 
-// // [[Rcpp::exportaaa]]
-//
-// double clusIndLogPrior(Rcpp::NumericVector clusInd, double alpha) { // Only works when there are no gaps in clusInd.
-//
-//     std::vector<int> clusCounts(Rcpp::max(clusInd), 0) ;
-//     int numElements = clusInd.size() ;
-//     int numClusters = 1 ; //The trivial number of clusters in the vector made up only of the first element of clusInd.
-//
-//     clusCounts.at(clusInd[0]-1) = 1 ;
-//
-//     arma::vec logContributions(numElements, fill::zeros) ;
-//
-//     double probNumer ;
-//     int myCount ;
-//     for (int i = 1; i < numElements; i++) { // It must begin at 1 instead of 0 because element 0 contributes 1 trivially.
-//        myCount = clusCounts.at(clusInd.at(i)-1) ;
-//        probNumer = 1 ;
-//         if (myCount == 0) {
-//             probNumer = alpha ;
-//             numClusters = numClusters + 1 ;
-//         } else{}
-//         clusCounts.at(clusInd.at(i)-1) = clusCounts.at(clusInd.at(i) - 1) + 1 ;
-//         logContributions.at(i) = log(probNumer) - log(numClusters+alpha) ;
-//     }
-//
-//     return(sum(logContributions)) ;
-// }
+// [[Rcpp::export]]
+
+List betweenClusNNIlogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, NumericVector & clusterMRCAs, uint & numMovesNNI, uint & numOpenMP, NumericVector & limProbs) 
+{
+  //omp_set_num_threads(numOpenMP) ;
+  if (!(AugTreePointer == NULL)) 
+  {
+    std::vector<uint> vertexIndexForNNI ;
+    std::vector<uint> vertexIndexVec ;
+    uvec clusterMRCAsRecast = as<uvec>(clusterMRCAs) ;
+    
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
+    pointedTree->NegateAllUpdateFlags() ;
+    
+    vertexIndexForNNI = pointedTree->GetNNIverticesBetween(pointedTree->GetVertexVector().at(pointedTree->GetNumTips()), clusterMRCAsRecast) ;
+    
+    for (uint counter = 0; counter < numMovesNNI; counter++)
+    {
+      unsigned long int rootForNNIindex = gsl_rng_uniform_int(pointedTree->GetRandomNumGenerator(), vertexIndexForNNI.size()) ;
+      vertexIndexVec = pointedTree->GetTwoVerticesForNNI(pointedTree->GetVertexVector().at(vertexIndexForNNI.at(rootForNNIindex)), clusterMRCAsRecast) ;
+      
+      pointedTree->RearrangeTreeNNI(vertexIndexVec.at(0), vertexIndexVec.at(1)) ;
+    }
+    
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
+    umat newEdge = pointedTree->BuildEdgeMatrix() ;
+    return List::create(Named("logLik") = pointedTree->GetLoglik(),
+                       Named("edge") = newEdge) ;
+  } 
+  else 
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
+}
+
+// [[Rcpp::export]]
+
+double clusSplitMergeLogLik(SEXP AugTreePointer, List & withinTransProbs, List & betweenTransProbs, IntegerVector & clusMRCAsToSplitOrMerge, uint & numOpenMP, NumericVector & limProbs) 
+{
+  //omp_set_num_threads(numOpenMP) ;
+  if (!(AugTreePointer == NULL))
+  {
+    XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    
+    pointedTree->NegateAllUpdateFlags() ;
+    
+    uvec clusMRCAsToSplitOrMergeRecast = as<uvec>(clusMRCAsToSplitOrMerge) ;
+   
+    if (clusMRCAsToSplitOrMergeRecast.size() == 1) // Split move
+    {
+      pointedTree->HandleSplit(clusMRCAsToSplitOrMergeRecast.at(0)) ;
+    }
+    else
+    {
+      pointedTree->HandleMerge(clusMRCAsToSplitOrMergeRecast) ;
+    }
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ;
+    
+    return pointedTree->GetLoglik() ;
+  }
+  else
+  {
+    throw ::Rcpp::exception("pointer is null." ) ;
+  }
+}
+
+// [[Rcpp::export]]
+
+void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix & edgeMat, int & withinMatListIndex, int & betweenMatListIndex, bool NNImove, IntegerVector & clusterMRCAs, bool splitMergeMove)
+{
+  XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+  pointedTree->RestorePreviousConfig(edgeMat, NNImove, withinMatListIndex, betweenMatListIndex, clusterMRCAs, splitMergeMove) ;
+}
+
+// [[Rcpp::export]]
+
+void finalDeallocate(SEXP AugTreePointer) // We need to explicitly deallocate the random number generator.
+{
+  XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+  gsl_rng_free(pointedTree->GetRandomNumGenerator()) ;
+  delete pointedTree->GetSolutionDictionary() ;
+  delete pointedTree->GetAlignmentBinReference() ;
+}
+
+// [[Rcpp::export]]
+
+double getMaxMapSizeEstimate(double & allowedSizeInMegs, unsigned int & numRateCats)
+{
+  double numberElements = (allowedSizeInMegs*1e6)/(sizeof(S) + sizeof(mapContentType)*numRateCats + 16)  ; // This is a very rough estimate. I assume that the binary search tree implementation has two 8 bytes pointers, hence 16...
+  return floor(numberElements) ;
+}
+
+// [[Rcpp::export]]
+void checkAndCullMap(SEXP AugTreePointer, unsigned int & allowedNumberOfElements, float & cullProportion, List & withinTransProbs, List & betweenTransProbs, NumericVector & limProbs)
+{
+  XPtr<AugTree> pointedTree(AugTreePointer) ; // Becomes a regular pointer again.
+  std::size_t dictionarySize = pointedTree->GetSolutionDictionary()->size() ;
+  
+  if (dictionarySize > allowedNumberOfElements)
+  {
+    cout << "Culling map... Current map size: " << dictionarySize << "." << endl ;
+    float numElementsToRemove = std::ceil(allowedNumberOfElements*cullProportion) ;
+    mapIterator myIterator = pointedTree->GetSolutionDictionary()->begin() ;
+    if (cullProportion < 1)
+    {
+      std::advance(myIterator, numElementsToRemove) ;
+    }
+    else
+    {
+      myIterator = pointedTree->GetSolutionDictionary()->end() ;
+    }
+    pointedTree->GetSolutionDictionary()->erase(pointedTree->GetSolutionDictionary()->begin(), myIterator) ;
+    pointedTree->InvalidateAll() ;
+    pointedTree->ReInitMap() ;
+    std::vector<mat> withinTransMats = as<std::vector<mat>>(withinTransProbs) ;
+    std::vector<mat> betweenTransMats = as<std::vector<mat>>(betweenTransProbs) ;
+    vec limProbsVals = as<vec>(limProbs) ;
+    pointedTree->ComputeLoglik(withinTransMats, betweenTransMats, limProbsVals) ; // We recompute the log-lik to re-populate the dictionary.
+    cout << "Final map size: " << pointedTree->GetSolutionDictionary()->size() << "." << endl ;
+  }
+}

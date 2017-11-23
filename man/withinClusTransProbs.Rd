@@ -11,9 +11,6 @@ between the different nucleotide states.}
 \source{
 \url{http://mbe.oxfordjournals.org/content/18/6/897.short}
 }
-\usage{
-withinClusTransProbs
-}
 \description{
 These matrices are meant to be used in the vignette example.
 They were obtained with \code{outputTransMatList}.They represent
@@ -23,5 +20,3 @@ with 3 categories, and with parameter 0.7589 (Posada et al. 2001).
 We assumed that branch lengths follow the exponential distribution
 with means between 0.0005 and 0.0015 (10 equally spaced mean assumptions).
 }
-\keyword{datasets}
-

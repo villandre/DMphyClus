@@ -3,7 +3,6 @@
 export(DMphyClusChain)
 export(clusIndLogPrior)
 export(logLikFromClusInd)
-export(logLikFromSplitPhylo)
 export(outputTransMatList)
 importFrom(Rcpp,evalCpp)
 importFrom(Rcpp,sourceCpp)

@@ -9,12 +9,12 @@ Description: An implementation of DMphyClus, a Bayesian algorithm for clustering
     DNA or amino acid alignments.
 License: GPL-3
 Imports:
-    Rcpp (>= 0.12.5), phangorn (>= 2.0.4), ape (>= 3.5), expm (>= 0.999-0)
+    Rcpp (>= 0.12.5), phangorn (>= 2.0.4), ape (>= 3.5), expm (>= 0.999-0), digest (>= 0.6.10)
 Depends: R (>= 2.10)
 ByteCompile: yes
 LinkingTo: Rcpp, RcppArmadillo
 LazyData: true
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr

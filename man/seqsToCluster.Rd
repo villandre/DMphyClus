@@ -8,9 +8,6 @@
 \source{
 \url{https://www.hiv.lanl.gov/content/sequence/HIV/mainpage.html}
 }
-\usage{
-seqsToCluster
-}
 \description{
 This object comprises six HIV-1 sequences of length 1617, downloaded
 from the Los Alamos HIV sequence database (accession numbers AB485638,
@@ -18,5 +15,3 @@ AB485639, AB485640, AB220944, AB220945, AB220946). Three sequences
 are subtype B, while the three remaining sequences are CRF-AE. They
 contain no missing data or ambiguities. We use them in the vignette.
 }
-\keyword{datasets}
-
