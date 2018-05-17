@@ -2,46 +2,46 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 logLikCpp <- function(edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, betweenTransMatList, numOpenMP, alignmentBin, numTips, numLoci, withinMatListIndex, betweenMatListIndex) {
-    .Call('DMphyClus_logLikCpp', PACKAGE = 'DMphyClus', edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, betweenTransMatList, numOpenMP, alignmentBin, numTips, numLoci, withinMatListIndex, betweenMatListIndex)
+    .Call('_DMphyClus_logLikCpp', PACKAGE = 'DMphyClus', edgeMat, clusterMRCAs, limProbsVec, withinTransMatList, betweenTransMatList, numOpenMP, alignmentBin, numTips, numLoci, withinMatListIndex, betweenMatListIndex)
 }
 
 getConvertedAlignment <- function(equivVector, alignmentAlphaMat) {
-    .Call('DMphyClus_getConvertedAlignment', PACKAGE = 'DMphyClus', equivVector, alignmentAlphaMat)
+    .Call('_DMphyClus_getConvertedAlignment', PACKAGE = 'DMphyClus', equivVector, alignmentAlphaMat)
 }
 
 newBetweenTransProbsLogLik <- function(AugTreePointer, withinTransProbs, newBetweenTransProbs, numOpenMP, newBetweenMatListIndex, limProbs) {
-    .Call('DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, newBetweenTransProbs, numOpenMP, newBetweenMatListIndex, limProbs)
+    .Call('_DMphyClus_newBetweenTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, newBetweenTransProbs, numOpenMP, newBetweenMatListIndex, limProbs)
 }
 
 newWithinTransProbsLogLik <- function(AugTreePointer, newWithinTransProbs, betweenTransProbs, numOpenMP, newWithinMatListIndex, limProbs) {
-    .Call('DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, newWithinTransProbs, betweenTransProbs, numOpenMP, newWithinMatListIndex, limProbs)
+    .Call('_DMphyClus_newWithinTransProbsLogLik', PACKAGE = 'DMphyClus', AugTreePointer, newWithinTransProbs, betweenTransProbs, numOpenMP, newWithinMatListIndex, limProbs)
 }
 
 withinClusNNIlogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs) {
-    .Call('DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs)
+    .Call('_DMphyClus_withinClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, MRCAofClusForNNI, numMovesNNI, numOpenMP, limProbs)
 }
 
 betweenClusNNIlogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, numMovesNNI, numOpenMP, limProbs) {
-    .Call('DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, numMovesNNI, numOpenMP, limProbs)
+    .Call('_DMphyClus_betweenClusNNIlogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusterMRCAs, numMovesNNI, numOpenMP, limProbs)
 }
 
 clusSplitMergeLogLik <- function(AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, numOpenMP, limProbs) {
-    .Call('DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, numOpenMP, limProbs)
+    .Call('_DMphyClus_clusSplitMergeLogLik', PACKAGE = 'DMphyClus', AugTreePointer, withinTransProbs, betweenTransProbs, clusMRCAsToSplitOrMerge, numOpenMP, limProbs)
 }
 
 RestorePreviousConfig <- function(AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove) {
-    invisible(.Call('DMphyClus_RestorePreviousConfig', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove))
+    invisible(.Call('_DMphyClus_RestorePreviousConfig', PACKAGE = 'DMphyClus', AugTreePointer, edgeMat, withinMatListIndex, betweenMatListIndex, NNImove, clusterMRCAs, splitMergeMove))
 }
 
 finalDeallocate <- function(AugTreePointer) {
-    invisible(.Call('DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', AugTreePointer))
+    invisible(.Call('_DMphyClus_finalDeallocate', PACKAGE = 'DMphyClus', AugTreePointer))
 }
 
 getMaxMapSizeEstimate <- function(allowedSizeInMegs, numRateCats) {
-    .Call('DMphyClus_getMaxMapSizeEstimate', PACKAGE = 'DMphyClus', allowedSizeInMegs, numRateCats)
+    .Call('_DMphyClus_getMaxMapSizeEstimate', PACKAGE = 'DMphyClus', allowedSizeInMegs, numRateCats)
 }
 
 checkAndCullMap <- function(AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs) {
-    invisible(.Call('DMphyClus_checkAndCullMap', PACKAGE = 'DMphyClus', AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs))
+    invisible(.Call('_DMphyClus_checkAndCullMap', PACKAGE = 'DMphyClus', AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs))
 }
 

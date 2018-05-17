@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // logLikCpp
 List logLikCpp(IntegerMatrix& edgeMat, NumericVector& clusterMRCAs, NumericVector& limProbsVec, List& withinTransMatList, List& betweenTransMatList, int numOpenMP, List alignmentBin, uint numTips, uint numLoci, uint withinMatListIndex, uint betweenMatListIndex);
-RcppExport SEXP DMphyClus_logLikCpp(SEXP edgeMatSEXP, SEXP clusterMRCAsSEXP, SEXP limProbsVecSEXP, SEXP withinTransMatListSEXP, SEXP betweenTransMatListSEXP, SEXP numOpenMPSEXP, SEXP alignmentBinSEXP, SEXP numTipsSEXP, SEXP numLociSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP) {
+RcppExport SEXP _DMphyClus_logLikCpp(SEXP edgeMatSEXP, SEXP clusterMRCAsSEXP, SEXP limProbsVecSEXP, SEXP withinTransMatListSEXP, SEXP betweenTransMatListSEXP, SEXP numOpenMPSEXP, SEXP alignmentBinSEXP, SEXP numTipsSEXP, SEXP numLociSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -29,7 +29,7 @@ END_RCPP
 }
 // getConvertedAlignment
 SEXP getConvertedAlignment(SEXP& equivVector, CharacterMatrix& alignmentAlphaMat);
-RcppExport SEXP DMphyClus_getConvertedAlignment(SEXP equivVectorSEXP, SEXP alignmentAlphaMatSEXP) {
+RcppExport SEXP _DMphyClus_getConvertedAlignment(SEXP equivVectorSEXP, SEXP alignmentAlphaMatSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -41,7 +41,7 @@ END_RCPP
 }
 // newBetweenTransProbsLogLik
 double newBetweenTransProbsLogLik(SEXP AugTreePointer, List& withinTransProbs, List& newBetweenTransProbs, uint& numOpenMP, uint& newBetweenMatListIndex, NumericVector& limProbs);
-RcppExport SEXP DMphyClus_newBetweenTransProbsLogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP newBetweenTransProbsSEXP, SEXP numOpenMPSEXP, SEXP newBetweenMatListIndexSEXP, SEXP limProbsSEXP) {
+RcppExport SEXP _DMphyClus_newBetweenTransProbsLogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP newBetweenTransProbsSEXP, SEXP numOpenMPSEXP, SEXP newBetweenMatListIndexSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -57,7 +57,7 @@ END_RCPP
 }
 // newWithinTransProbsLogLik
 double newWithinTransProbsLogLik(SEXP AugTreePointer, List& newWithinTransProbs, List& betweenTransProbs, uint& numOpenMP, uint& newWithinMatListIndex, NumericVector& limProbs);
-RcppExport SEXP DMphyClus_newWithinTransProbsLogLik(SEXP AugTreePointerSEXP, SEXP newWithinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP numOpenMPSEXP, SEXP newWithinMatListIndexSEXP, SEXP limProbsSEXP) {
+RcppExport SEXP _DMphyClus_newWithinTransProbsLogLik(SEXP AugTreePointerSEXP, SEXP newWithinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP numOpenMPSEXP, SEXP newWithinMatListIndexSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -73,7 +73,7 @@ END_RCPP
 }
 // withinClusNNIlogLik
 List withinClusNNIlogLik(SEXP AugTreePointer, List& withinTransProbs, List& betweenTransProbs, uint& MRCAofClusForNNI, uint& numMovesNNI, uint& numOpenMP, NumericVector& limProbs);
-RcppExport SEXP DMphyClus_withinClusNNIlogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP MRCAofClusForNNISEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP, SEXP limProbsSEXP) {
+RcppExport SEXP _DMphyClus_withinClusNNIlogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP MRCAofClusForNNISEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -90,7 +90,7 @@ END_RCPP
 }
 // betweenClusNNIlogLik
 List betweenClusNNIlogLik(SEXP AugTreePointer, List& withinTransProbs, List& betweenTransProbs, NumericVector& clusterMRCAs, uint& numMovesNNI, uint& numOpenMP, NumericVector& limProbs);
-RcppExport SEXP DMphyClus_betweenClusNNIlogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP clusterMRCAsSEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP, SEXP limProbsSEXP) {
+RcppExport SEXP _DMphyClus_betweenClusNNIlogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP clusterMRCAsSEXP, SEXP numMovesNNISEXP, SEXP numOpenMPSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -107,7 +107,7 @@ END_RCPP
 }
 // clusSplitMergeLogLik
 double clusSplitMergeLogLik(SEXP AugTreePointer, List& withinTransProbs, List& betweenTransProbs, IntegerVector& clusMRCAsToSplitOrMerge, uint& numOpenMP, NumericVector& limProbs);
-RcppExport SEXP DMphyClus_clusSplitMergeLogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP clusMRCAsToSplitOrMergeSEXP, SEXP numOpenMPSEXP, SEXP limProbsSEXP) {
+RcppExport SEXP _DMphyClus_clusSplitMergeLogLik(SEXP AugTreePointerSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP clusMRCAsToSplitOrMergeSEXP, SEXP numOpenMPSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -123,7 +123,7 @@ END_RCPP
 }
 // RestorePreviousConfig
 void RestorePreviousConfig(SEXP AugTreePointer, IntegerMatrix& edgeMat, int& withinMatListIndex, int& betweenMatListIndex, bool NNImove, IntegerVector& clusterMRCAs, bool splitMergeMove);
-RcppExport SEXP DMphyClus_RestorePreviousConfig(SEXP AugTreePointerSEXP, SEXP edgeMatSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP, SEXP NNImoveSEXP, SEXP clusterMRCAsSEXP, SEXP splitMergeMoveSEXP) {
+RcppExport SEXP _DMphyClus_RestorePreviousConfig(SEXP AugTreePointerSEXP, SEXP edgeMatSEXP, SEXP withinMatListIndexSEXP, SEXP betweenMatListIndexSEXP, SEXP NNImoveSEXP, SEXP clusterMRCAsSEXP, SEXP splitMergeMoveSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type AugTreePointer(AugTreePointerSEXP);
@@ -139,7 +139,7 @@ END_RCPP
 }
 // finalDeallocate
 void finalDeallocate(SEXP AugTreePointer);
-RcppExport SEXP DMphyClus_finalDeallocate(SEXP AugTreePointerSEXP) {
+RcppExport SEXP _DMphyClus_finalDeallocate(SEXP AugTreePointerSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type AugTreePointer(AugTreePointerSEXP);
@@ -149,7 +149,7 @@ END_RCPP
 }
 // getMaxMapSizeEstimate
 double getMaxMapSizeEstimate(double& allowedSizeInMegs, unsigned int& numRateCats);
-RcppExport SEXP DMphyClus_getMaxMapSizeEstimate(SEXP allowedSizeInMegsSEXP, SEXP numRateCatsSEXP) {
+RcppExport SEXP _DMphyClus_getMaxMapSizeEstimate(SEXP allowedSizeInMegsSEXP, SEXP numRateCatsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -161,7 +161,7 @@ END_RCPP
 }
 // checkAndCullMap
 void checkAndCullMap(SEXP AugTreePointer, unsigned int& allowedNumberOfElements, float& cullProportion, List& withinTransProbs, List& betweenTransProbs, NumericVector& limProbs);
-RcppExport SEXP DMphyClus_checkAndCullMap(SEXP AugTreePointerSEXP, SEXP allowedNumberOfElementsSEXP, SEXP cullProportionSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP limProbsSEXP) {
+RcppExport SEXP _DMphyClus_checkAndCullMap(SEXP AugTreePointerSEXP, SEXP allowedNumberOfElementsSEXP, SEXP cullProportionSEXP, SEXP withinTransProbsSEXP, SEXP betweenTransProbsSEXP, SEXP limProbsSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type AugTreePointer(AugTreePointerSEXP);
@@ -173,4 +173,24 @@ BEGIN_RCPP
     checkAndCullMap(AugTreePointer, allowedNumberOfElements, cullProportion, withinTransProbs, betweenTransProbs, limProbs);
     return R_NilValue;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_DMphyClus_logLikCpp", (DL_FUNC) &_DMphyClus_logLikCpp, 11},
+    {"_DMphyClus_getConvertedAlignment", (DL_FUNC) &_DMphyClus_getConvertedAlignment, 2},
+    {"_DMphyClus_newBetweenTransProbsLogLik", (DL_FUNC) &_DMphyClus_newBetweenTransProbsLogLik, 6},
+    {"_DMphyClus_newWithinTransProbsLogLik", (DL_FUNC) &_DMphyClus_newWithinTransProbsLogLik, 6},
+    {"_DMphyClus_withinClusNNIlogLik", (DL_FUNC) &_DMphyClus_withinClusNNIlogLik, 7},
+    {"_DMphyClus_betweenClusNNIlogLik", (DL_FUNC) &_DMphyClus_betweenClusNNIlogLik, 7},
+    {"_DMphyClus_clusSplitMergeLogLik", (DL_FUNC) &_DMphyClus_clusSplitMergeLogLik, 6},
+    {"_DMphyClus_RestorePreviousConfig", (DL_FUNC) &_DMphyClus_RestorePreviousConfig, 7},
+    {"_DMphyClus_finalDeallocate", (DL_FUNC) &_DMphyClus_finalDeallocate, 1},
+    {"_DMphyClus_getMaxMapSizeEstimate", (DL_FUNC) &_DMphyClus_getMaxMapSizeEstimate, 2},
+    {"_DMphyClus_checkAndCullMap", (DL_FUNC) &_DMphyClus_checkAndCullMap, 6},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_DMphyClus(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

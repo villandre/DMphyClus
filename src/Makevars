@@ -1,2 +1,2 @@
 PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) -lgsl -lgslcblas
-PKG_CXXFLAGS = -std=c++11 -fno-omit-frame-pointer -march=native -I/usr/include/gsl
+PKG_CXXFLAGS = -std=c++11 -fno-omit-frame-pointer -march=native -I/usr/local/include/gsl
