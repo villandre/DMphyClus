@@ -16,7 +16,16 @@ If this command returns nothing, please make sure the GSL is properly installed.
 
 -I/usr/local/include/gsl with -I/path/returned/by/the/find/command
 
-where /path/returned/by/the/find/command is replaced by the output of the find command. 
+where /path/returned/by/the/find/command is replaced by the output of the find command.
+
+If you get an error message like, 
+
+Error: package or namespace load failed for ‘DMphyClus’ in dyn.load(file, DLLpath = DLLpath, ...):
+ unable to load shared object '/home/luc/R/x86_64-pc-linux-gnu-library/3.4/DMphyClus/libs/DMphyClus.so':
+  libgsl.so.23: cannot open shared object file: No such file or directory
+
+It probably means the system variable LD_LIBRARY_PATH was not set. See https://www.gnu.org/software/gsl/doc/html/usage.html#shared-libraries
+for instructions.
 
 I strongly suggest reading the vignette before starting to use the package. To do so, start an R session and type "vignette("DMphyClus_Example", package = "DMphyClus")". This should open a browser window and display it. Else, you can simply go to the directory where the package vignette file is found, e.g. ~/R/i686-pc-linux-gnu-library/3.2/DMphyClus/doc/DMphyClusExample, and open DMphyClus_Example.html directly. Be aware that running the example in the vignette can take several minutes!
 
