@@ -9,8 +9,6 @@
 //#include <limits>
 #include <gsl/gsl_rng.h>
 
-// [[Rcpp::plugins(openmp)]]
-
 using namespace arma;
 using namespace Rcpp;
 

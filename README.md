@@ -1,31 +1,24 @@
 # DMphyClus
 A R package for phylogenetic clustering
 
-To install DMphyClus, simply download DMphyClus_1.0.tar.gz and run "R CMD INSTALL DMphyClus_1.0.tar.gz". Note that, for now, the GNU Scientific Library (GSL) and the Boost C++ libraries are required for the package to compile. 
+To install DMphyClus, simply download DMphyClus_1.0.tar.gz and run "R CMD INSTALL DMphyClus_1.0.tar.gz". Note that, for now, the GNU Scientific Library (GSL) is required for the package to compile.
 
-The GSL can be found at http://mirror.csclub.uwaterloo.ca/gnu/gsl/ . Installation instructions can be found in the INSTALL file within the downloaded archive. The Boost C++ libraries can be found at https://dl.bintray.com/boostorg/release/1.67.0/source/ . Once again, installation instructions can be found in the README file. 
+The GSL can be found at http://mirror.csclub.uwaterloo.ca/gnu/gsl/ . Installation instructions can be found in the INSTALL file within the downloaded archive. 
 
-IMPORTANT: You might get error message:
-TreeNode.h:7:25: fatal error: gsl/gsl_rng.h: No such file or directory
+IMPORTANT: If you have trouble installing the gsl library in R, it might be that the LD_LIBRARY_PATH environment variable in R is not properly set. 
+You can check this with,
 
-This means the GSL header files were not found. You can find their location by copying in the console:
+Sys.getenv()[["LD_LIBRARY_PATH"]]
 
-find / -name gsl_rng.h -printf '%h\n' 2>/dev/null
+Find where  libgsl.so.23.0.0 is located and add the directory with a command like,
 
-If this command returns nothing, please make sure the GSL is properly installed. Otherwise, on line 2 of DMphyClus/src/Makevars, replace
+Sys.setenv(LD_LIBRARY_PATH = paste(Sys.getenv()[["LD_LIBRARY_PATH"]], "/usr/local/lib", sep = "::"))
 
--I/usr/local/include/gsl with -I/path/returned/by/the/find/command
+You can find the location by copying in your OS console:
 
-where /path/returned/by/the/find/command is replaced by the output of the find command.
+find / -name libgsl.so.23.0.0 -printf '%h\n' 2>/dev/null
 
-If you get an error message like, 
-
-Error: package or namespace load failed for ‘DMphyClus’ in dyn.load(file, DLLpath = DLLpath, ...):
- unable to load shared object '/home/luc/R/x86_64-pc-linux-gnu-library/3.4/DMphyClus/libs/DMphyClus.so':
-  libgsl.so.23: cannot open shared object file: No such file or directory
-
-It probably means the system variable LD_LIBRARY_PATH was not set. See https://www.gnu.org/software/gsl/doc/html/usage.html#shared-libraries
-for instructions.
+If this command returns nothing, please make sure the GSL is properly installed.
 
 I strongly suggest reading the vignette before starting to use the package. To do so, start an R session and type "vignette("DMphyClus_Example", package = "DMphyClus")". This should open a browser window and display it. Else, you can simply go to the directory where the package vignette file is found, e.g. ~/R/i686-pc-linux-gnu-library/3.2/DMphyClus/doc/DMphyClusExample, and open DMphyClus_Example.html directly. Be aware that running the example in the vignette can take several minutes!
 

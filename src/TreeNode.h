@@ -1,8 +1,11 @@
 // [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(BH)]]
+// [[Rcpp::depends(RcppGSL)]]
 
 #include <boost/functional/hash.hpp>
 #include <assert.h>
 #include <RcppArmadillo.h>
+#include <RcppGSL.h>
 #include <unordered_map>
 #include <gsl/gsl_rng.h>
 #include <algorithm>
